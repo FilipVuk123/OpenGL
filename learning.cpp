@@ -1,3 +1,10 @@
+/*
+
+This is just development env test 
+
+Had a lot of "fun" setup all the necessary libraries. 
+
+*/
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
