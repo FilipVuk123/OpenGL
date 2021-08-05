@@ -2,7 +2,7 @@
 
 This is just development env test 
 
-Had a lot of "fun" setup all the necessary libraries. 
+Had a lot of "fun" setting up all the necessary libraries. 
 
 */
 #include <glad/glad.h>
