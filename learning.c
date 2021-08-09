@@ -6,14 +6,14 @@
 #include "stb_image.h" // using this image-loading library
 #include <stdbool.h>
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void framebuffer_size_callback(GLFWwindow* window, GLint width, GLint height);
 void processInput(GLFWwindow *window);
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const GLuint SCR_WIDTH = 800;
+const GLuint SCR_HEIGHT = 600;
 
-const char *vertexShaderSource = "#version 330 core\n"
+const  GLchar *vertexShaderSource = "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
     "layout (location = 1) in vec3 aColor;\n"
     "layout (location = 2) in vec2 aTexCoord;\n"
@@ -26,7 +26,7 @@ const char *vertexShaderSource = "#version 330 core\n"
     "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
     "}\0";
 
-const char *fragmentShaderSource = "#version 330 core\n"
+const  GLchar *fragmentShaderSource = "#version 330 core\n"
     "out vec4 FragColor;\n"
     "in vec3 ourColor;\n"
     "in vec2 TexCoord;\n"
@@ -61,17 +61,17 @@ int main(){
     }    
     
     // vertex shader
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
 
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
 
     // checking for compile-time errors 
-    int success;
-    char infoLog[512];
+    GLint success;
+    GLchar infoLog[512];
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
@@ -83,7 +83,7 @@ int main(){
         printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n");
     }
     // creating shaderProgram
-    unsigned int shaderProgram = glCreateProgram();
+    GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
@@ -106,12 +106,12 @@ int main(){
         -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
         -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left   
     };
-    unsigned int indices[] = {  
+    GLuint indices[] = {  
         0, 1, 3, 
         1, 2, 3  
     };
 
-    unsigned int VBO, VAO, EBO;
+    GLuint VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
@@ -130,7 +130,7 @@ int main(){
 
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    // texture coord attribute
+    
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
@@ -139,7 +139,7 @@ int main(){
 
 
     // load and create a texture 
-    unsigned int texture;
+    GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     // set the texture wrapping and filtering params
@@ -149,9 +149,9 @@ int main(){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    int width, height, nrChannels;
+    GLint width, height, nrChannels;
     // load image
-    unsigned char *data = stbi_load("image", &width, &height, &nrChannels, 0);
+    unsigned  char *data = stbi_load("image", &width, &height, &nrChannels, 0);
     if (data)
     {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -163,20 +163,20 @@ int main(){
     }
     stbi_image_free(data);
 
+    glUseProgram(shaderProgram);
 
     while (!glfwWindowShouldClose(window)){
         // input
         processInput(window);
 
         // render
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // background color
         glClear(GL_COLOR_BUFFER_BIT);
 
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);
 
         // draw our first triangle
-        glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         
@@ -201,7 +201,7 @@ void processInput(GLFWwindow *window){
 }
 
 // glfw: whenever the window size changed this callback function executes
-void framebuffer_size_callback(GLFWwindow* window, int width, int height){
+void framebuffer_size_callback(GLFWwindow* window, GLint width, GLint height){
     // make sure the viewport matches the new window dimensions
     glViewport(0, 0, width, height);
 }
