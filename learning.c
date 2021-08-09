@@ -1,8 +1,10 @@
+// gcc glad.c learning.c -ldl -lglfw -lm
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "stb_image.h"
-#include <iostream>
+#include "stb_image.h" // using this image-loading library
+#include <stdbool.h>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -45,7 +47,7 @@ int main(){
     // glfw window creation
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Learning OpenGL", NULL, NULL);
     if (window == NULL){
-        std::cout << "Failed to create GLFW window" << std::endl;
+        printf("Failed to create GLFW window\n");
         glfwTerminate();
         return -1;
     }
@@ -54,7 +56,7 @@ int main(){
 
     // glad: load all OpenGL function pointers
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        printf("Failed to create initialize GLAD\n");
         return -1;
     }    
     
@@ -73,12 +75,12 @@ int main(){
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+        printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n");
     }
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+        printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n");
     }
     // creating shaderProgram
     unsigned int shaderProgram = glCreateProgram();
@@ -90,7 +92,7 @@ int main(){
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+        printf("ERROR::SHADER::PROGRAM::LINKING_FAILED\n");
     }
 
     glDeleteShader(vertexShader);
@@ -157,7 +159,7 @@ int main(){
     }
     else
     {
-        std::cout << "Failed to load texture" << std::endl;
+        printf("Failed to load texture\n");
     }
     stbi_image_free(data);
 
