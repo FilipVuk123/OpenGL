@@ -7,7 +7,6 @@
 void framebuffer_size_callback(GLFWwindow* window,GLint width,GLint height);
 void processInput(GLFWwindow *window);
 
-// settings
 const GLuint SCR_WIDTH = 800;
 const GLuint SCR_HEIGHT = 600;
 
@@ -23,27 +22,26 @@ const GLchar *vertexShaderSource = "#version 330 core\n"
     "   ourColor = aColor;\n"
     "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
     "}\0";
+// Once your vertex coordinates have been processed in the vertex shader, they should be in normalized device coordinates which is a small space where the x, y and z values vary from -1.0 to 1.0. Any coordinates that fall outside this range will be discarded/clipped and won't be visible on your screen. 
 
 const GLchar *fragmentShaderSource = "#version 330 core\n"
     "out vec4 FragColor;\n"
     "in vec3 ourColor;\n"
     "in vec2 TexCoord;\n"
-    "uniform sampler2D texture1;\n"
+    "uniform sampler2D texture1;\n" // to add a texture to the fragment shader we simply declar a uniform sampler2D that we later assign our texture to. 
     "void main()\n"
     "{\n"
-    "   FragColor = texture(texture1, TexCoord);\n"
+    "   FragColor = texture(texture1, TexCoord);\n" // akes as its first argument a texture sampler and as its second argument the corresponding texture coordinates
     "}\n\0";
+// The main purpose of the fragment shader is to calculate the final color of a pixel and this is usually the stage where all the advanced OpenGL effects occur. 
 
 int main(){
-    // glfw: initialize and configure
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwInit(); // glfw: initialize
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // configure GLFW
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // configure GLFW
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-
-    // glfw window creation
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Learning OpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Learning OpenGL", NULL, NULL); // glfw window object creation
     if (window == NULL){
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -52,14 +50,13 @@ int main(){
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // glad: load all OpenGL function pointers
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }    
     
-    // vertex shader
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    // shaders
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
 
@@ -98,6 +95,7 @@ int main(){
     
 
     // set up vertex data and configure vertex attributes
+    // An EBO is a buffer, just like a vertex buffer object, that stores indices that OpenGL uses to decide what vertices to draw. 
     float vertices[] = {
          0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
          0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
@@ -111,11 +109,11 @@ int main(){
 
     GLuint VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &VBO); // We manage this memory via so called vertex buffer objects that can store a large number of vertices in the GPU's memory.
     glGenBuffers(1, &EBO);
 
     // bind the Vertex Array Object first, then bind and set vertex buffers, and then configure vertex attributes
-    glBindVertexArray(VAO);
+    glBindVertexArray(VAO); // Core OpenGL requires that we use a VAO so it knows what to do with our vertex inputs.
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -152,7 +150,7 @@ int main(){
     unsigned char *data = stbi_load("image", &width, &height, &nrChannels, 0);
     if (data)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);// generating
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
@@ -163,13 +161,13 @@ int main(){
 
     glUseProgram(shaderProgram);
 
-    while (!glfwWindowShouldClose(window)){
+    while (!glfwWindowShouldClose(window)){ // render loop
         // input
         processInput(window);
 
         // render
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT); // only clears color buffer
 
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -194,12 +192,12 @@ int main(){
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 void processInput(GLFWwindow *window){
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // close on Esc
         glfwSetWindowShouldClose(window, true);
 }
 
 // glfw: whenever the window size changed this callback function executes
-void framebuffer_size_callback(GLFWwindow* window,GLint width,GLint height){
+void framebuffer_size_callback(GLFWwindow* window,GLint width,GLint height){ 
     // make sure the viewport matches the new window dimensions
     glViewport(0, 0, width, height);
 }
