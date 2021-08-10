@@ -121,18 +121,18 @@ int main(){
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    GLint positionLocation = glGetAttribLocation(shaderProgram, "aPos");
+    GLint colorLocation = glGetAttribLocation(shaderProgram, "aColor");
+    GLint texCoordLocation = glGetAttribLocation(shaderProgram, "aTexCoord");
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(positionLocation);
 
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(colorLocation, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(colorLocation);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0); 
-    glBindVertexArray(0); 
-
+    glVertexAttribPointer(texCoordLocation, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(texCoordLocation);
 
     // load and create a texture 
     GLuint texture;
@@ -148,15 +148,10 @@ int main(){
     GLint width, height, nrChannels;
     // load image
     unsigned char *data = stbi_load("image", &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);// generating
+    if (data){
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data); // generating texture
         glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load image" << std::endl;
-    }
+    } else std::cout << "Failed to load image" << std::endl;
     stbi_image_free(data);
 
     glUseProgram(shaderProgram);
@@ -185,19 +180,15 @@ int main(){
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
     glDeleteProgram(shaderProgram);
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    glfwTerminate();
+    glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
     return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-void processInput(GLFWwindow *window){
+void processInput(GLFWwindow *window){ // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // close on Esc
         glfwSetWindowShouldClose(window, true);
 }
 
-// glfw: whenever the window size changed this callback function executes
-void framebuffer_size_callback(GLFWwindow* window,GLint width,GLint height){ 
-    // make sure the viewport matches the new window dimensions
+void framebuffer_size_callback(GLFWwindow* window,GLint width,GLint height){ // glfw: whenever the window size changed this callback function executes
     glViewport(0, 0, width, height);
 }
