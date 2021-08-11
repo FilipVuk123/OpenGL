@@ -1,8 +1,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "stb_image.h"
 #include <iostream>
+#include "stb_image.h" // using this image-loading library
+// #include "glext.h" // Nvidia extension
 
 void framebuffer_size_callback(GLFWwindow* window,GLint width,GLint height);
 void processInput(GLFWwindow *window);
@@ -39,6 +40,7 @@ int main(){
     glfwInit(); // glfw: initialize
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // configure GLFW
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // configure GLFW
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Learning OpenGL", NULL, NULL); // glfw window object creation
@@ -54,12 +56,11 @@ int main(){
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }    
-    
     // shaders
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
-
+    
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);

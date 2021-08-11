@@ -3,13 +3,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "stb_image.h" // using this image-loading library
 #include <stdbool.h>
+#include "stb_image.h" // using this image-loading library
 
 void framebuffer_size_callback(GLFWwindow* window, GLint width, GLint height);
 void processInput(GLFWwindow *window);
 
-// settings
 const GLuint SCR_WIDTH = 800;
 const GLuint SCR_HEIGHT = 600;
 
@@ -41,6 +40,7 @@ int main(){
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 
