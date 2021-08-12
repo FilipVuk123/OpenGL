@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 #include "stb_image.h" // using this image-loading library
+#include "glext.h"
 
 void framebuffer_size_callback(GLFWwindow* window, GLint width, GLint height);
 void processInput(GLFWwindow *window);
@@ -13,6 +14,7 @@ const GLuint SCR_WIDTH = 800;
 const GLuint SCR_HEIGHT = 600;
 
 const  GLchar *vertexShaderSource = "#version 330 core\n"
+    "#extension GL_NV_gpu_shader5 : enable\n"
     "layout (location = 0) in vec3 aPos;\n"
     "layout (location = 1) in vec3 aColor;\n"
     "layout (location = 2) in vec2 aTexCoord;\n"
@@ -26,6 +28,8 @@ const  GLchar *vertexShaderSource = "#version 330 core\n"
     "}\0";
 
 const  GLchar *fragmentShaderSource = "#version 330 core\n"
+"#extension GL_ARB_draw_buffers : enable\n"
+    "#extension GL_NV_fragment_shader_interlock : enable\n"
     "out vec4 FragColor;\n"
     "in vec3 ourColor;\n"
     "in vec2 TexCoord;\n"
@@ -61,11 +65,11 @@ int main(){
     }    
     
     // vertex shader
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER_ARB);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
 
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER_ARB);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
 
@@ -119,11 +123,11 @@ int main(){
     // bind the Vertex Array Object first, then bind and set vertex buffers, and then configure vertex attributes
     glBindVertexArray(VAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER_ARB, VBO);
+    glBufferData(GL_ARRAY_BUFFER_ARB, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER_ARB, sizeof(indices), indices, GL_STATIC_DRAW);
 
     GLint positionLocation = glGetAttribLocation(shaderProgram, "aPos");
     GLint colorLocation = glGetAttribLocation(shaderProgram, "aColor");
@@ -142,13 +146,13 @@ int main(){
     // load and create a texture 
     GLuint texture;
     glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_BUFFER_ARB, texture);
     // set the texture wrapping and filtering params
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_BUFFER_ARB, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_BUFFER_ARB, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_BUFFER_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_BUFFER_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     GLint width, height, nrChannels;
     // load image
