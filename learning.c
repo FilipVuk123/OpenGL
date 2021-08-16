@@ -91,6 +91,7 @@ int main(){
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL (OS specific) function pointers 
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
+        glfwTerminate();
         return -1;
     }
     
@@ -112,14 +113,12 @@ int main(){
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::VERTEX::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
         goto shaderError;
-        return -1;
     }
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
         goto shaderError;
-        return -1;
     }
     // creating shaderProgram - shaderProgram object should be the final linked version of multiple shaders combined
     GLuint shaderProgram = glCreateProgram(); // creates a program and returns the ID reference
@@ -133,7 +132,6 @@ int main(){
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::PROGRAM::LINKING_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
         goto linkingError;
-        return -1;
     }
 
     GLuint VBO; // vertex buffer object - send large batches of data all at once to the graphics card
