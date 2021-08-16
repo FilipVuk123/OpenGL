@@ -54,7 +54,7 @@ const  GLchar *fragmentShaderSource = "#version 460 core\n"
     "   FragColor = texture(texture1, TexCoord);\n"
     "}\n\0";
 
-int ORQA_initGLFW(BAR_NOARGS){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
+int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
     if(!glfwInit()){
         fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
         glfwTerminate();
