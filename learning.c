@@ -1,17 +1,32 @@
 // gcc learning.c glad.c -ldl -lm -lglfw -pipe -Wall -Wextra
 
 #define STB_IMAGE_IMPLEMENTATION
+#define ORQA_IN
+#define ORQA_REF
+#define ORQA_OUT
+#define ORQA_NOARGS
+
+#include <stdio.h> // fprintf
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <stdbool.h>
-#include "stb_image.h" // image-loading library
+#include <stdbool.h> // true
+#include "stb_image.h" // image-loading library, used funcktions: stbi_load, stbi_image_free
 #include "glext.h" // extensions
-
-void framebuffer_size_callback(GLFWwindow* window, GLint width, GLint height);
-void processInput(GLFWwindow *window);
 
 const GLuint SCR_WIDTH = 800;
 const GLuint SCR_HEIGHT = 600;
+
+const GLfloat vertices[] = {
+        // pisitions         // colors           // texture coords
+         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right vertex
+         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right vertex
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left vertex
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left vertex
+    };
+const GLuint indices[] = {  
+        0, 1, 3, // first triangle
+        1, 2, 3  // second triangle
+    };
 
 const  GLchar *vertexShaderSource = "#version 460 core\n"
     "#extension GL_NV_gpu_shader5 : enable\n"
@@ -39,29 +54,45 @@ const  GLchar *fragmentShaderSource = "#version 460 core\n"
     "   FragColor = texture(texture1, TexCoord);\n"
     "}\n\0";
 
-int main(){
-    // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
-    glfwInit();
+int ORQA_initGLFW(BAR_NOARGS){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
+    if(!glfwInit()){
+        fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
+        glfwTerminate();
+        return -1;
+    }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Specify API version 3.3
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // Specify API version 3.3
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // creating contex profile
+    
+    return 0;
+}
 
+void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
+        glfwSetWindowShouldClose(window, true);
+}
 
-    // glfw window creation
+// whenever the window size changed this callback function executes!
+void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height){
+    glViewport(0, 0, width, height); // size of the rendering window
+}
+
+int main(){
+    if (ORQA_initGLFW() == -1) return 0;
+    
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Learning OpenGL", NULL, NULL); // "window" object holds all the windowing data
     if (window == NULL){
-        printf("Failed to create GLFW window\n");
+        fprintf(stderr, "In file: %s, line: %d Failed to create GLFW window\n", __FILE__, __LINE__);
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window); // making the context of our window the main context on the current thread
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); // sets the framebuffer resize callback for the specified window.
+    glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback); // sets the framebuffer resize callback for the specified window.
 
-    // glad: load all OpenGL (OS specific) function pointers 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ 
-        printf("Failed to create initialize GLAD\n");
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL (OS specific) function pointers 
+        fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
         return -1;
-    }    
+    }
     
     // vertex shader - processes as much vertices from its memory
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER_ARB); // create vertex shader
@@ -79,12 +110,12 @@ int main(){
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n");
+        fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::VERTEX::COMPILATION_FAILED\n", __FILE__, __LINE__);
     }
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n");
+        fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n", __FILE__, __LINE__);
     }
     // creating shaderProgram - shaderProgram object should be the final linked version of multiple shaders combined
     GLuint shaderProgram = glCreateProgram(); // creates a program and returns the ID reference
@@ -96,25 +127,11 @@ int main(){
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        printf("ERROR::SHADER::PROGRAM::LINKING_FAILED\n");
+        fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::PROGRAM::LINKING_FAILED\n", __FILE__, __LINE__);
     }
     // delete the shader objects once we've linked them into the program object
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
-    
-
-    // drawing rectangle using two triagles
-    GLfloat vertices[] = {
-        // pisitions         // colors            // texture coords
-        0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right vertex
-        0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right vertex
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left vertex
-        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left vertex
-    };
-    GLuint indices[] = {  
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
-    };
 
     GLuint VBO; // vertex buffer object - send large batches of data all at once to the graphics card
     GLuint VAO; // contains one or more Vertex Buffer Objects (stores the information for a complete rendered object)
@@ -166,14 +183,14 @@ int main(){
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data); // genereting texture
         glGenerateMipmap(GL_TEXTURE_2D); // generate mipmaps for a specified texture object
-    } else printf("Failed to load texture\n");
+    } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
     stbi_image_free(data); // free the image memory
 
     glUseProgram(shaderProgram); // sets the given program object as the current active shader
 
     while (!glfwWindowShouldClose(window)){ // render loop
         // inputs
-        processInput(window); // check for specific key presses and react accordingly every frame
+        ORQA_processInput(window); // check for specific key presses and react accordingly every frame
 
         // rendering
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // sets the color value that OpenGL uses to reset the color buffer (background color)
@@ -193,14 +210,4 @@ int main(){
     glDeleteProgram(shaderProgram);
     glfwTerminate(); // delete all of GLFW's resources that were allocated
     return 0;
-}
-
-void processInput(GLFWwindow *window){ // keeps all the input code
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
-        glfwSetWindowShouldClose(window, true);
-}
-
-// whenever the window size changed this callback function executes!
-void framebuffer_size_callback(GLFWwindow* window, GLint width, GLint height){
-    glViewport(0, 0, width, height); // size of the rendering window
 }
