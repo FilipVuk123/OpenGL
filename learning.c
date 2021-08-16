@@ -44,7 +44,7 @@ const  GLchar *vertexShaderSource = "#version 460 core\n"
 
 const  GLchar *fragmentShaderSource = "#version 460 core\n"
     "#extension GL_ARB_draw_buffers : enable\n"
-    "#extension GL_NV_fragment_shader_barycentric : enable\n"
+    "#extension GL_NV_fragment_shader_interlock : enable\n"
     "out vec4 FragColor;\n"
     "in vec3 ourColor;\n" // the aColor variable from the vertex shader
     "in vec2 TexCoord;\n" // the aTexCoord variable from the vertex shader
@@ -110,28 +110,31 @@ int main(){
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::VERTEX::COMPILATION_FAILED\n", __FILE__, __LINE__);
+        fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::VERTEX::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
+        goto shaderError;
+        return -1;
     }
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n", __FILE__, __LINE__);
+        fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
+        goto shaderError;
+        return -1;
     }
     // creating shaderProgram - shaderProgram object should be the final linked version of multiple shaders combined
     GLuint shaderProgram = glCreateProgram(); // creates a program and returns the ID reference
     glAttachShader(shaderProgram, vertexShader); 
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram); // linking shaders
-    
+
     // checking for errors
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::PROGRAM::LINKING_FAILED\n", __FILE__, __LINE__);
+        fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::PROGRAM::LINKING_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
+        goto linkingError;
+        return -1;
     }
-    // delete the shader objects once we've linked them into the program object
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
 
     GLuint VBO; // vertex buffer object - send large batches of data all at once to the graphics card
     GLuint VAO; // contains one or more Vertex Buffer Objects (stores the information for a complete rendered object)
@@ -207,7 +210,11 @@ int main(){
     glDeleteVertexArrays(1, &VAO); 
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
+    linkingError:
     glDeleteProgram(shaderProgram);
+    shaderError:
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
     glfwTerminate(); // delete all of GLFW's resources that were allocated
     return 0;
 }
