@@ -1,1 +1,5 @@
 *.out
+*.blend
+*.obj
+*.so
+*.0

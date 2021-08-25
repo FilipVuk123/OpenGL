@@ -9,7 +9,6 @@
 #include <stdio.h> // fprintf
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <stdbool.h> // true
 #include "stb_image.h" // image-loading library, used funcktions: stbi_load, stbi_image_free
 #include "glext.h" // extensions
 
@@ -17,16 +16,16 @@ const GLuint SCR_WIDTH = 800;
 const GLuint SCR_HEIGHT = 600;
 
 const GLfloat vertices[] = {
-        // pisitions         // colors           // texture coords
+        // pisitions          // colors           // texture coords
          0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right vertex
          0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right vertex
         -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left vertex
         -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left vertex
-    };
+};
 const GLuint indices[] = {  
         0, 1, 3, // first triangle
         1, 2, 3  // second triangle
-    };
+};
 
 const  GLchar *vertexShaderSource = "#version 460 core\n"
     "#extension GL_NV_gpu_shader5 : enable\n"
@@ -69,7 +68,7 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
 
 void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
-        glfwSetWindowShouldClose(window, true);
+        glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
 // whenever the window size changed this callback function executes!
@@ -112,13 +111,13 @@ int main(){
     if (!success){
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::VERTEX::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        goto shaderError;
+        goto shaderError; // error handling
     }
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        goto shaderError;
+        goto shaderError; // error handling
     }
     // creating shaderProgram - shaderProgram object should be the final linked version of multiple shaders combined
     GLuint shaderProgram = glCreateProgram(); // creates a program and returns the ID reference
@@ -131,7 +130,7 @@ int main(){
     if (!success) {
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::PROGRAM::LINKING_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        goto linkingError;
+        goto linkingError; // error handling
     }
 
     GLuint VBO; // vertex buffer object - send large batches of data all at once to the graphics card
