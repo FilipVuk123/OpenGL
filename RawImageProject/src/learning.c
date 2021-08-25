@@ -179,7 +179,7 @@ int main(){
 
     // loading image
     GLint width, height, nrChannels;
-    unsigned  char *data = stbi_load("image", &width, &height, &nrChannels, 0);
+    unsigned  char *data = stbi_load("../data/image", &width, &height, &nrChannels, 0);
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data); // genereting texture
         glGenerateMipmap(GL_TEXTURE_2D); // generate mipmaps for a specified texture object

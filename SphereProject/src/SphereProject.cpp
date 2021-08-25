@@ -8,7 +8,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
-#include "stb_image.h" // using this image-loading library
+#include "../include/stb_image.h" // using this image-loading library
 #include <vector>
 #include <cmath>
 
@@ -226,7 +226,7 @@ int main(){
     glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     GLint width, height, nrChannels;
-    unsigned char *data = stbi_load("image", &width, &height, &nrChannels, 0);
+    unsigned char *data = stbi_load("../data/image", &width, &height, &nrChannels, 0);
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
