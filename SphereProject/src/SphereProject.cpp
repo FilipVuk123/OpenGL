@@ -25,6 +25,11 @@ const GLfloat radius = 0.7f;
 const GLuint sectors = 25; 
 const GLuint stacks = 25; 
 
+// camera
+const glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+const glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+const glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
 void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
         glfwSetWindowShouldClose(window, GL_TRUE);
@@ -54,12 +59,6 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
     
     return 0;
 }
-
-// camera
-const glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-const glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-const glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-
 const GLchar *vertexShaderSource = "#version 460 core\n"
     "layout (location = 0) in vec3 aPos;\n"
     "layout (location = 1) in vec3 aColor;\n"
@@ -301,6 +300,7 @@ int main(){
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+    
     glDeleteVertexArrays(1, &VAO); 
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);

@@ -1,5 +1,3 @@
-// gcc learning.c glad.c -ldl -lm -lglfw -pipe -Wall -Wextra
-
 #define STB_IMAGE_IMPLEMENTATION
 #define ORQA_IN
 #define ORQA_REF

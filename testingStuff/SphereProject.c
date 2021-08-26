@@ -1,3 +1,5 @@
+// gcc SphereProject.c glad.c -ldl -lm -lglfw -pipe -Wall -Wextra
+
 #define STB_IMAGE_IMPLEMENTATION
 
 #define ORQA_IN
@@ -11,6 +13,9 @@
 #include <stdbool.h> 
 #include "stb_image.h" // using this image-loading library
 #include <math.h>
+
+#include <cglm/cglm.h>
+#include <cglm/common.h>
 
 /*
 void generateSphere(float radius, unsigned int stacks, unsigned int sectors){
@@ -52,6 +57,14 @@ void generateSphere(float radius, unsigned int stacks, unsigned int sectors){
         indices[j++] = (i + 1);
     }
 }*/
+const vec3 cameraPos = (vec3){2.0f, 0.0f, 0.0f};
+const vec3 cameraCentar = (vec3){2.0f, 0.0f, -5.0f};
+const vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
+
+GLfloat fov = 5.0f;
+const GLdouble rotation = 0.001;
+const GLuint SCR_WIDTH = 800;
+const GLuint SCR_HEIGHT = 600;
 
 const GLfloat vertices[] = {
          0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
@@ -73,34 +86,13 @@ void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint wi
     glViewport(0, 0, width, height); // size of the rendering window
 }
 
-const GLuint SCR_WIDTH = 800;
-const GLuint SCR_HEIGHT = 600;
-
-const GLchar *vertexShaderSource = "#version 460 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "layout (location = 1) in vec3 aColor;\n"
-    "layout (location = 2) in vec2 aTexCoord;\n"
-    "out vec3 ourColor;\n"
-    "out vec2 TexCoord;\n"
-    "uniform mat4 modelMatrix;\n"
-    "uniform mat4 projMatrix;\n"
-    "uniform mat4 viewMatrix;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = projMatrix*viewMatrix*modelMatrix*vec4(aPos, 1.0f);\n" // projMatrix*viewMatrix*modelMatrix*vec4()
-    "   ourColor = aColor;\n"
-    "   TexCoord = aTexCoord;\n"
-    "}\n\0";
-
-const GLchar *fragmentShaderSource = "#version 460 core\n"
-    "out vec4 FragColor;\n"
-    "in vec3 ourColor;\n"
-    "in vec2 TexCoord;\n"
-    "uniform sampler2D texture1;\n" 
-    "void main()\n"
-    "{\n"
-    "   FragColor = texture(texture1, TexCoord);\n" 
-    "}\n\0";
+void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
+    fov -= (GLfloat)yoffset/10;
+    if (fov < 4.0f)
+        fov = 4.0f;
+    if (fov > 6.0f)
+        fov = 6.0f;
+}
 
 int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
     if(!glfwInit()){
@@ -115,6 +107,30 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
     return 0;
 }
 
+const GLchar *vertexShaderSource = "#version 460 core\n"
+    "layout (location = 0) in vec3 aPos;\n"
+    "layout (location = 1) in vec3 aColor;\n"
+    "layout (location = 2) in vec2 aTexCoord;\n"
+    "out vec3 ourColor;\n"
+    "out vec2 TexCoord;\n"
+    "uniform mat4 MVP;\n"
+    "void main()\n"
+    "{\n"
+    "   gl_Position = MVP*vec4(aPos, 1.0f);\n"
+    "   ourColor = aColor;\n"
+    "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
+    "}\n\0";
+
+const GLchar *fragmentShaderSource = "#version 460 core\n"
+    "out vec4 FragColor;\n"
+    "in vec3 ourColor;\n"
+    "in vec2 TexCoord;\n"
+    "uniform sampler2D texture1;\n" 
+    "void main()\n"
+    "{\n"
+    "   FragColor = texture(texture1, TexCoord);\n" 
+    "}\n\0";
+
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
 
@@ -126,6 +142,7 @@ int main(){
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback);
+    glfwSetScrollCallback(window, ORQA_scroll_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
@@ -186,7 +203,7 @@ int main(){
     GLint colorLocation = glGetAttribLocation(shaderProgram, "aColor");
     GLint texCoordLocation = glGetAttribLocation(shaderProgram, "aTexCoord");
 
-    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(positionLocation);
 
     glVertexAttribPointer(colorLocation, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
@@ -212,6 +229,17 @@ int main(){
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
     stbi_image_free(data);
 
+    mat4 model, projection, view, temp, MVP;
+    GLuint MVPLoc = glGetUniformLocation(shaderProgram, "MVP");
+
+    glm_mat4_identity(model);
+    glm_mat4_identity(view);
+
+    glm_translate(view, (vec3){0,0,-5});
+
+    glm_mat4_mul(view, model, temp);
+    glm_mat4_mul(projection, temp, MVP);
+    
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glEnable(GL_DEPTH_TEST);
     
@@ -225,11 +253,26 @@ int main(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(shaderProgram);
 
-        // zoom
+        glm_perspective(fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.1f, 10.0f, projection);
         
-        // view
+        glm_rotate(model, 0.0f, (vec3){1, 0, 0});
 
-        // rotations
+        if(glfwGetKey(window, GLFW_KEY_A)) glm_rotate(model, rotation, (vec3){-0.1, 0, 0});
+        
+        if(glfwGetKey(window, GLFW_KEY_D)) glm_rotate(model, rotation, (vec3){0.1, 0, 0});
+        
+        if(glfwGetKey(window, GLFW_KEY_LEFT)) glm_rotate(model, rotation, (vec3){0, 0.1, 0});
+        
+        if(glfwGetKey(window, GLFW_KEY_RIGHT)) glm_rotate(model, rotation, (vec3){0,-0.1, 0});
+        
+        if(glfwGetKey(window, GLFW_KEY_UP)) glm_rotate(model, rotation, (vec3){0, 0, 0.1});
+        
+        if(glfwGetKey(window, GLFW_KEY_DOWN)) glm_rotate(model, rotation, (vec3){0, 0, -0.1});
+
+        glm_mat4_mul(view, model, MVP);
+        glm_mat4_mul(projection, MVP, MVP);
+
+        glUniformMatrix4fv(MVPLoc,1, GL_FALSE, &MVP[0][0]); 
 
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);

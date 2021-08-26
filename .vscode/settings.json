@@ -49,5 +49,6 @@
         "typeinfo": "cpp",
         "list": "cpp",
         "math.h": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }
