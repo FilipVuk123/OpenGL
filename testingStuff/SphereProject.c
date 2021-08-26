@@ -11,6 +11,7 @@
 #include <stdbool.h> 
 #include "stb_image.h" // using this image-loading library
 #include <math.h>
+
 /*
 void generateSphere(float radius, unsigned int stacks, unsigned int sectors){
     const int numOfVertex = (stacks+1)*(sectors+1);
@@ -51,47 +52,17 @@ void generateSphere(float radius, unsigned int stacks, unsigned int sectors){
         indices[j++] = (i + 1);
     }
 }*/
-/*
-class Sphere{
-    public:
-        std::vector<GLfloat> vertices;
-        std::vector<GLint> indices;
-    private:
-        float radius;
-        unsigned int stacks, sectors;
-    public:
-    Sphere(float radius, unsigned int stacks, unsigned int sectors): radius(radius), stacks(stacks), sectors(sectors){};
-    void generate(){
-        for (unsigned int i = 0; i <= stacks; ++i){
 
-            float V   = i / (float) stacks;
-            float phi = V * M_PI;
-
-            for (unsigned int j = 0; j <= sectors; ++j){
-
-                float U = j / (float) sectors;
-                float theta = U * (M_PI * 2);
-
-                float x = cosf (theta) * sinf (phi);
-                float y = cosf (phi);
-                float z = sinf (theta) * sinf (phi);
-
-                vertices.push_back (x * radius);
-                vertices.push_back (y * radius);
-                vertices.push_back (z * radius);                
-            }
-        }
-        for (unsigned int i = 0; i < sectors * stacks + sectors; ++i){
-            indices.push_back(i);
-            indices.push_back(i + sectors + 1);
-            indices.push_back(i + sectors);
-            
-            indices.push_back(i + sectors + 1);
-            indices.push_back(i);
-            indices.push_back(i + 1);
-        }
-    }
-};*/
+const GLfloat vertices[] = {
+         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
+         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left   
+    };
+    const GLuint indices[] = {  
+        0, 1, 3, 
+        1, 2, 3  
+    };
 
 void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
@@ -111,11 +82,14 @@ const GLchar *vertexShaderSource = "#version 460 core\n"
     "layout (location = 2) in vec2 aTexCoord;\n"
     "out vec3 ourColor;\n"
     "out vec2 TexCoord;\n"
+    "uniform mat4 modelMatrix;\n"
+    "uniform mat4 projMatrix;\n"
+    "uniform mat4 viewMatrix;\n"
     "void main()\n"
     "{\n"
-    "   gl_Position = vec4(aPos.xyz, 1.0f);\n" // transform*vec4()
+    "   gl_Position = projMatrix*viewMatrix*modelMatrix*vec4(aPos, 1.0f);\n" // projMatrix*viewMatrix*modelMatrix*vec4()
     "   ourColor = aColor;\n"
-    "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
+    "   TexCoord = aTexCoord;\n"
     "}\n\0";
 
 const GLchar *fragmentShaderSource = "#version 460 core\n"
@@ -140,6 +114,7 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
     
     return 0;
 }
+
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
 
@@ -154,9 +129,9 @@ int main(){
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
+        glfwTerminate();
         return -1;
     }    
-
 
 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
@@ -173,17 +148,15 @@ int main(){
     if (!success){
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::VERTEX::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        glfwTerminate();
-        return 0;
+        goto shaderError; // error handling
     }
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        glfwTerminate();
-        return 0;
+        goto shaderError; // error handling
     }
-    // creating shaderProgram
+
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
@@ -193,12 +166,8 @@ int main(){
     if (!success) {
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::PROGRAM::LINKING_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        glfwTerminate();
-        return 0;
+        goto linkingError; // error handling
     }
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
 
     GLuint VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
@@ -232,7 +201,6 @@ int main(){
     
     glTexParameteri(GL_TEXTURE_BUFFER , GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_BUFFER , GL_TEXTURE_WRAP_T, GL_REPEAT);
-
     glTexParameteri(GL_TEXTURE_BUFFER , GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_BUFFER , GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -245,9 +213,8 @@ int main(){
     stbi_image_free(data);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
-    glBindVertexArray(0);
-
-    glUseProgram(shaderProgram);
+    glEnable(GL_DEPTH_TEST);
+    
     
     while (!glfwWindowShouldClose(window)){ // render loop
         // input
@@ -255,13 +222,19 @@ int main(){
 
         // render
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glUseProgram(shaderProgram);
+
+        // zoom
         
+        // view
+
+        // rotations
+
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);
 
         // draw our first triangle
-        glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, sizeof(vertices), GL_UNSIGNED_INT, 0);
     
         // glfw: swap buffers and poll IO events
@@ -273,7 +246,11 @@ int main(){
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
     glDeleteTextures(1, &texture);
+    linkingError:
     glDeleteProgram(shaderProgram);
+    shaderError:
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
 
     return 0;

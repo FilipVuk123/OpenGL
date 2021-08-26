@@ -21,6 +21,10 @@ const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
 const GLfloat rotation = 0.1f;
 
+const GLfloat radius = 0.7f;
+const GLuint sectors = 25; 
+const GLuint stacks = 25; 
+
 void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
         glfwSetWindowShouldClose(window, GL_TRUE);
@@ -138,6 +142,7 @@ int main(){
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
+        glfwTerminate();
         return -1;
     }    
 
@@ -183,7 +188,7 @@ int main(){
     glDeleteShader(fragmentShader);
 
     // generating Sphere vertices 
-    ORQA_Sphere s1(0.7, 25, 25);
+    ORQA_Sphere s1(radius, stacks, sectors);
     s1.generate();
 
     GLfloat vertices[s1.vertices.size()];
@@ -245,10 +250,9 @@ int main(){
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
 
-    glEnable(GL_DEPTH_TEST); // tells opengl which triangles to draw
+    glEnable(GL_DEPTH_TEST);
 
     while (!glfwWindowShouldClose(window)){ // render loop
-        
         // input
         ORQA_processInput(window);
 
