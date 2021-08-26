@@ -16,7 +16,72 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-class Sphere{
+GLfloat fov = 50.0f;
+const GLuint SCR_WIDTH = 800;
+const GLuint SCR_HEIGHT = 600;
+const GLfloat rotation = 0.1f;
+
+void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
+        glfwSetWindowShouldClose(window, GL_TRUE);
+}
+
+void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height){
+    glViewport(0, 0, width, height); // size of the rendering window
+}
+void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
+    fov -= (GLfloat)yoffset;
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 100.0f)
+        fov = 100.0f;
+}
+
+int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
+    if(!glfwInit()){
+        fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
+        glfwTerminate();
+        return -1;
+    }
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Specify API version 3.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // Specify API version 3.3
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // creating contex profile
+    
+    return 0;
+}
+
+// camera
+const glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+const glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+const glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+const GLchar *vertexShaderSource = "#version 460 core\n"
+    "layout (location = 0) in vec3 aPos;\n"
+    "layout (location = 1) in vec3 aColor;\n"
+    "layout (location = 2) in vec2 aTexCoord;\n"
+    "out vec3 ourColor;\n"
+    "out vec2 TexCoord;\n"
+    "uniform mat4 modelMatrix;\n"
+    "uniform mat4 projMatrix;\n"
+    "uniform mat4 viewMatrix;\n"
+    "void main()\n"
+    "{\n"
+    "   gl_Position = projMatrix*viewMatrix*modelMatrix*vec4(aPos, 1.0f);\n" // projMatrix*viewMatrix*modelMatrix*vec4()
+    "   ourColor = aColor;\n"
+    "   TexCoord = aTexCoord;\n"
+    "}\n\0";
+
+const GLchar *fragmentShaderSource = "#version 460 core\n"
+    "out vec4 FragColor;\n"
+    "in vec3 ourColor;\n"
+    "in vec2 TexCoord;\n"
+    "uniform sampler2D texture1;\n" 
+    "void main()\n"
+    "{\n"
+    "   FragColor = texture(texture1, TexCoord);\n" 
+    "}\n\0";
+
+class ORQA_Sphere{
     public:
         std::vector<GLfloat> vertices;
         std::vector<GLint> indices;
@@ -24,7 +89,7 @@ class Sphere{
         float radius;
         unsigned int stacks, sectors;
     public:
-    Sphere(float radius, unsigned int stacks, unsigned int sectors): radius(radius), stacks(stacks), sectors(sectors){};
+    ORQA_Sphere(float radius, unsigned int stacks, unsigned int sectors): radius(radius), stacks(stacks), sectors(sectors){};
     void generate(){
         for (unsigned int i = 0; i <= stacks; ++i){
 
@@ -57,70 +122,6 @@ class Sphere{
     }
 };
 
-void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
-        glfwSetWindowShouldClose(window, GL_TRUE);
-}
-
-void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height){
-    glViewport(0, 0, width, height); // size of the rendering window
-}
-
-GLfloat fov = 50.0f;
-const GLuint SCR_WIDTH = 800;
-const GLuint SCR_HEIGHT = 600;
-
-// camera
-glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
-    fov -= (float)yoffset;
-    if (fov < 1.0f)
-        fov = 1.0f;
-    if (fov > 100.0f)
-        fov = 100.0f;
-}
-
-const GLchar *vertexShaderSource = "#version 460 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "layout (location = 1) in vec3 aColor;\n"
-    "layout (location = 2) in vec2 aTexCoord;\n"
-    "out vec3 ourColor;\n"
-    "out vec2 TexCoord;\n"
-    "uniform mat4 modelMatrix;\n"
-    "uniform mat4 projMatrix;\n"
-    "uniform mat4 viewMatrix;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = projMatrix*viewMatrix*modelMatrix*vec4(aPos, 1.0f);\n" // projMatrix*viewMatrix*modelMatrix*vec4()
-    "   ourColor = aColor;\n"
-    "   TexCoord = aTexCoord;\n"
-    "}\n\0";
-
-const GLchar *fragmentShaderSource = "#version 460 core\n"
-    "out vec4 FragColor;\n"
-    "in vec3 ourColor;\n"
-    "in vec2 TexCoord;\n"
-    "uniform sampler2D texture1;\n" 
-    "void main()\n"
-    "{\n"
-    "   FragColor = texture(texture1, TexCoord);\n" 
-    "}\n\0";
-
-int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
-    if(!glfwInit()){
-        fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
-        glfwTerminate();
-        return -1;
-    }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Specify API version 3.3
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // Specify API version 3.3
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // creating contex profile
-    
-    return 0;
-}
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
 
@@ -132,7 +133,7 @@ int main(){
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback);
-    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetScrollCallback(window, ORQA_scroll_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
@@ -181,7 +182,7 @@ int main(){
     glDeleteShader(fragmentShader);
 
     // generating Sphere vertices 
-    Sphere s1(1.0, 25, 25);
+    ORQA_Sphere s1(1.0, 25, 25);
     s1.generate();
 
     GLfloat vertices[s1.vertices.size()];
@@ -233,15 +234,17 @@ int main(){
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
     stbi_image_free(data);
 
-    const float rotation = 0.1f;
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 proj = glm::mat4(1.0f);
     glm::mat4 view = glm::mat4(1.0f);
 
+    GLint modelLoc = glGetUniformLocation(shaderProgram, "modelMatrix");
+    GLint viewLoc = glGetUniformLocation(shaderProgram, "viewMatrix");
+    GLint projLoc = glGetUniformLocation(shaderProgram, "projMatrix");
+
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
 
     glEnable(GL_DEPTH_TEST); // tells opengl which triangles to draw
-
 
     while (!glfwWindowShouldClose(window)){ // render loop
         
@@ -254,44 +257,34 @@ int main(){
         glUseProgram(shaderProgram);
         
         // zoom
-        int projLoc = glGetUniformLocation(shaderProgram, "projMatrix");
-        proj = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        proj = glm::perspective(glm::radians(fov), (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.1f, 100.0f);
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
 
         // view
-        int viewLoc = glGetUniformLocation(shaderProgram, "viewMatrix");
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
-        // rotation
-        int modelLoc = glGetUniformLocation(shaderProgram, "modelMatrix");
-        model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        
+        // rotations
         if(glfwGetKey(window, GLFW_KEY_A)){
             model = glm::rotate(model, glm::radians(rotation), glm::vec3(-1.0f, 0.0f, 0.0f));
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         }
         if(glfwGetKey(window, GLFW_KEY_D)){
             model = glm::rotate(model, glm::radians(rotation), glm::vec3(1.0f, 0.0f, 0.0f));
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         }
         if(glfwGetKey(window, GLFW_KEY_LEFT)){
             model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         }
         if(glfwGetKey(window, GLFW_KEY_RIGHT)){
             model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, -1.0f, 0.0f));
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         }
         if(glfwGetKey(window, GLFW_KEY_UP)){
             model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         }
         if(glfwGetKey(window, GLFW_KEY_DOWN)){
             model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, -1.0f));
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         }
+        model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -299,12 +292,10 @@ int main(){
         // draw our first triangle
         glDrawElements(GL_TRIANGLES, sizeof(vertices), GL_UNSIGNED_INT, 0);
         
-        
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
     glDeleteVertexArrays(1, &VAO); 
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
