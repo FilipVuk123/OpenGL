@@ -17,8 +17,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 GLfloat fov = 50.0f;
-const GLuint SCR_WIDTH = 800;
-const GLuint SCR_HEIGHT = 600;
+const GLuint SCR_WIDTH = 1920;
+const GLuint SCR_HEIGHT = 1080;
 const GLfloat rotation = 0.1f;
 
 void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
@@ -29,6 +29,7 @@ void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
 void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height){
     glViewport(0, 0, width, height); // size of the rendering window
 }
+
 void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
     fov -= (GLfloat)yoffset;
     if (fov < 1.0f)
@@ -182,7 +183,7 @@ int main(){
     glDeleteShader(fragmentShader);
 
     // generating Sphere vertices 
-    ORQA_Sphere s1(1.0, 25, 25);
+    ORQA_Sphere s1(0.7, 25, 25);
     s1.generate();
 
     GLfloat vertices[s1.vertices.size()];
