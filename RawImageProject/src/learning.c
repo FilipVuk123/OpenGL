@@ -8,7 +8,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "stb_image.h" // image-loading library, used funcktions: stbi_load, stbi_image_free
-#include "glext.h" // extensions
+#include "glext.h" // extensions for gpu optimization
 
 const GLuint SCR_WIDTH = 800;
 const GLuint SCR_HEIGHT = 600;
