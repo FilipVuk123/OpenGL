@@ -255,7 +255,7 @@ int main(){
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glEnable(GL_DEPTH_TEST);
     
-    
+
     while (!glfwWindowShouldClose(window)){ // render loop
         // input
         ORQA_processInput(window);
