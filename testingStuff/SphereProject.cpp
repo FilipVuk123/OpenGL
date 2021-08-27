@@ -1,5 +1,3 @@
-// gcc SphereProject.c glad.c -ldl -lm -lglfw -pipe -Wall -Wextra
-
 #define STB_IMAGE_IMPLEMENTATION
 
 #define ORQA_IN
@@ -9,77 +7,32 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <stdio.h>
-#include <stdbool.h> 
-#include "stb_image.h" // using this image-loading library
-#include <math.h>
+#include <iostream>
+#include "../include/stb_image.h" // using this image-loading library
+#include <vector>
+#include <cmath>
 
-#include <cglm/cglm.h>
-#include <cglm/common.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
-/*
-void generateSphere(float radius, unsigned int stacks, unsigned int sectors){
-    const int numOfVertex = (stacks+1)*(sectors+1);
-    const int numOfIndices = ;
-    float verticesX[numOfVertex];
-    float verticesY[numOfVertex];
-    float verticesZ[numOfVertex];
+GLfloat fov = 50.0f;
+const GLuint SCR_WIDTH = 1920;
+const GLuint SCR_HEIGHT = 1080;
+const GLfloat rotation = 0.1f;
 
-    unsigned int indices[numOfIndices*5];
-    
-    float indicies[numOfVertex];
-    for (unsigned int i = 0; i <= stacks; ++i){
-        float V   = i / (float) stacks;
-        float phi = V * M_PI;
+const GLfloat radius = 0.7f;
+const GLuint sectors = 25; 
+const GLuint stacks = 25; 
 
-        for (unsigned int j = 0; j <= sectors; ++j){
-
-            float U = j / (float) sectors;
-            float theta = U * (M_PI * 2);
-
-            float x = cosf (theta) * sinf (phi);
-            float y = cosf (phi);
-            float z = sinf (theta) * sinf (phi);
-
-            verticesX[j-1] = x * radius;
-            verticesY[j-1] = y * radius;
-            verticesZ[j-1] = z * radius;                
-        }
-    }
-    unsigned int j = 0;
-    for (unsigned int i = 0; i < sectors * stacks + sectors; ++i){
-        indices[j++] = (i);
-        indices[j++] = (i + sectors + 1);
-        indices[j++] = (i + sectors);
-        
-        indices[j++] = (i + sectors + 1);
-        indices[j++] = (i);
-        indices[j++] = (i + 1);
-    }
-}*/
-const vec3 cameraPos = (vec3){2.0f, 0.0f, 0.0f};
-const vec3 cameraCentar = (vec3){2.0f, 0.0f, -5.0f};
-const vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
-
-GLfloat fov = 5.0f;
-const GLdouble rotation = 0.001;
-const GLuint SCR_WIDTH = 800;
-const GLuint SCR_HEIGHT = 600;
-
-const GLfloat vertices[] = {
-         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left   
-    };
-    const GLuint indices[] = {  
-        0, 1, 3, 
-        1, 2, 3  
-    };
+// camera
+const glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+const glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+const glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
-        glfwSetWindowShouldClose(window, true);
+        glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
 void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height){
@@ -87,11 +40,11 @@ void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint wi
 }
 
 void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
-    fov -= (GLfloat)yoffset/10;
-    if (fov < 4.0f)
-        fov = 4.0f;
-    if (fov > 6.0f)
-        fov = 6.0f;
+    fov -= (GLfloat)yoffset;
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 100.0f)
+        fov = 100.0f;
 }
 
 int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
@@ -106,19 +59,20 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
     
     return 0;
 }
-
 const GLchar *vertexShaderSource = "#version 460 core\n"
     "layout (location = 0) in vec3 aPos;\n"
     "layout (location = 1) in vec3 aColor;\n"
     "layout (location = 2) in vec2 aTexCoord;\n"
     "out vec3 ourColor;\n"
     "out vec2 TexCoord;\n"
-    "uniform mat4 MVP;\n"
+    "uniform mat4 modelMatrix;\n"
+    "uniform mat4 projMatrix;\n"
+    "uniform mat4 viewMatrix;\n"
     "void main()\n"
     "{\n"
-    "   gl_Position = MVP*vec4(aPos, 1.0f);\n"
+    "   gl_Position = projMatrix*viewMatrix*modelMatrix*vec4(aPos, 1.0f);\n" // projMatrix*viewMatrix*modelMatrix*vec4()
     "   ourColor = aColor;\n"
-    "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
+    "   TexCoord = aTexCoord;\n"
     "}\n\0";
 
 const GLchar *fragmentShaderSource = "#version 460 core\n"
@@ -130,6 +84,47 @@ const GLchar *fragmentShaderSource = "#version 460 core\n"
     "{\n"
     "   FragColor = texture(texture1, TexCoord);\n" 
     "}\n\0";
+
+class ORQA_Sphere{
+    public:
+        std::vector<GLfloat> vertices;
+        std::vector<GLint> indices;
+    private:
+        float radius;
+        unsigned int stacks, sectors;
+    public:
+    ORQA_Sphere(float radius, unsigned int stacks, unsigned int sectors): radius(radius), stacks(stacks), sectors(sectors){};
+    void generate(){
+        for (unsigned int i = 0; i <= stacks; ++i){
+
+            float V   = i / (float) stacks;
+            float phi = V * M_PI;
+
+            for (unsigned int j = 0; j <= sectors; ++j){
+
+                float U = j / (float) sectors;
+                float theta = U * (M_PI * 2);
+
+                float x = cosf (theta) * sinf (phi);
+                float y = cosf (phi);
+                float z = sinf (theta) * sinf (phi);
+
+                vertices.push_back (x * radius);
+                vertices.push_back (y * radius);
+                vertices.push_back (z * radius);                
+            }
+        }
+        for (unsigned int i = 0; i < sectors * stacks + sectors; ++i){
+            indices.push_back(i);
+            indices.push_back(i + sectors + 1);
+            indices.push_back(i + sectors);
+            
+            indices.push_back(i + sectors + 1);
+            indices.push_back(i);
+            indices.push_back(i + 1);
+        }
+    }
+};
 
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
@@ -150,7 +145,6 @@ int main(){
         return -1;
     }    
 
-
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
@@ -165,15 +159,17 @@ int main(){
     if (!success){
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::VERTEX::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        goto shaderError; // error handling
+        glfwTerminate();
+        return 0;
     }
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        goto shaderError; // error handling
+        glfwTerminate();
+        return 0;
     }
-
+    // creating shaderProgram
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
@@ -183,8 +179,21 @@ int main(){
     if (!success) {
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::PROGRAM::LINKING_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        goto linkingError; // error handling
+        glfwTerminate();
+        return 0;
     }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    // generating Sphere vertices 
+    ORQA_Sphere s1(radius, stacks, sectors);
+    s1.generate();
+
+    GLfloat vertices[s1.vertices.size()];
+    std::copy(s1.vertices.begin(), s1.vertices.end(), vertices);
+    GLint indices[s1.indices.size()];
+    std::copy(s1.indices.begin(), s1.indices.end(), indices);
 
     GLuint VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
@@ -193,107 +202,110 @@ int main(){
 
     glBindVertexArray(VAO); 
 
-    glBindBuffer(GL_ARRAY_BUFFER , VBO);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(vertices), vertices, GL_STATIC_DRAW );
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indices), indices, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     GLint positionLocation = glGetAttribLocation(shaderProgram, "aPos");
     GLint colorLocation = glGetAttribLocation(shaderProgram, "aColor");
     GLint texCoordLocation = glGetAttribLocation(shaderProgram, "aTexCoord");
 
-    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
     glEnableVertexAttribArray(positionLocation);
 
-    glVertexAttribPointer(colorLocation, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(colorLocation, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(colorLocation);
 
-    glVertexAttribPointer(texCoordLocation, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(texCoordLocation, 2, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(texCoordLocation);
-
+    
     GLuint texture;
     glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_BUFFER , texture);
+    glBindTexture(GL_TEXTURE_BUFFER, texture);
     
-    glTexParameteri(GL_TEXTURE_BUFFER , GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_BUFFER , GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_BUFFER , GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_BUFFER , GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_BUFFER, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     GLint width, height, nrChannels;
-    unsigned char *data = stbi_load("image", &width, &height, &nrChannels, 0);
+    unsigned char *data = stbi_load("../data/image", &width, &height, &nrChannels, 0);
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
     stbi_image_free(data);
 
-    mat4 model, projection, view, temp, MVP;
-    GLuint MVPLoc = glGetUniformLocation(shaderProgram, "MVP");
+    glm::mat4 model = glm::mat4(1.0f);
+    glm::mat4 proj = glm::mat4(1.0f);
+    glm::mat4 view = glm::mat4(1.0f);
 
-    glm_mat4_identity(model);
-    glm_mat4_identity(view);
+    GLint modelLoc = glGetUniformLocation(shaderProgram, "modelMatrix");
+    GLint viewLoc = glGetUniformLocation(shaderProgram, "viewMatrix");
+    GLint projLoc = glGetUniformLocation(shaderProgram, "projMatrix");
 
-    glm_translate(view, (vec3){0,0,-5});
-
-    glm_mat4_mul(view, model, temp);
-    glm_mat4_mul(projection, temp, MVP);
-    
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
+
     glEnable(GL_DEPTH_TEST);
-    
-    
+
     while (!glfwWindowShouldClose(window)){ // render loop
         // input
         ORQA_processInput(window);
 
         // render
-        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(shaderProgram);
+        
+        // zoom
+        proj = glm::perspective(glm::radians(fov), (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.1f, 100.0f);
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
 
-        glm_perspective(fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.1f, 10.0f, projection);
-        
-        glm_rotate(model, 0.0f, (vec3){1, 0, 0});
+        // view
+        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
-        if(glfwGetKey(window, GLFW_KEY_A)) glm_rotate(model, rotation, (vec3){-0.1, 0, 0});
-        
-        if(glfwGetKey(window, GLFW_KEY_D)) glm_rotate(model, rotation, (vec3){0.1, 0, 0});
-        
-        if(glfwGetKey(window, GLFW_KEY_LEFT)) glm_rotate(model, rotation, (vec3){0, 0.1, 0});
-        
-        if(glfwGetKey(window, GLFW_KEY_RIGHT)) glm_rotate(model, rotation, (vec3){0,-0.1, 0});
-        
-        if(glfwGetKey(window, GLFW_KEY_UP)) glm_rotate(model, rotation, (vec3){0, 0, 0.1});
-        
-        if(glfwGetKey(window, GLFW_KEY_DOWN)) glm_rotate(model, rotation, (vec3){0, 0, -0.1});
-
-        glm_mat4_mul(view, model, MVP);
-        glm_mat4_mul(projection, MVP, MVP);
-
-        glUniformMatrix4fv(MVPLoc,1, GL_FALSE, &MVP[0][0]); 
+        // rotations
+        if(glfwGetKey(window, GLFW_KEY_A)){
+            model = glm::rotate(model, glm::radians(rotation), glm::vec3(-1.0f, 0.0f, 0.0f));
+        }
+        if(glfwGetKey(window, GLFW_KEY_D)){
+            model = glm::rotate(model, glm::radians(rotation), glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+        if(glfwGetKey(window, GLFW_KEY_LEFT)){
+            model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
+        }
+        if(glfwGetKey(window, GLFW_KEY_RIGHT)){
+            model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, -1.0f, 0.0f));
+        }
+        if(glfwGetKey(window, GLFW_KEY_UP)){
+            model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+        }
+        if(glfwGetKey(window, GLFW_KEY_DOWN)){
+            model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, -1.0f));
+        }
+        model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);
 
         // draw our first triangle
         glDrawElements(GL_TRIANGLES, sizeof(vertices), GL_UNSIGNED_INT, 0);
-    
+        
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
+    
     glDeleteVertexArrays(1, &VAO); 
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
     glDeleteTextures(1, &texture);
-    linkingError:
     glDeleteProgram(shaderProgram);
-    shaderError:
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
 
     return 0;
