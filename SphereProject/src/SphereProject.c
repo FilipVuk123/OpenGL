@@ -16,7 +16,6 @@
 #include <cglm/cglm.h>
 #include <cglm/common.h>
 
-
 const vec3 cameraPos = (vec3){2.0f, 0.0f, 0.0f};
 const vec3 cameraCentar = (vec3){2.0f, 0.0f, -5.0f};
 const vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
@@ -27,8 +26,8 @@ const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
 
 const GLfloat radius = 0.7f;
-const GLuint sectors = 50; 
-const GLuint stacks = 50; 
+const GLuint sectors = 100; 
+const GLuint stacks = 100; 
 
 GLfloat *Vs;
 GLuint *Is;
@@ -56,25 +55,30 @@ const GLchar *fragmentShaderSource = "#version 460 core\n"
     "   FragColor = texture(texture1, TexCoord);\n" 
     "}\n\0";
 
-void ORQA_GenSphere(ORQA_IN GLfloat radius,ORQA_IN GLuint sectors,ORQA_IN GLuint stacks){
-    GLfloat *verticesX = calloc(sectors*stacks, sizeof(GLfloat));
-    GLfloat *verticesY = calloc(sectors*stacks, sizeof(GLfloat));
-    GLfloat *verticesZ = calloc(sectors*stacks, sizeof(GLfloat));
+void ORQA_GenSphere(const float radius, const unsigned int stacks, const unsigned int sectors){
+    GLfloat *verticesX = calloc((sectors+1)*stacks, sizeof(GLfloat));
+    GLfloat *verticesY = calloc((sectors+1)*stacks, sizeof(GLfloat));
+    GLfloat *verticesZ = calloc((sectors+1)*stacks, sizeof(GLfloat));
+    GLfloat drho = M_PI / (GLfloat)stacks;
+    GLfloat dtheta = 2*M_PI / (GLfloat)sectors;
+
     for (GLuint i = 0; i < stacks; i++){
-        GLfloat V   = i / (GLfloat) stacks;
-        GLfloat phi = V * M_PI;
+        const GLfloat rho = (GLfloat)i * drho;
+        const GLfloat srhodrho = (GLfloat)(sinf(rho + drho));
+        const GLfloat crhodrho = (GLfloat)(cosf(rho + drho));
 
-        for (GLuint j = 0; j < sectors; j++){
-            GLfloat U = j / (GLfloat) sectors;
-            GLfloat theta = U * (M_PI * 2);
+        for (GLuint j = 0; j <= sectors; j++){
+            const GLfloat theta = (j == sectors) ? 0.0f : j * dtheta;
+            const GLfloat stheta = (GLfloat)(-sinf(theta));
+            const GLfloat ctheta = (GLfloat)(cosf(theta));
 
-            GLfloat x = cosf (theta) * sinf (phi);
-            GLfloat y = cosf (phi);
-            GLfloat z = sinf (theta) * sinf (phi);
+            GLfloat x = stheta * srhodrho;
+            GLfloat y = ctheta * srhodrho;
+            GLfloat z = crhodrho;
 
-            *(verticesX + stacks*i + j) = (x * radius);
-            *(verticesY + stacks*i + j) = (y * radius);
-            *(verticesZ + stacks*i + j) = (z * radius);
+            *(verticesX + stacks*i + j) = x * radius;
+            *(verticesY + stacks*i + j) = y * radius;
+            *(verticesZ + stacks*i + j) = z * radius;
         }
     }
     Vs = calloc(sectors*stacks*3, sizeof(GLfloat));
@@ -88,8 +92,6 @@ void ORQA_GenSphere(ORQA_IN GLfloat radius,ORQA_IN GLuint sectors,ORQA_IN GLuint
     free(verticesX);
     free(verticesY);
     free(verticesZ);
-    
-
     Is = calloc((sectors * stacks + sectors)*6, sizeof(GLint));
     j = 0;
     for (GLuint i = 0; i < sectors * stacks + sectors; ++i){
@@ -227,7 +229,7 @@ int main(){
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
     stbi_image_free(data);
 
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    // glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
