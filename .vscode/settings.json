@@ -48,7 +48,9 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "list": "cpp",
-        "math.h": "c"
+        "math.h": "c",
+        "glad.h": "c",
+        "string.h": "c"
     },
-    "C_Cpp.errorSquiggles": "Disabled"
+    "C_Cpp.errorSquiggles": "Enabled"
 }

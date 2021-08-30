@@ -20,77 +20,23 @@ const vec3 cameraPos = (vec3){2.0f, 0.0f, 0.0f};
 const vec3 cameraCentar = (vec3){2.0f, 0.0f, -1.0f};
 const vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
 
-GLfloat fov = 1.0f;
+GLfloat fov = 5.0f;
 const GLdouble rotation = 0.001;
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
 
 const GLfloat radius = 0.7f;
-const GLuint sectors = 200; 
-const GLuint stacks = 200; 
+const GLuint sectors = 100; 
+const GLuint stacks = 100; 
 
 GLfloat *Vs;
 GLuint *Is;
 
-
-void ORQA_GenSphere(const float radius, const unsigned int stacks, const unsigned int sectors){
-    GLfloat *verticesX = calloc((sectors+1)*stacks, sizeof(GLfloat));
-    GLfloat *verticesY = calloc((sectors+1)*stacks, sizeof(GLfloat));
-    GLfloat *verticesZ = calloc((sectors+1)*stacks, sizeof(GLfloat));
-    GLfloat *textures1 = calloc((sectors+1)*stacks, sizeof(GLfloat));
-    GLfloat *textures2 = calloc((sectors+1)*stacks, sizeof(GLfloat));
-    
-    GLfloat drho = M_PI / (GLfloat)stacks;
-    GLfloat dtheta = 2*M_PI / (GLfloat)sectors;
-
-    for (GLuint i = 0; i < stacks; i++){
-        const GLfloat rho = (GLfloat)i * drho;
-        const GLfloat srhodrho = (GLfloat)(sinf(rho + drho));
-        const GLfloat crhodrho = (GLfloat)(cosf(rho + drho));
-
-        for (GLuint j = 0; j <= sectors; j++){
-            const GLfloat theta = (j == sectors) ? 0.0f : j * dtheta;
-            const GLfloat stheta = (GLfloat)(-sinf(theta));
-            const GLfloat ctheta = (GLfloat)(cosf(theta));
-
-            GLfloat x = stheta * srhodrho;
-            GLfloat y = ctheta * srhodrho;
-            GLfloat z = crhodrho;
-
-            *(verticesX + stacks*i + j) = x * radius;
-            *(verticesY + stacks*i + j) = y * radius;
-            *(verticesZ + stacks*i + j) = z * radius;
-            *(textures1 + stacks*i + j) = (GLfloat) j / sectors;
-            *(textures2 + stacks*i + j) = (GLfloat) i / stacks;
-        }
-    }
-    Vs = calloc(sectors*stacks*5, sizeof(GLfloat));
-    GLuint j = 0;
-    for(GLuint i = 0; i < 5*sectors*stacks; ){
-        *(Vs + i++) = *(verticesX+j);
-        *(Vs + i++) = *(verticesY+j);
-        *(Vs + i++) = *(verticesZ+j);
-        *(Vs + i++) = *(textures1+j);
-        *(Vs + i++) = *(textures2+j);
-        j++;
-    }
-
-    free(verticesX);
-    free(verticesY);
-    free(verticesZ);    
-    Is = calloc((sectors * stacks + sectors)*6, sizeof(GLint));
-    j = 0;
-    for (GLuint i = 0; i < sectors * stacks + sectors; ++i){
-        *(Is + j++) = i;
-        *(Is + j++) = i + sectors + 1;
-        *(Is + j++) = i + sectors;
-        
-        *(Is + j++) = i + sectors + 1;
-        *(Is + j++) = i;
-        *(Is + j++) = i + 1;
-    }
-}
-
+void ORQA_GenSphere(const float radius, const unsigned int stacks, const unsigned int sectors);
+void ORQA_processInput(ORQA_REF GLFWwindow *window);
+void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height);
+void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
+int ORQA_initGLFW(ORQA_NOARGS void);
 
 const GLchar *vertexShaderSource = "#version 460 core\n"
     "layout (location = 0) in vec3 aPos;\n"
@@ -102,6 +48,7 @@ const GLchar *vertexShaderSource = "#version 460 core\n"
     "   gl_Position = MVP*vec4(aPos, 1.0f);\n"
     "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
     "}\n\0";
+
 const GLchar *fragmentShaderSource = "#version 460 core\n"
     "out vec4 FragColor;\n"
     "in vec2 TexCoord;\n"
@@ -110,34 +57,6 @@ const GLchar *fragmentShaderSource = "#version 460 core\n"
     "{\n"
     "   FragColor = texture(texture1, TexCoord);\n" 
     "}\n\0";
-
-void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
-        glfwSetWindowShouldClose(window, GL_TRUE);
-}
-
-void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height){
-    glViewport(0, 0, width, height); // size of the rendering window
-}
-
-void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
-    fov -= (GLfloat)yoffset/5;
-    if (fov < 4.0f) fov = 4.0f;
-    if (fov > 6.0f) fov = 6.0f;
-}
-
-int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
-    if(!glfwInit()){
-        fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
-        glfwTerminate();
-        return -1;
-    }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Specify API version 3.3
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // Specify API version 3.3
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // creating contex profile
-    
-    return 0;
-}
 
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
@@ -165,7 +84,7 @@ int main(){
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
-
+    
     ORQA_GenSphere(radius, sectors, stacks);
     GLfloat vertices[sectors*stacks*5];
     GLuint indices[(sectors * stacks + sectors)*6];
@@ -218,7 +137,7 @@ int main(){
     glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(positionLocation);
 
-    glVertexAttribPointer(texCoordLocation, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(texCoordLocation, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(texCoordLocation);
 
     GLint width, height, nrChannels;
@@ -300,3 +219,91 @@ int main(){
 
     return 0;
 }
+
+
+void ORQA_GenSphere(const float radius, const unsigned int stacks, const unsigned int sectors){
+    GLfloat *verticesX = calloc((sectors+1)*stacks, sizeof(GLfloat));
+    GLfloat *verticesY = calloc((sectors+1)*stacks, sizeof(GLfloat));
+    GLfloat *verticesZ = calloc((sectors+1)*stacks, sizeof(GLfloat));
+    GLfloat *textures1 = calloc((sectors+1)*stacks, sizeof(GLfloat));
+    GLfloat *textures2 = calloc((sectors+1)*stacks, sizeof(GLfloat));
+    
+    GLfloat drho = M_PI / (GLfloat)stacks;
+    GLfloat dtheta = 2*M_PI / (GLfloat)sectors;
+
+    for (GLuint i = 0; i < stacks; i++){
+        const GLfloat rho = (GLfloat)i * drho;
+        const GLfloat srhodrho = (GLfloat)(sinf(rho + drho));
+        const GLfloat crhodrho = (GLfloat)(cosf(rho + drho));
+
+        for (GLuint j = 0; j <= sectors; j++){
+            const GLfloat theta = (j == sectors) ? 0.0f : j * dtheta;
+            const GLfloat stheta = (GLfloat)(-sinf(theta));
+            const GLfloat ctheta = (GLfloat)(cosf(theta));
+
+            GLfloat x = stheta * srhodrho;
+            GLfloat y = ctheta * srhodrho;
+            GLfloat z = crhodrho;
+
+            *(verticesX + stacks*i + j) = x * radius;
+            *(verticesY + stacks*i + j) = y * radius;
+            *(verticesZ + stacks*i + j) = z * radius;
+            *(textures1 + stacks*i + j) = (GLfloat) j / sectors;
+            *(textures2 + stacks*i + j) = (GLfloat) i / stacks;
+        }
+    }
+    Vs = calloc(sectors*stacks*5, sizeof(GLfloat));
+    GLuint j = 0;
+    for(GLuint i = 0; i < 5*sectors*stacks; ){
+        *(Vs + i++) = *(verticesX+j);
+        *(Vs + i++) = *(verticesY+j);
+        *(Vs + i++) = *(verticesZ+j);
+        *(Vs + i++) = *(textures1+j);
+        *(Vs + i++) = *(textures2+j);
+        j++;
+    }
+
+    free(verticesX);
+    free(verticesY);
+    free(verticesZ);    
+    Is = calloc((sectors * stacks + sectors)*6, sizeof(GLint));
+    j = 0;
+    for (GLuint i = 0; i < sectors * stacks + sectors; ++i){
+        *(Is + j++) = i;
+        *(Is + j++) = i + sectors + 1;
+        *(Is + j++) = i + sectors;
+        
+        *(Is + j++) = i + sectors + 1;
+        *(Is + j++) = i;
+        *(Is + j++) = i + 1;
+    }
+}
+
+void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
+        glfwSetWindowShouldClose(window, GL_TRUE);
+}
+
+void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height){
+    glViewport(0, 0, width, height); // size of the rendering window
+}
+
+void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
+    fov -= (GLfloat)yoffset/5;
+    if (fov < 4.0f) fov = 4.0f;
+    if (fov > 6.0f) fov = 6.0f;
+}
+
+int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
+    if(!glfwInit()){
+        fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
+        glfwTerminate();
+        return -1;
+    }
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Specify API version 3.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // Specify API version 3.3
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // creating contex profile
+    
+    return 0;
+}
+

@@ -45,9 +45,10 @@ class ObjLoader():
             f.close()
             h = []
             
-            for i1, i2 in help:
-                self.vertices.append(self.Vs[i1])
-                self.vertices.append(self.Ts[i2])
+            for i, t in help:
+                if self.Ts[t] not in self.vertices:
+                    self.vertices.append(self.Vs[i])
+                    self.vertices.append(self.Ts[t])
 
             
             for _tuple in self.vertices:
