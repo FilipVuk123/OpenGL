@@ -26,13 +26,16 @@ const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
 
 const GLfloat radius = 0.7f;
-const GLuint sectors = 100; 
-const GLuint stacks = 100; 
+const GLuint sectors = 50; 
+const GLuint stacks = 50; 
+
+unsigned int numVertices;
+unsigned int numTriangles;
 
 GLfloat *Vs;
 GLuint *Is;
 
-void ORQA_GenSphere(const float radius, const unsigned int stacks, const unsigned int sectors);
+void ORQA_GenSphere(const float radius, const unsigned int numLatitudeLines, const unsigned int numLongitudeLines);
 void ORQA_processInput(ORQA_REF GLFWwindow *window);
 void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height);
 void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
@@ -86,11 +89,11 @@ int main(){
     glCompileShader(fragmentShader);
     
     ORQA_GenSphere(radius, sectors, stacks);
-    GLfloat vertices[sectors*stacks*5];
-    GLuint indices[(sectors * stacks + sectors)*6];
-    for(unsigned int i = 0; i < sectors*stacks*5; i++) vertices[i] = *(Vs + i);
-    for(unsigned int i = 0; i < (sectors * stacks + sectors)*6; i++) indices[i] = *(Is + i);
-    
+    GLfloat vertices[numVertices*5];
+    for(unsigned int i = 0; i < numVertices*5; i++) vertices[i] = *(Vs + i);
+    GLuint indices[numTriangles*3];
+    for(unsigned int i = 0; i < numTriangles*3; i++) indices[i] = *(Is + i);
+
     GLint success;
     GLchar infoLog[512];
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
@@ -220,41 +223,43 @@ int main(){
     return 0;
 }
 
+void ORQA_GenSphere(const float radius, unsigned int numLatitudeLines, const unsigned int numLongitudeLines){
+    // One vertex at every latitude-longitude intersection, plus one for the north pole and one for the south.
+    numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; 
+    GLfloat *verticesX = calloc(numVertices, sizeof(GLfloat));
+    GLfloat *verticesY = calloc(numVertices, sizeof(GLfloat));
+    GLfloat *verticesZ = calloc(numVertices, sizeof(GLfloat));
+    GLfloat *textures1 = calloc(numVertices, sizeof(GLfloat));
+    GLfloat *textures2 = calloc(numVertices, sizeof(GLfloat));
 
-void ORQA_GenSphere(const float radius, const unsigned int stacks, const unsigned int sectors){
-    GLfloat *verticesX = calloc((sectors+1)*stacks, sizeof(GLfloat));
-    GLfloat *verticesY = calloc((sectors+1)*stacks, sizeof(GLfloat));
-    GLfloat *verticesZ = calloc((sectors+1)*stacks, sizeof(GLfloat));
-    GLfloat *textures1 = calloc((sectors+1)*stacks, sizeof(GLfloat));
-    GLfloat *textures2 = calloc((sectors+1)*stacks, sizeof(GLfloat));
-    
-    GLfloat drho = M_PI / (GLfloat)stacks;
-    GLfloat dtheta = 2*M_PI / (GLfloat)sectors;
+    // poles
+    *(verticesX) = 0; *(verticesY) = radius; *(verticesZ) = 0;
+    *(textures1) = 0; *(textures2) = 1;
 
-    for (GLuint i = 0; i < stacks; i++){
-        const GLfloat rho = (GLfloat)i * drho;
-        const GLfloat srhodrho = (GLfloat)(sinf(rho + drho));
-        const GLfloat crhodrho = (GLfloat)(cosf(rho + drho));
+    *(verticesX + numVertices-1) = 0; *(verticesY+ numVertices-1) = -radius; *(verticesZ+ numVertices-1) = 0;
+    *(textures1 + numVertices-1) = 0; *(textures2+ numVertices-1) = 0;
 
-        for (GLuint j = 0; j <= sectors; j++){
-            const GLfloat theta = (j == sectors) ? 0.0f : j * dtheta;
-            const GLfloat stheta = (GLfloat)(-sinf(theta));
-            const GLfloat ctheta = (GLfloat)(cosf(theta));
-
-            GLfloat x = stheta * srhodrho;
-            GLfloat y = ctheta * srhodrho;
-            GLfloat z = crhodrho;
-
-            *(verticesX + stacks*i + j) = x * radius;
-            *(verticesY + stacks*i + j) = y * radius;
-            *(verticesZ + stacks*i + j) = z * radius;
-            *(textures1 + stacks*i + j) = (GLfloat) j / sectors;
-            *(textures2 + stacks*i + j) = (GLfloat) i / stacks;
+    unsigned int k = 1;
+    const float latitudeSpacing = 1.0f / (numLatitudeLines + 1.0f);
+    const float longitudeSpacing = 1.0f / (numLongitudeLines);
+    // vertices
+    for(unsigned int latitude = 0; latitude < numLatitudeLines; latitude++) {
+        for(unsigned int longitude = 0; longitude <= numLongitudeLines; longitude++){
+            *(textures1 + k) = longitude * longitudeSpacing; 
+            *(textures2 + k) = 1.0f - (latitude + 1) * latitudeSpacing;
+            const float theta = (float)(*(textures1 + k) * 2.0f * M_PI);
+            const float phi = (float)((*(textures2 + k) - 0.5f) * M_PI);
+            const float c = cos(phi);
+            *(verticesX + k) = c * cos(theta) * radius; 
+            *(verticesY + k) = sin(phi) * radius; 
+            *(verticesZ + k) = c * sin(theta) * radius;
+            k++;
         }
     }
-    Vs = calloc(sectors*stacks*5, sizeof(GLfloat));
+
+    Vs = calloc(numVertices*5, sizeof(GLfloat));
     GLuint j = 0;
-    for(GLuint i = 0; i < 5*sectors*stacks; ){
+    for(unsigned int i = 0; i < 5*numVertices;){
         *(Vs + i++) = *(verticesX+j);
         *(Vs + i++) = *(verticesY+j);
         *(Vs + i++) = *(verticesZ+j);
@@ -262,20 +267,40 @@ void ORQA_GenSphere(const float radius, const unsigned int stacks, const unsigne
         *(Vs + i++) = *(textures2+j);
         j++;
     }
-
-    free(verticesX);
-    free(verticesY);
-    free(verticesZ);    
-    Is = calloc((sectors * stacks + sectors)*6, sizeof(GLint));
+    
+    // indices
+    numTriangles = numLatitudeLines * numLongitudeLines * 2;
+    Is = calloc((numTriangles)*3, sizeof(GLint));
     j = 0;
-    for (GLuint i = 0; i < sectors * stacks + sectors; ++i){
-        *(Is + j++) = i;
-        *(Is + j++) = i + sectors + 1;
-        *(Is + j++) = i + sectors;
-        
-        *(Is + j++) = i + sectors + 1;
-        *(Is + j++) = i;
+    // pole one indices
+    for (int i = 0; i < numLongitudeLines; i++){
+        *(Is + j++) = 0;
+        *(Is + j++) = i + 2;
         *(Is + j++) = i + 1;
+    }
+    // no pole indices
+    int rowLength = numLongitudeLines + 1;
+    for (int latitude = 0; latitude < numLatitudeLines - 1; latitude++){
+        int rowStart = (latitude * rowLength) + 1;
+        for (int longitude = 0; longitude < numLongitudeLines; longitude++){
+            int firstCorner = rowStart + longitude;
+            // First triangle of quad: Top-Left, Bottom-Left, Bottom-Right
+            *(Is + j++) = firstCorner;
+            *(Is + j++) = firstCorner + rowLength + 1;
+            *(Is + j++) = firstCorner + rowLength;
+            // Second triangle of quad: Top-Left, Bottom-Right, Top-Right
+            *(Is + j++) = firstCorner;
+            *(Is + j++) = firstCorner + 1;
+            *(Is + j++) = firstCorner + rowLength + 1;
+        }        
+    }
+    // pole two indices
+    int pole = numVertices-1;
+    int bottomRow = ((numLatitudeLines - 1) * rowLength) + 1;
+    for (int i = 0; i < numLongitudeLines; i++){
+        *(Is + j++) = pole;
+        *(Is + j++) = bottomRow + i;
+        *(Is + j++) = bottomRow + i + 1;
     }
 }
 
@@ -290,8 +315,8 @@ void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint wi
 
 void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
     fov -= (GLfloat)yoffset/5;
-    if (fov < 4.0f) fov = 4.0f;
-    if (fov > 6.0f) fov = 6.0f;
+    if (fov < 3.8f) fov = 3.8f;
+    if (fov > 6.2f) fov = 6.2f;
 }
 
 int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
