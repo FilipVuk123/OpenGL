@@ -15,22 +15,25 @@
 #include <cglm/cglm.h>
 #include <cglm/common.h>
 
+// screen resolution
+const GLuint SCR_WIDTH = 1920;
+const GLuint SCR_HEIGHT = 1080;
+
+// camera position
 const vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
 const vec3 cameraCentar = (vec3){-1.0f, 0.0f, -1.0f};
 const vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
 
+// field of view and rotation speed
 GLfloat fov = 5.0f;
 const GLdouble rotation = 0.001;
-const GLuint SCR_WIDTH = 1920;
-const GLuint SCR_HEIGHT = 1080;
 
+// sphere attributes
 const GLfloat radius = 1.0f;
 const GLuint sectors = 50; 
 const GLuint stacks = 50; 
-
 GLuint numVertices;
 GLuint numTriangles;
-
 GLfloat *Vs;
 GLuint *Is;
 
@@ -79,45 +82,43 @@ int main(){
         return -1;
     }    
     
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-    
+    // generating sphere
     ORQA_GenSphere(radius, sectors, stacks);
     GLfloat vertices[numVertices*5];
     for(unsigned int i = 0; i < numVertices*5; i++) vertices[i] = *(Vs + i);
     GLuint indices[numTriangles*3];
     for(unsigned int i = 0; i < numTriangles*3; i++) indices[i] = *(Is + i);
 
+    // shader stuff
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
     GLint success;
     GLchar infoLog[512];
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::VERTEX::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        goto shaderError; // error handling
+        goto shaderError; 
     }
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        goto shaderError; // error handling
+        goto shaderError;
     }
-
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
-    
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::PROGRAM::LINKING_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
-        goto linkingError; // error handling
+        goto linkingError; 
     }
 
     GLuint VBO, VAO, EBO;
@@ -126,10 +127,8 @@ int main(){
     glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO); 
-
     glBindBuffer(GL_ARRAY_BUFFER , VBO);
     glBufferData(GL_ARRAY_BUFFER , sizeof(vertices), vertices, GL_STATIC_DRAW );
-
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indices), indices, GL_STATIC_DRAW );
 
@@ -138,10 +137,10 @@ int main(){
 
     glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(positionLocation);
-
     glVertexAttribPointer(texCoordLocation, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(texCoordLocation);
 
+    // load and create a texture 
     GLint width, height, nrChannels;
     unsigned char *data = stbi_load("../data/earth.jpg", &width, &height, &nrChannels, 0); 
     if (data){
@@ -187,9 +186,8 @@ int main(){
         if(glfwGetKey(window, GLFW_KEY_D)) glm_rotate(model, rotation, (vec3){0.1f, 0.0f, 0.0f});
         if(glfwGetKey(window, GLFW_KEY_LEFT)) glm_rotate(model, rotation, (vec3){0.0f, 0.1f, 0.0f});
         if(glfwGetKey(window, GLFW_KEY_RIGHT)) glm_rotate(model, rotation, (vec3){0.0f,-0.1f, 0.0f});
-        if(glfwGetKey(window, GLFW_KEY_UP)) glm_rotate(model, rotation, (vec3){0.0f, 0.0f, 0.1f});
-        if(glfwGetKey(window, GLFW_KEY_DOWN)) glm_rotate(model, rotation, (vec3){0.0f, 0.0f, -0.1f});
-
+        if(glfwGetKey(window, GLFW_KEY_UP)) glm_rotate(model, rotation, (vec3){0.0f, 0.0f, -0.1f});
+        if(glfwGetKey(window, GLFW_KEY_DOWN)) glm_rotate(model, rotation, (vec3){0.0f, 0.0f, 0.1f});
         glm_mat4_mul(view, model, MVP);
         glm_mat4_mul(projection, MVP, MVP);
 
@@ -198,14 +196,14 @@ int main(){
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);
 
-        // draw our first triangle
+        // draw
         glDrawElements(GL_TRIANGLES, sizeof(vertices), GL_UNSIGNED_INT, 0);
     
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
+    // deallocating stuff
     glDeleteVertexArrays(1, &VAO); 
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
@@ -222,7 +220,6 @@ int main(){
 
     return 0;
 }
-
 void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitudeLines, ORQA_IN const GLuint numLongitudeLines){
     // One vertex at every latitude-longitude intersection, plus one for the north pole and one for the south.
     numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; 
