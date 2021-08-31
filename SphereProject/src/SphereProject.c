@@ -7,7 +7,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "stb_image.h" // using this image-loading library
+#include "../include/stb_image.h" // using this image-loading library
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,13 +29,13 @@ const GLfloat radius = 0.7f;
 const GLuint sectors = 50; 
 const GLuint stacks = 50; 
 
-unsigned int numVertices;
-unsigned int numTriangles;
+GLuint numVertices;
+GLuint numTriangles;
 
 GLfloat *Vs;
 GLuint *Is;
 
-void ORQA_GenSphere(const float radius, const unsigned int numLatitudeLines, const unsigned int numLongitudeLines);
+void ORQA_GenSphere(ORQA_IN const float radius, ORQA_IN const unsigned int numLatitudeLines, ORQA_IN const unsigned int numLongitudeLines);
 void ORQA_processInput(ORQA_REF GLFWwindow *window);
 void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height);
 void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
@@ -223,7 +223,7 @@ int main(){
     return 0;
 }
 
-void ORQA_GenSphere(const float radius, unsigned int numLatitudeLines, const unsigned int numLongitudeLines){
+void ORQA_GenSphere(const GLfloat radius, const GLuint numLatitudeLines, const GLuint numLongitudeLines){
     // One vertex at every latitude-longitude intersection, plus one for the north pole and one for the south.
     numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; 
     GLfloat *verticesX = calloc(numVertices, sizeof(GLfloat));
@@ -239,17 +239,17 @@ void ORQA_GenSphere(const float radius, unsigned int numLatitudeLines, const uns
     *(verticesX + numVertices-1) = 0; *(verticesY+ numVertices-1) = -radius; *(verticesZ+ numVertices-1) = 0;
     *(textures1 + numVertices-1) = 0; *(textures2+ numVertices-1) = 0;
 
-    unsigned int k = 1;
-    const float latitudeSpacing = 1.0f / (numLatitudeLines + 1.0f);
-    const float longitudeSpacing = 1.0f / (numLongitudeLines);
+    GLuint k = 1;
+    const GLfloat latitudeSpacing = 1.0f / (numLatitudeLines + 1.0f);
+    const GLfloat longitudeSpacing = 1.0f / (numLongitudeLines);
     // vertices
-    for(unsigned int latitude = 0; latitude < numLatitudeLines; latitude++) {
-        for(unsigned int longitude = 0; longitude <= numLongitudeLines; longitude++){
+    for(GLuint latitude = 0; latitude < numLatitudeLines; latitude++) {
+        for(GLuint longitude = 0; longitude <= numLongitudeLines; longitude++){
             *(textures1 + k) = longitude * longitudeSpacing; 
             *(textures2 + k) = 1.0f - (latitude + 1) * latitudeSpacing;
-            const float theta = (float)(*(textures1 + k) * 2.0f * M_PI);
-            const float phi = (float)((*(textures2 + k) - 0.5f) * M_PI);
-            const float c = cos(phi);
+            const GLfloat theta = (GLfloat)(*(textures1 + k) * 2.0f * M_PI);
+            const GLfloat phi = (GLfloat)((*(textures2 + k) - 0.5f) * M_PI);
+            const GLfloat c = (GLfloat)cos(phi);
             *(verticesX + k) = c * cos(theta) * radius; 
             *(verticesY + k) = sin(phi) * radius; 
             *(verticesZ + k) = c * sin(theta) * radius;
@@ -259,7 +259,7 @@ void ORQA_GenSphere(const float radius, unsigned int numLatitudeLines, const uns
 
     Vs = calloc(numVertices*5, sizeof(GLfloat));
     GLuint j = 0;
-    for(unsigned int i = 0; i < 5*numVertices;){
+    for(GLuint i = 0; i < 5*numVertices;){
         *(Vs + i++) = *(verticesX+j);
         *(Vs + i++) = *(verticesY+j);
         *(Vs + i++) = *(verticesZ+j);
@@ -273,17 +273,17 @@ void ORQA_GenSphere(const float radius, unsigned int numLatitudeLines, const uns
     Is = calloc((numTriangles)*3, sizeof(GLint));
     j = 0;
     // pole one indices
-    for (int i = 0; i < numLongitudeLines; i++){
+    for (GLuint i = 0; i < numLongitudeLines; i++){
         *(Is + j++) = 0;
         *(Is + j++) = i + 2;
         *(Is + j++) = i + 1;
     }
     // no pole indices
-    int rowLength = numLongitudeLines + 1;
-    for (int latitude = 0; latitude < numLatitudeLines - 1; latitude++){
-        int rowStart = (latitude * rowLength) + 1;
-        for (int longitude = 0; longitude < numLongitudeLines; longitude++){
-            int firstCorner = rowStart + longitude;
+    GLuint rowLength = numLongitudeLines + 1;
+    for (GLuint latitude = 0; latitude < numLatitudeLines - 1; latitude++){
+        GLuint rowStart = (latitude * rowLength) + 1;
+        for (GLuint longitude = 0; longitude < numLongitudeLines; longitude++){
+            GLuint firstCorner = rowStart + longitude;
             // First triangle of quad: Top-Left, Bottom-Left, Bottom-Right
             *(Is + j++) = firstCorner;
             *(Is + j++) = firstCorner + rowLength + 1;
@@ -295,9 +295,9 @@ void ORQA_GenSphere(const float radius, unsigned int numLatitudeLines, const uns
         }        
     }
     // pole two indices
-    int pole = numVertices-1;
-    int bottomRow = ((numLatitudeLines - 1) * rowLength) + 1;
-    for (int i = 0; i < numLongitudeLines; i++){
+    GLuint pole = numVertices-1;
+    GLuint bottomRow = ((numLatitudeLines - 1) * rowLength) + 1;
+    for (GLuint i = 0; i < numLongitudeLines; i++){
         *(Is + j++) = pole;
         *(Is + j++) = bottomRow + i;
         *(Is + j++) = bottomRow + i + 1;
