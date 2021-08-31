@@ -11,13 +11,12 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include <cglm/cglm.h>
 #include <cglm/common.h>
 
-const vec3 cameraPos = (vec3){2.0f, 0.0f, 0.0f};
-const vec3 cameraCentar = (vec3){2.0f, 0.0f, -1.0f};
+const vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
+const vec3 cameraCentar = (vec3){-1.0f, 0.0f, -1.0f};
 const vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
 
 GLfloat fov = 5.0f;
@@ -25,7 +24,7 @@ const GLdouble rotation = 0.001;
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
 
-const GLfloat radius = 0.7f;
+const GLfloat radius = 1.0f;
 const GLuint sectors = 50; 
 const GLuint stacks = 50; 
 
@@ -49,7 +48,7 @@ const GLchar *vertexShaderSource = "#version 460 core\n"
     "void main()\n"
     "{\n"
     "   gl_Position = MVP*vec4(aPos, 1.0f);\n"
-    "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
+    "   TexCoord = vec2(1.0f - aTexCoord.x, aTexCoord.y);\n" // mirror textures for inside sphere
     "}\n\0";
 
 const GLchar *fragmentShaderSource = "#version 460 core\n"
@@ -160,15 +159,16 @@ int main(){
 
     glm_mat4_identity(model);
     glm_mat4_identity(view);
+    glm_mat4_identity(projection);
 
-    glm_translate(view, (vec3){0,0,-5});
+    glm_lookat(cameraPos, cameraCentar, cameraUp, view);
 
     glm_mat4_mul(view, model, temp);
     glm_mat4_mul(projection, temp, MVP);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glEnable(GL_DEPTH_TEST);
-    
+
     while (!glfwWindowShouldClose(window)){ // render loop
         // input
         ORQA_processInput(window);
@@ -177,7 +177,7 @@ int main(){
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(shaderProgram);
-
+        
         // zoom and rotate
         glm_perspective(fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, projection);
         
@@ -223,7 +223,7 @@ int main(){
     return 0;
 }
 
-void ORQA_GenSphere(const GLfloat radius, const GLuint numLatitudeLines, const GLuint numLongitudeLines){
+void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitudeLines, ORQA_IN const GLuint numLongitudeLines){
     // One vertex at every latitude-longitude intersection, plus one for the north pole and one for the south.
     numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; 
     GLfloat *verticesX = calloc(numVertices, sizeof(GLfloat));
