@@ -20,13 +20,20 @@ const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
 
 // camera position
-const vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
-const vec3 cameraCentar = (vec3){-1.0f, 0.0f, -1.0f};
-const vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
+vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
+vec3 cameraFront = (vec3){0.0f, 0.0f, -1.0f};
+vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
+float yaw = -90.0f; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float pitch = 0.0f;
+GLfloat fov = 5.0f;
 
 // field of view and rotation speed
-GLfloat fov = 5.0f;
 const GLdouble rotation = 0.001;
+
+// mouse state
+GLboolean firstMouse = GL_TRUE;
+GLfloat lastX = SCR_WIDTH/2.0f;
+GLfloat lastY = SCR_HEIGHT/2.0f;
 
 // sphere attributes
 const GLfloat radius = 1.0f;
@@ -37,6 +44,8 @@ GLuint numTriangles;
 GLfloat *Vs;
 GLuint *Is;
 
+GLfloat ORQA_radians(ORQA_IN const GLfloat deg);
+void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos);
 void ORQA_GenSphere(ORQA_IN const float radius, ORQA_IN const unsigned int numLatitudeLines, ORQA_IN const unsigned int numLongitudeLines);
 void ORQA_processInput(ORQA_REF GLFWwindow *window);
 void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height);
@@ -50,8 +59,8 @@ const GLchar *vertexShaderSource = "#version 460 core\n"
     "uniform mat4 MVP;\n"
     "void main()\n"
     "{\n"
-    "   gl_Position = MVP*vec4(aPos, 1.0f);\n"
-    "   TexCoord = vec2(1.0f - aTexCoord.x, aTexCoord.y);\n" // mirror textures for inside sphere
+    "   gl_Position = MVP*vec4(aPos, 1.);\n"
+    "   TexCoord = vec2(1. - aTexCoord.x, aTexCoord.y);\n" // mirror textures for inside sphere
     "}\n\0";
 
 const GLchar *fragmentShaderSource = "#version 460 core\n"
@@ -74,7 +83,10 @@ int main(){
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, ORQA_mouse_callback);
     glfwSetScrollCallback(window, ORQA_scroll_callback);
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
@@ -85,8 +97,8 @@ int main(){
     // generating sphere
     ORQA_GenSphere(radius, sectors, stacks);
     GLfloat vertices[numVertices*5];
-    for(unsigned int i = 0; i < numVertices*5; i++) vertices[i] = *(Vs + i);
     GLuint indices[numTriangles*3];
+    for(unsigned int i = 0; i < numVertices*5; i++) vertices[i] = *(Vs + i);
     for(unsigned int i = 0; i < numTriangles*3; i++) indices[i] = *(Is + i);
 
     // shader stuff
@@ -152,16 +164,27 @@ int main(){
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
-    
+
+    // MVP matrices
     mat4 model, projection, view, temp, MVP;
+    vec3 cameraCentar;
     GLuint MVPLoc = glGetUniformLocation(shaderProgram, "MVP");
 
     glm_mat4_identity(model);
     glm_mat4_identity(view);
     glm_mat4_identity(projection);
+    
+    /*
+    if(glfwGetKey(window, GLFW_KEY_A)) glm_rotate(model, rotation, (vec3){-0.1f, 0.0f, 0.0f});
+    if(glfwGetKey(window, GLFW_KEY_D)) glm_rotate(model, rotation, (vec3){0.1f, 0.0f, 0.0f});
+    if(glfwGetKey(window, GLFW_KEY_LEFT)) glm_rotate(model, rotation, (vec3){0.0f, 0.1f, 0.0f});
+    if(glfwGetKey(window, GLFW_KEY_RIGHT)) glm_rotate(model, rotation, (vec3){0.0f,-0.1f, 0.0f});
+    if(glfwGetKey(window, GLFW_KEY_UP)) glm_rotate(model, rotation, (vec3){0.0f, 0.0f, -0.1f});
+    if(glfwGetKey(window, GLFW_KEY_DOWN)) glm_rotate(model, rotation, (vec3){0.0f, 0.0f, 0.1f});*/
 
+    glm_vec3_add(cameraPos, cameraFront, cameraCentar);
     glm_lookat(cameraPos, cameraCentar, cameraUp, view);
-
+    
     glm_mat4_mul(view, model, temp);
     glm_mat4_mul(projection, temp, MVP);
     
@@ -180,18 +203,14 @@ int main(){
         // zoom and rotate
         glm_perspective(fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, projection);
         
-        glm_rotate(model, 0.0f, (vec3){1, 0, 0});
-
-        if(glfwGetKey(window, GLFW_KEY_A)) glm_rotate(model, rotation, (vec3){-0.1f, 0.0f, 0.0f});
-        if(glfwGetKey(window, GLFW_KEY_D)) glm_rotate(model, rotation, (vec3){0.1f, 0.0f, 0.0f});
-        if(glfwGetKey(window, GLFW_KEY_LEFT)) glm_rotate(model, rotation, (vec3){0.0f, 0.1f, 0.0f});
-        if(glfwGetKey(window, GLFW_KEY_RIGHT)) glm_rotate(model, rotation, (vec3){0.0f,-0.1f, 0.0f});
-        if(glfwGetKey(window, GLFW_KEY_UP)) glm_rotate(model, rotation, (vec3){0.0f, 0.0f, -0.1f});
-        if(glfwGetKey(window, GLFW_KEY_DOWN)) glm_rotate(model, rotation, (vec3){0.0f, 0.0f, 0.1f});
         glm_mat4_mul(view, model, MVP);
         glm_mat4_mul(projection, MVP, MVP);
 
-        glUniformMatrix4fv(MVPLoc,1, GL_FALSE, &MVP[0][0]); 
+        glm_vec3_add(cameraPos, cameraFront, cameraCentar);
+        glm_lookat(cameraPos, cameraCentar, cameraUp, view);
+
+        // send MVP matrix to vertex shader
+        glUniformMatrix4fv(MVPLoc, 1, GL_FALSE, &MVP[0][0]); 
 
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -204,6 +223,8 @@ int main(){
         glfwPollEvents();
     }
     // deallocating stuff
+    free(Vs);
+    free(Is);
     glDeleteVertexArrays(1, &VAO); 
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
@@ -214,9 +235,6 @@ int main(){
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
-
-    free(Vs);
-    free(Is);
 
     return 0;
 }
@@ -316,7 +334,47 @@ void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,O
     if (fov > 6.2f) fov = 6.2f;
 }
 
+void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
+    if(firstMouse){
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = GL_FALSE;
+    }
+    GLfloat xoffset = xpos - lastX;
+    GLfloat yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+    lastX = xpos;
+    lastY = ypos;
+
+    GLfloat sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    // when pitch is out of bounds, screen doesn't get flipped
+    if(pitch > 89.0f) pitch = 89.0f;
+    if(pitch < -89.0f) pitch = -89.0f;
+
+    vec3 front;
+    front[0] = cos(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
+    front[1] = sin(ORQA_radians(pitch));
+    front[2] = sin(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
+
+    glm_vec3_normalize(front);
+
+    cameraFront[0] = front[0];
+    cameraFront[1] = front[1];
+    cameraFront[2] = front[2];
+}
+
+GLfloat ORQA_radians(ORQA_IN const GLfloat deg){
+    return (deg*M_PI/180.0f);
+}
+
 int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
+
+
     if(!glfwInit()){
         fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
         glfwTerminate();
@@ -328,4 +386,3 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
     
     return 0;
 }
-
