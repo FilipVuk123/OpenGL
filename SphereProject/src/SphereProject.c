@@ -1,9 +1,12 @@
 #define STB_IMAGE_IMPLEMENTATION
+#define JSMN_STATIC
 
 #define ORQA_IN
 #define ORQA_REF
 #define ORQA_OUT
 #define ORQA_NOARGS
+
+#define BUFSIZE 1024
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -17,35 +20,34 @@
 #include <arpa/inet.h>	// inet_addr
 #include <unistd.h>	// write
 #include <string.h>
-
+#include <netinet/in.h>
+#include <sys/types.h> 
 #include <cglm/cglm.h>
-#include <cglm/common.h>
+#include "jsmn.h"
 
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
-const GLuint SCR_HEIGHT = 1080;
+const GLuint SCR_HEIGHT = 1080; 
 GLFWwindow* window;
 
 // camera position
 vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
 vec3 cameraFront = (vec3){0.0f, 0.0f, -1.0f};
 vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
-float yaw = -90.0f; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float yaw = -90.0f; //-90.0f; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 float pitch = 0.0f;
+float roll = 0.0f;
 GLfloat fov = 5.0f;
-
-// field of view and rotation speed
-const GLdouble rotation = 0.001;
 
 // mouse state
 GLboolean firstMouse = GL_TRUE;
-GLfloat lastX = SCR_WIDTH/2.0f;
+GLfloat lastX = SCR_WIDTH/2.0f; 
 GLfloat lastY = SCR_HEIGHT/2.0f;
 
 // sphere attributes
 const GLfloat radius = 1.0f;
 const GLuint sectors = 100; 
-const GLuint stacks = 100; 
+const GLuint stacks = 100;
 GLuint numVertices;
 GLuint numTriangles;
 GLfloat *Vs;
@@ -54,7 +56,6 @@ GLuint *Is;
 // time
 // struct timespec start, end;
 
-
 const GLchar *vertexShaderSource = "#version 460 core\n"
     "layout (location = 0) in vec3 aPos;\n"
     "layout (location = 1) in vec2 aTexCoord;\n"
@@ -62,13 +63,13 @@ const GLchar *vertexShaderSource = "#version 460 core\n"
     "uniform mat4 MVP;\n"
     "void main()\n"
     "{\n"
-    "   gl_Position = MVP*vec4(aPos, 1.);\n"
+    "   gl_Position = MVP*vec4(aPos, 1.);\n" // lokal space to clip space
     "   TexCoord = vec2(1. - aTexCoord.x, aTexCoord.y);\n" // mirror textures for inside sphere
     "}\n\0";
 
 const GLchar *fragmentShaderSource = "#version 460 core\n"
-    "out vec4 FragColor;\n"
     "in vec2 TexCoord;\n"
+    "out vec4 FragColor;\n"
     "uniform sampler2D texture1;\n" 
     "void main()\n"
     "{\n"
@@ -83,7 +84,12 @@ void ORQA_processInput(ORQA_REF GLFWwindow *window);
 void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height);
 void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
 
-void* ORQA_tcp_thread(void *);
+void* ORQA_tcp_thread();
+
+void error(char *msg) {
+    perror(msg);
+    exit(1);
+}
 
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
@@ -97,7 +103,7 @@ int main(){
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback);
-    // glfwSetCursorPosCallback(window, ORQA_mouse_callback);
+    glfwSetCursorPosCallback(window, ORQA_mouse_callback);
     glfwSetScrollCallback(window, ORQA_scroll_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
 
@@ -172,6 +178,9 @@ int main(){
     // load and create a texture 
     GLint width, height, nrChannels;
     unsigned char *data = stbi_load("../data/panorama1.bmp", &width, &height, &nrChannels, 0); 
+    // unsigned char *data = stbi_load("../data/result2.jpg", &width, &height, &nrChannels, 0); 
+    // unsigned char *data = stbi_load("../data/earth.jpg", &width, &height, &nrChannels, 0); 
+    
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -193,8 +202,8 @@ int main(){
     glm_mat4_mul(view, model, temp);
     glm_mat4_mul(projection, temp, MVP);
 
-    pthread_t tcp_thread;
-    pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, NULL);
+    // pthread_t tcp_thread;
+    // pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, NULL);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glEnable(GL_DEPTH_TEST);
@@ -231,7 +240,7 @@ int main(){
         glfwPollEvents();
     }
     // deallocating stuff
-    pthread_exit(NULL);
+    // pthread_exit(NULL);
     free(Vs);
     free(Is);
     glDeleteVertexArrays(1, &VAO); 
@@ -246,14 +255,76 @@ int main(){
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
     return 0;
 }
+
 /*
 clock_gettime(CLOCK_REALTIME, &start);
 clock_gettime(CLOCK_REALTIME, &end);
 
 double time = (end.tv_nsec - start.tv_nsec);
 printf("%f\n", time);
-
 */
+
+
+void ORQA_GenCupola(const float radius, const unsigned int latitude, const unsigned int longitude){
+    numVertices = (longitude+1)*latitude;
+    GLfloat *verticesX = calloc(numVertices, sizeof(GLfloat));
+    GLfloat *verticesY = calloc(numVertices, sizeof(GLfloat));
+    GLfloat *verticesZ = calloc(numVertices, sizeof(GLfloat));
+    GLfloat *textures1 = calloc(numVertices, sizeof(GLfloat));
+    GLfloat *textures2 = calloc(numVertices, sizeof(GLfloat));
+    GLfloat drho = M_PI / (GLfloat)latitude;
+    GLfloat dtheta = 2*M_PI / (GLfloat)longitude;
+    const GLfloat latitudeSpacing = 1.0f / (latitude + 1.0f);
+    const GLfloat longitudeSpacing = 1.0f / (longitude);
+
+    for (GLuint i = 0; i < latitude; i++){
+        const GLfloat rho = (GLfloat)i * drho;
+        const GLfloat srhodrho = (GLfloat)(sinf(rho + drho));
+        const GLfloat crhodrho = (GLfloat)(cosf(rho + drho));
+
+        for (GLuint j = 0; j <= longitude; j++){
+            const GLfloat theta = (j == longitude) ? 0.0f : j * dtheta;
+            const GLfloat stheta = (GLfloat)(-sinf(theta));
+            const GLfloat ctheta = (GLfloat)(cosf(theta));
+
+            GLfloat x = stheta * srhodrho;
+            GLfloat y = ctheta * srhodrho;
+            GLfloat z = crhodrho;
+
+            *(verticesX + latitude*i + j) = x * radius;
+            *(verticesY + latitude*i + j) = y * radius;
+            *(verticesZ + latitude*i + j) = z * radius;
+
+            *(textures1 + latitude*i + j) = i * longitudeSpacing; 
+            *(textures2 + latitude*i + j) = 1.0f - (i + 1) * latitudeSpacing;
+        }
+    }
+    Vs = calloc(numVertices*5, sizeof(GLfloat));
+    GLuint j = 0;
+    for(GLuint i = 0; i < 5*numVertices; i=i+5){
+        *(Vs + i) = *(verticesX+j);
+        *(Vs + i+1) = *(verticesY+j);
+        *(Vs + i+2) = *(verticesZ+j);
+        *(Vs + i+3) = *(textures1+j);
+        *(Vs + i+4) = *(textures2+j);
+        j++;
+    }
+    free(verticesX);
+    free(verticesY);
+    free(verticesZ);
+    numTriangles = (longitude * latitude + longitude)*2;
+    Is = calloc(numTriangles*3, sizeof(GLint));
+    j = 0;
+    for (GLuint i = 0; i < longitude * latitude + longitude; ++i){
+        *(Is + j++) = i;
+        *(Is + j++) = i + longitude + 1;
+        *(Is + j++) = i + longitude;
+        
+        *(Is + j++) = i + longitude + 1;
+        *(Is + j++) = i;
+        *(Is + j++) = i + 1;
+    }
+}
 
 void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitudeLines, ORQA_IN const GLuint numLongitudeLines){
     // One vertex at every latitude-longitude intersection, plus one for the north pole and one for the south.
@@ -355,45 +426,6 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
     return 0;
 }
 
-void* ORQA_tcp_thread(void *socket_desc){
-    while(!glfwWindowShouldClose(window)){ // simplify ending while loop
-        double xpos, ypos;
-        glfwGetCursorPos(window, &xpos, &ypos);
-        if(firstMouse){ // x/yoffset needs to be 0 at first call
-            lastX = xpos;
-            lastY = ypos;
-            firstMouse = GL_FALSE;
-        }
-        GLfloat xoffset = xpos - lastX;
-        GLfloat yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-        lastX = xpos;
-        lastY = ypos;
-
-        GLfloat sensitivity = 0.1f;
-        xoffset *= sensitivity;
-        yoffset *= sensitivity;
-
-        yaw += xoffset;
-        pitch += yoffset;
-
-        // when pitch is out of bounds, screen doesn't get flipped
-        if(pitch > 89.0f) pitch = 89.0f;
-        if(pitch < -89.0f) pitch = -89.0f;
-
-        vec3 front;
-        front[0] = cos(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
-        front[1] = sin(ORQA_radians(pitch));
-        front[2] = sin(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
-
-        glm_vec3_normalize(front);
-
-        cameraFront[0] = front[0];
-        cameraFront[1] = front[1];
-        cameraFront[2] = front[2];
-    }
-    return 0;
-}
-
 void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){ // closes window on ESC
         glfwSetWindowShouldClose(window, GL_TRUE);
@@ -444,3 +476,65 @@ void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpo
     cameraFront[2] = front[2];
 }
 
+void* ORQA_tcp_thread(){
+
+    int parentfd, childfd, portno, clientlen, optval, n, err, exit; 
+    struct sockaddr_in serveraddr, clientaddr; 
+    char buf[BUFSIZE];
+
+    jsmn_parser p;
+    jsmntok_t t[3];
+    jsmn_init(&p);
+
+    portno = 8000;
+
+    parentfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (parentfd < 0) error("ERROR opening socket");
+
+    optval = 1;
+    setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));
+    bzero((char *) &serveraddr, sizeof(serveraddr));
+
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serveraddr.sin_port = htons((unsigned short)portno);
+
+    if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) error("ERROR on binding");
+
+    if (listen(parentfd, 5) < 0) error("ERROR on listen");
+
+    clientlen = sizeof(clientaddr);
+    exit = 0;
+    while (exit) {
+        childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen);
+        if (childfd < 0) error("ERROR on accept");
+        
+         
+        bzero(buf, BUFSIZE);
+        n = read(childfd, buf, BUFSIZE);
+        if (n < 0) error("ERROR reading from socket");
+        printf("server received.. %d bytes: %s", n, buf);
+
+        err = jsmn_parse(&p, buf, strlen(buf), t, 3);
+        if (err < 0) {
+            printf("Failed to parse JSON: %d\n", err);
+            // exit = 1;
+        }
+        
+        // isparsirati yaw i pitch
+        
+        vec3 front;
+        front[0] = cos(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
+        front[1] = sin(ORQA_radians(pitch));
+        front[2] = sin(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
+
+        glm_vec3_normalize(front);
+
+        cameraFront[0] = front[0];
+        cameraFront[1] = front[1];
+        cameraFront[2] = front[2];
+
+        close(childfd);
+    }
+    return 0;
+}
