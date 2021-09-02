@@ -11,6 +11,12 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
+#include <time.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>	// inet_addr
+#include <unistd.h>	// write
+#include <string.h>
 
 #include <cglm/cglm.h>
 #include <cglm/common.h>
@@ -18,6 +24,7 @@
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
+GLFWwindow* window;
 
 // camera position
 vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
@@ -37,20 +44,16 @@ GLfloat lastY = SCR_HEIGHT/2.0f;
 
 // sphere attributes
 const GLfloat radius = 1.0f;
-const GLuint sectors = 50; 
-const GLuint stacks = 50; 
+const GLuint sectors = 100; 
+const GLuint stacks = 100; 
 GLuint numVertices;
 GLuint numTriangles;
 GLfloat *Vs;
 GLuint *Is;
 
-GLfloat ORQA_radians(ORQA_IN const GLfloat deg);
-void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos);
-void ORQA_GenSphere(ORQA_IN const float radius, ORQA_IN const unsigned int numLatitudeLines, ORQA_IN const unsigned int numLongitudeLines);
-void ORQA_processInput(ORQA_REF GLFWwindow *window);
-void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height);
-void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
-int ORQA_initGLFW(ORQA_NOARGS void);
+// time
+// struct timespec start, end;
+
 
 const GLchar *vertexShaderSource = "#version 460 core\n"
     "layout (location = 0) in vec3 aPos;\n"
@@ -72,28 +75,38 @@ const GLchar *fragmentShaderSource = "#version 460 core\n"
     "   FragColor = texture(texture1, TexCoord);\n" 
     "}\n\0";
 
+int ORQA_initGLFW(ORQA_NOARGS void);
+GLfloat ORQA_radians(ORQA_IN const GLfloat deg);
+void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos);
+void ORQA_GenSphere(ORQA_IN const float radius, ORQA_IN const unsigned int numLatitudeLines, ORQA_IN const unsigned int numLongitudeLines);
+void ORQA_processInput(ORQA_REF GLFWwindow *window);
+void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height);
+void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
+
+void* ORQA_tcp_thread(void *);
+
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Learning OpenGL", NULL, NULL); // glfw window object creation
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Learning OpenGL", NULL, NULL); // glfw window object creation
     if (window == NULL){
         fprintf(stderr, "In file: %s, line: %d Failed to create GLFW window\n", __FILE__, __LINE__);
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, ORQA_mouse_callback);
-    glfwSetScrollCallback(window, ORQA_scroll_callback);
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback);
+    // glfwSetCursorPosCallback(window, ORQA_mouse_callback);
+    glfwSetScrollCallback(window, ORQA_scroll_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
         glfwTerminate();
         return -1;
     }    
-    
+
     // generating sphere
     ORQA_GenSphere(radius, sectors, stacks);
     GLfloat vertices[numVertices*5];
@@ -152,18 +165,18 @@ int main(){
     glVertexAttribPointer(texCoordLocation, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(texCoordLocation);
 
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
     // load and create a texture 
     GLint width, height, nrChannels;
-    unsigned char *data = stbi_load("../data/earth.jpg", &width, &height, &nrChannels, 0); 
+    unsigned char *data = stbi_load("../data/panorama1.bmp", &width, &height, &nrChannels, 0); 
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
     stbi_image_free(data);
-
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
 
     // MVP matrices
     mat4 model, projection, view, temp, MVP;
@@ -173,24 +186,19 @@ int main(){
     glm_mat4_identity(model);
     glm_mat4_identity(view);
     glm_mat4_identity(projection);
-    
-    /*
-    if(glfwGetKey(window, GLFW_KEY_A)) glm_rotate(model, rotation, (vec3){-0.1f, 0.0f, 0.0f});
-    if(glfwGetKey(window, GLFW_KEY_D)) glm_rotate(model, rotation, (vec3){0.1f, 0.0f, 0.0f});
-    if(glfwGetKey(window, GLFW_KEY_LEFT)) glm_rotate(model, rotation, (vec3){0.0f, 0.1f, 0.0f});
-    if(glfwGetKey(window, GLFW_KEY_RIGHT)) glm_rotate(model, rotation, (vec3){0.0f,-0.1f, 0.0f});
-    if(glfwGetKey(window, GLFW_KEY_UP)) glm_rotate(model, rotation, (vec3){0.0f, 0.0f, -0.1f});
-    if(glfwGetKey(window, GLFW_KEY_DOWN)) glm_rotate(model, rotation, (vec3){0.0f, 0.0f, 0.1f});*/
 
     glm_vec3_add(cameraPos, cameraFront, cameraCentar);
     glm_lookat(cameraPos, cameraCentar, cameraUp, view);
     
     glm_mat4_mul(view, model, temp);
     glm_mat4_mul(projection, temp, MVP);
+
+    pthread_t tcp_thread;
+    pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, NULL);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glEnable(GL_DEPTH_TEST);
-
+    
     while (!glfwWindowShouldClose(window)){ // render loop
         // input
         ORQA_processInput(window);
@@ -199,7 +207,7 @@ int main(){
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(shaderProgram);
-        
+
         // zoom and rotate
         glm_perspective(fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, projection);
         
@@ -214,15 +222,16 @@ int main(){
 
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);
-
+        
         // draw
         glDrawElements(GL_TRIANGLES, sizeof(vertices), GL_UNSIGNED_INT, 0);
-    
+        
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     // deallocating stuff
+    pthread_exit(NULL);
     free(Vs);
     free(Is);
     glDeleteVertexArrays(1, &VAO); 
@@ -235,9 +244,17 @@ int main(){
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
-
     return 0;
 }
+/*
+clock_gettime(CLOCK_REALTIME, &start);
+clock_gettime(CLOCK_REALTIME, &end);
+
+double time = (end.tv_nsec - start.tv_nsec);
+printf("%f\n", time);
+
+*/
+
 void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitudeLines, ORQA_IN const GLuint numLongitudeLines){
     // One vertex at every latitude-longitude intersection, plus one for the north pole and one for the south.
     numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; 
@@ -319,9 +336,68 @@ void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitu
     }
 }
 
+GLfloat ORQA_radians(ORQA_IN const GLfloat deg){ // calculate radians
+    return (deg*M_PI/180.0f); 
+}
+
+int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
+
+
+    if(!glfwInit()){
+        fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
+        glfwTerminate();
+        return -1;
+    }
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Specify API version 3.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // Specify API version 3.3
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // creating contex profile
+    
+    return 0;
+}
+
+void* ORQA_tcp_thread(void *socket_desc){
+    while(!glfwWindowShouldClose(window)){ // simplify ending while loop
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        if(firstMouse){ // x/yoffset needs to be 0 at first call
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = GL_FALSE;
+        }
+        GLfloat xoffset = xpos - lastX;
+        GLfloat yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+        lastX = xpos;
+        lastY = ypos;
+
+        GLfloat sensitivity = 0.1f;
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+
+        yaw += xoffset;
+        pitch += yoffset;
+
+        // when pitch is out of bounds, screen doesn't get flipped
+        if(pitch > 89.0f) pitch = 89.0f;
+        if(pitch < -89.0f) pitch = -89.0f;
+
+        vec3 front;
+        front[0] = cos(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
+        front[1] = sin(ORQA_radians(pitch));
+        front[2] = sin(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
+
+        glm_vec3_normalize(front);
+
+        cameraFront[0] = front[0];
+        cameraFront[1] = front[1];
+        cameraFront[2] = front[2];
+    }
+    return 0;
+}
+
 void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){ // closes window on ESC
         glfwSetWindowShouldClose(window, GL_TRUE);
+    }
 }
 
 void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height){
@@ -330,12 +406,12 @@ void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint wi
 
 void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
     fov -= (GLfloat)yoffset/5;
-    if (fov < 3.8f) fov = 3.8f;
+    if (fov < 5.0f) fov = 5.0f;
     if (fov > 6.2f) fov = 6.2f;
 }
 
 void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
-    if(firstMouse){
+    if(firstMouse){ // x/yoffset needs to be 0 at first call
         lastX = xpos;
         lastY = ypos;
         firstMouse = GL_FALSE;
@@ -368,21 +444,3 @@ void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpo
     cameraFront[2] = front[2];
 }
 
-GLfloat ORQA_radians(ORQA_IN const GLfloat deg){
-    return (deg*M_PI/180.0f);
-}
-
-int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
-
-
-    if(!glfwInit()){
-        fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
-        glfwTerminate();
-        return -1;
-    }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Specify API version 3.3
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // Specify API version 3.3
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // creating contex profile
-    
-    return 0;
-}

@@ -1,9 +1,9 @@
 CC=gcc
 
 CPPFLAGS := -Iinclude 
-CFLAGS   := -pipe -Wall -Wextra
-LDFLAGS  := -ldl
-LDLIBS   := -lm -ldl -lglfw
+CFLAGS   := -pipe -Wall -Wextra 
+LDFLAGS  := -ldl -lpthread -lrt
+LDLIBS   := -lm -ldl -lglfw -lpthread -lrt
 
 SRC_DIR:=src
 BIN_DIR:=bin
