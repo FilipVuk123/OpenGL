@@ -2,7 +2,7 @@ CC=gcc
 
 CPPFLAGS := -Iinclude 
 CFLAGS   := -pipe -Wall -Wextra 
-LDFLAGS  := -ldl -lpthread -lrt
+LDFLAGS  := -ldl -lpthread -lrt 
 LDLIBS   := -lm -ldl -lglfw -lpthread -lrt 
 
 SRC_DIR:=src

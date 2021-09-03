@@ -14,16 +14,16 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include <time.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>	// inet_addr
 #include <unistd.h>	// write
-#include <string.h>
 #include <netinet/in.h>
 #include <sys/types.h> 
 #include <cglm/cglm.h>
-#include "jsmn.h"
+#include "../include/jsmn.h"
 
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
@@ -84,12 +84,8 @@ void ORQA_processInput(ORQA_REF GLFWwindow *window);
 void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height);
 void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
 
-void* ORQA_tcp_thread();
-
-void error(char *msg) {
-    perror(msg);
-    exit(1);
-}
+void* ORQA_tcp_thread(ORQA_NOARGS void);
+int ORQA_jsoneq(ORQA_IN const char *json,ORQA_IN jsmntok_t *tok, ORQA_IN const char *s);
 
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
@@ -103,7 +99,7 @@ int main(){
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, ORQA_mouse_callback);
+    // glfwSetCursorPosCallback(window, ORQA_mouse_callback);
     glfwSetScrollCallback(window, ORQA_scroll_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
 
@@ -202,8 +198,8 @@ int main(){
     glm_mat4_mul(view, model, temp);
     glm_mat4_mul(projection, temp, MVP);
 
-    // pthread_t tcp_thread;
-    // pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, NULL);
+    pthread_t tcp_thread;
+    pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, NULL);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glEnable(GL_DEPTH_TEST);
@@ -240,7 +236,7 @@ int main(){
         glfwPollEvents();
     }
     // deallocating stuff
-    // pthread_exit(NULL);
+    pthread_exit(NULL);
     free(Vs);
     free(Is);
     glDeleteVertexArrays(1, &VAO); 
@@ -253,7 +249,7 @@ int main(){
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 /*
@@ -264,67 +260,6 @@ double time = (end.tv_nsec - start.tv_nsec);
 printf("%f\n", time);
 */
 
-
-void ORQA_GenCupola(const float radius, const unsigned int latitude, const unsigned int longitude){
-    numVertices = (longitude+1)*latitude;
-    GLfloat *verticesX = calloc(numVertices, sizeof(GLfloat));
-    GLfloat *verticesY = calloc(numVertices, sizeof(GLfloat));
-    GLfloat *verticesZ = calloc(numVertices, sizeof(GLfloat));
-    GLfloat *textures1 = calloc(numVertices, sizeof(GLfloat));
-    GLfloat *textures2 = calloc(numVertices, sizeof(GLfloat));
-    GLfloat drho = M_PI / (GLfloat)latitude;
-    GLfloat dtheta = 2*M_PI / (GLfloat)longitude;
-    const GLfloat latitudeSpacing = 1.0f / (latitude + 1.0f);
-    const GLfloat longitudeSpacing = 1.0f / (longitude);
-
-    for (GLuint i = 0; i < latitude; i++){
-        const GLfloat rho = (GLfloat)i * drho;
-        const GLfloat srhodrho = (GLfloat)(sinf(rho + drho));
-        const GLfloat crhodrho = (GLfloat)(cosf(rho + drho));
-
-        for (GLuint j = 0; j <= longitude; j++){
-            const GLfloat theta = (j == longitude) ? 0.0f : j * dtheta;
-            const GLfloat stheta = (GLfloat)(-sinf(theta));
-            const GLfloat ctheta = (GLfloat)(cosf(theta));
-
-            GLfloat x = stheta * srhodrho;
-            GLfloat y = ctheta * srhodrho;
-            GLfloat z = crhodrho;
-
-            *(verticesX + latitude*i + j) = x * radius;
-            *(verticesY + latitude*i + j) = y * radius;
-            *(verticesZ + latitude*i + j) = z * radius;
-
-            *(textures1 + latitude*i + j) = i * longitudeSpacing; 
-            *(textures2 + latitude*i + j) = 1.0f - (i + 1) * latitudeSpacing;
-        }
-    }
-    Vs = calloc(numVertices*5, sizeof(GLfloat));
-    GLuint j = 0;
-    for(GLuint i = 0; i < 5*numVertices; i=i+5){
-        *(Vs + i) = *(verticesX+j);
-        *(Vs + i+1) = *(verticesY+j);
-        *(Vs + i+2) = *(verticesZ+j);
-        *(Vs + i+3) = *(textures1+j);
-        *(Vs + i+4) = *(textures2+j);
-        j++;
-    }
-    free(verticesX);
-    free(verticesY);
-    free(verticesZ);
-    numTriangles = (longitude * latitude + longitude)*2;
-    Is = calloc(numTriangles*3, sizeof(GLint));
-    j = 0;
-    for (GLuint i = 0; i < longitude * latitude + longitude; ++i){
-        *(Is + j++) = i;
-        *(Is + j++) = i + longitude + 1;
-        *(Is + j++) = i + longitude;
-        
-        *(Is + j++) = i + longitude + 1;
-        *(Is + j++) = i;
-        *(Is + j++) = i + 1;
-    }
-}
 
 void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitudeLines, ORQA_IN const GLuint numLongitudeLines){
     // One vertex at every latitude-longitude intersection, plus one for the north pole and one for the south.
@@ -426,6 +361,14 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
     return 0;
 }
 
+int ORQA_jsoneq(ORQA_IN const char *json,ORQA_IN jsmntok_t *tok, ORQA_IN const char *s){
+    if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start && 
+    strncmp(json + tok->start, s, tok->end - tok->start) == 0){
+        return 0;
+    }
+    return -1;
+}
+
 void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){ // closes window on ESC
         glfwSetWindowShouldClose(window, GL_TRUE);
@@ -477,20 +420,24 @@ void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpo
 }
 
 void* ORQA_tcp_thread(){
-
-    int parentfd, childfd, portno, clientlen, optval, n, err, exit; 
+    printf("In thread\n");
+    int parentfd, childfd, portno, clientlen, optval, n, err, quit; 
     struct sockaddr_in serveraddr, clientaddr; 
     char buf[BUFSIZE];
+    float yaw, pitch, roll, xoffset, yoffset, xpos, ypos;
 
     jsmn_parser p;
-    jsmntok_t t[3];
+    jsmntok_t t[75];
     jsmn_init(&p);
 
     portno = 8000;
 
     parentfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (parentfd < 0) error("ERROR opening socket");
-
+    if (parentfd < 0) {
+        perror("ERROR opening socket");
+        exit(1);
+    }
+    
     optval = 1;
     setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));
     bzero((char *) &serveraddr, sizeof(serveraddr));
@@ -499,31 +446,70 @@ void* ORQA_tcp_thread(){
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
     serveraddr.sin_port = htons((unsigned short)portno);
 
-    if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) error("ERROR on binding");
+    if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) {
+        perror("ERROR on binding");
+        exit(1);
+    }
 
-    if (listen(parentfd, 5) < 0) error("ERROR on listen");
+    if (listen(parentfd, 5) < 0) {
+        perror("ERROR on listen");
+        exit(1);
+    }
 
     clientlen = sizeof(clientaddr);
-    exit = 0;
-    while (exit) {
+    quit = 0;
+    printf("Before while!\n");
+    while (!quit) {
         childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen);
-        if (childfd < 0) error("ERROR on accept");
-        
-         
-        bzero(buf, BUFSIZE);
-        n = read(childfd, buf, BUFSIZE);
-        if (n < 0) error("ERROR reading from socket");
-        printf("server received.. %d bytes: %s", n, buf);
-
-        err = jsmn_parse(&p, buf, strlen(buf), t, 3);
-        if (err < 0) {
-            printf("Failed to parse JSON: %d\n", err);
-            // exit = 1;
+        if (childfd < 0) {
+            perror("ERROR on accept");
+            exit(1);
         }
         
-        // isparsirati yaw i pitch
+        bzero(buf, BUFSIZE);
+        n = read(childfd, buf, BUFSIZE);
+        if (n < 0) {
+            perror("ERROR reading from socket");
+            exit(1);
+        }
         
+        err = jsmn_parse(&p, buf, strlen(buf), t, 75);
+        if (err < 0) printf("Failed to parse JSON: %d\n", err);
+        
+        for (int i = 1; i < err; i++) { // parsing yaw, pitch and roll
+            if (ORQA_jsoneq(buf, &t[i], "yaw") == 0) {
+            // yaw = -atof(buf + t[i + 1].start);
+            xpos = -atof(buf + t[i + 1].start);
+            i++;
+            } else if (ORQA_jsoneq(buf, &t[i], "pitch") == 0) {
+            // pitch = -atof(buf + t[i + 1].start);
+            ypos = -atof(buf + t[i + 1].start);
+            i++;
+            } else if (ORQA_jsoneq(buf, &t[i], "roll") == 0) {
+            roll = atof(buf + t[i + 1].start);
+            i++;
+            }
+        }
+        
+        if(firstMouse){ // x/yoffset needs to be 0 at first call
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = GL_FALSE;
+        }
+
+        GLfloat xoffset = xpos - lastX;
+        GLfloat yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+        lastX = xpos;
+        lastY = ypos;
+
+        GLfloat sensitivity = 1.1f;
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+
+        yaw += xoffset;
+        pitch += yoffset;
         vec3 front;
+
         front[0] = cos(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
         front[1] = sin(ORQA_radians(pitch));
         front[2] = sin(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
