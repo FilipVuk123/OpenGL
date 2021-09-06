@@ -34,7 +34,7 @@ GLFWwindow* window;
 vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
 vec3 cameraFront = (vec3){0.0f, 0.0f, -1.0f};
 vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
-float yaw = -90.0f; //-90.0f; // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float yaw = -90.0f;
 float pitch = 0.0f;
 float roll = 0.0f;
 GLfloat fov = 5.0f;
@@ -46,8 +46,8 @@ GLfloat lastY = SCR_HEIGHT/2.0f;
 
 // sphere attributes
 const GLfloat radius = 1.0f;
-const GLuint sectors = 100; 
-const GLuint stacks = 100;
+const GLuint sectors = 75; 
+const GLuint stacks = 75;
 GLuint numVertices;
 GLuint numTriangles;
 GLfloat *Vs;
@@ -99,9 +99,9 @@ int main(){
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback);
-    // glfwSetCursorPosCallback(window, ORQA_mouse_callback);
-    glfwSetScrollCallback(window, ORQA_scroll_callback);
+    // glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
+    glfwSetScrollCallback(window, ORQA_scroll_callback); // zoom in/out using mouse wheel
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
@@ -111,20 +111,28 @@ int main(){
 
     // generating sphere
     ORQA_GenSphere(radius, sectors, stacks);
-    GLfloat vertices[numVertices*5];
-    GLuint indices[numTriangles*3];
-    for(unsigned int i = 0; i < numVertices*5; i++) vertices[i] = *(Vs + i);
-    for(unsigned int i = 0; i < numTriangles*3; i++) indices[i] = *(Is + i);
+    const unsigned int verticesSize = numVertices*5;
+    const unsigned int indicesSize = numTriangles*3;
+    GLfloat vertices[verticesSize];
+    GLuint indices[indicesSize];
+    for(unsigned int i = 0; i < verticesSize; i++) vertices[i] = *(Vs + i);
+    for(unsigned int i = 0; i < indicesSize; i++) indices[i] = *(Is + i);
+
+    // TCP thread init
+    pthread_t tcp_thread;
+    pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, NULL);
 
     // shader stuff
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
+    GLuint shaderProgram = glCreateProgram();
     GLint success;
     GLchar infoLog[512];
+
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success){
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
@@ -137,7 +145,6 @@ int main(){
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
         goto shaderError;
     }
-    GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
@@ -161,7 +168,6 @@ int main(){
 
     GLuint positionLocation = glGetAttribLocation(shaderProgram, "aPos");
     GLuint texCoordLocation = glGetAttribLocation(shaderProgram, "aTexCoord");
-
     glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(positionLocation);
     glVertexAttribPointer(texCoordLocation, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -197,9 +203,6 @@ int main(){
     
     glm_mat4_mul(view, model, temp);
     glm_mat4_mul(projection, temp, MVP);
-
-    pthread_t tcp_thread;
-    pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, NULL);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glEnable(GL_DEPTH_TEST);
@@ -260,7 +263,6 @@ double time = (end.tv_nsec - start.tv_nsec);
 printf("%f\n", time);
 */
 
-
 void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitudeLines, ORQA_IN const GLuint numLongitudeLines){
     // One vertex at every latitude-longitude intersection, plus one for the north pole and one for the south.
     numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; 
@@ -271,11 +273,8 @@ void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitu
     GLfloat *textures2 = calloc(numVertices, sizeof(GLfloat));
 
     // poles
-    *(verticesX) = 0; *(verticesY) = radius; *(verticesZ) = 0;
-    *(textures1) = 0; *(textures2) = 1;
-
-    *(verticesX + numVertices-1) = 0; *(verticesY+ numVertices-1) = -radius; *(verticesZ+ numVertices-1) = 0;
-    *(textures1 + numVertices-1) = 0; *(textures2+ numVertices-1) = 0;
+    *(verticesX) = 0; *(verticesY) = radius; *(verticesZ) = 0; *(textures1) = 0; *(textures2) = 1;
+    *(verticesX+numVertices-1)=0; *(verticesY+numVertices-1)=-radius; *(verticesZ+numVertices-1)=0; *(textures1+numVertices-1)=0; *(textures2+numVertices-1)=0;
 
     GLuint k = 1;
     const GLfloat latitudeSpacing = 1.0f / (numLatitudeLines + 1.0f);
@@ -347,8 +346,6 @@ GLfloat ORQA_radians(ORQA_IN const GLfloat deg){ // calculate radians
 }
 
 int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
-
-
     if(!glfwInit()){
         fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
         glfwTerminate();
@@ -396,7 +393,7 @@ void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpo
     lastX = xpos;
     lastY = ypos;
 
-    GLfloat sensitivity = 0.1f;
+    GLfloat sensitivity = 0.08f;
     xoffset *= sensitivity;
     yoffset *= sensitivity;
 
@@ -420,25 +417,26 @@ void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpo
 }
 
 void* ORQA_tcp_thread(){
-    printf("In thread\n");
-    int parentfd, childfd, portno, clientlen, optval, n, err, quit; 
+    int parentfd, childfd, clientlen, n, err; 
     struct sockaddr_in serveraddr, clientaddr; 
     char buf[BUFSIZE];
-    float yaw, pitch, roll, xoffset, yoffset, xpos, ypos;
+    float yaw, pitch, roll;
+    int optval = 1;
+    int portno = 8000;
 
+    // json parser init
     jsmn_parser p;
-    jsmntok_t t[75];
+    jsmntok_t t[125];
     jsmn_init(&p);
 
-    portno = 8000;
-
+    // create socket
     parentfd = socket(AF_INET, SOCK_STREAM, 0);
     if (parentfd < 0) {
         perror("ERROR opening socket");
         exit(1);
     }
     
-    optval = 1;
+    // socket attributes
     setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));
     bzero((char *) &serveraddr, sizeof(serveraddr));
 
@@ -446,26 +444,27 @@ void* ORQA_tcp_thread(){
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
     serveraddr.sin_port = htons((unsigned short)portno);
 
+    // binding
     if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) {
         perror("ERROR on binding");
         exit(1);
     }
 
+    // listening
     if (listen(parentfd, 5) < 0) {
         perror("ERROR on listen");
         exit(1);
     }
-
     clientlen = sizeof(clientaddr);
-    quit = 0;
-    printf("Before while!\n");
-    while (!quit) {
+    clientlen = sizeof(clientaddr);
+    while (!glfwWindowShouldClose(window)) {
         childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen);
         if (childfd < 0) {
             perror("ERROR on accept");
             exit(1);
         }
         
+        // reading
         bzero(buf, BUFSIZE);
         n = read(childfd, buf, BUFSIZE);
         if (n < 0) {
@@ -473,49 +472,29 @@ void* ORQA_tcp_thread(){
             exit(1);
         }
         
-        err = jsmn_parse(&p, buf, strlen(buf), t, 75);
+        // parsing
+        err = jsmn_parse(&p, buf, strlen(buf), t, 125);
         if (err < 0) printf("Failed to parse JSON: %d\n", err);
-        
         for (int i = 1; i < err; i++) { // parsing yaw, pitch and roll
             if (ORQA_jsoneq(buf, &t[i], "yaw") == 0) {
-            // yaw = -atof(buf + t[i + 1].start);
-            xpos = -atof(buf + t[i + 1].start);
-            i++;
+                yaw = -atof(buf + t[i + 1].start);
+                i++;
             } else if (ORQA_jsoneq(buf, &t[i], "pitch") == 0) {
-            // pitch = -atof(buf + t[i + 1].start);
-            ypos = -atof(buf + t[i + 1].start);
-            i++;
+                pitch = -atof(buf + t[i + 1].start);
+                i++;
             } else if (ORQA_jsoneq(buf, &t[i], "roll") == 0) {
-            roll = atof(buf + t[i + 1].start);
-            i++;
+                roll = atof(buf + t[i + 1].start);
+                i++;
             }
         }
         
-        if(firstMouse){ // x/yoffset needs to be 0 at first call
-            lastX = xpos;
-            lastY = ypos;
-            firstMouse = GL_FALSE;
-        }
-
-        GLfloat xoffset = xpos - lastX;
-        GLfloat yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-        lastX = xpos;
-        lastY = ypos;
-
-        GLfloat sensitivity = 1.1f;
-        xoffset *= sensitivity;
-        yoffset *= sensitivity;
-
-        yaw += xoffset;
-        pitch += yoffset;
+        // calculate front camera vector
         vec3 front;
-
         front[0] = cos(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
         front[1] = sin(ORQA_radians(pitch));
         front[2] = sin(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
 
         glm_vec3_normalize(front);
-
         cameraFront[0] = front[0];
         cameraFront[1] = front[1];
         cameraFront[2] = front[2];
