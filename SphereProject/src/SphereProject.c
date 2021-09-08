@@ -1,5 +1,4 @@
 #define STB_IMAGE_IMPLEMENTATION
-#define JSMN_STATIC
 
 #define ORQA_IN
 #define ORQA_REF
@@ -23,7 +22,7 @@
 #include <netinet/in.h>
 #include <sys/types.h> 
 #include <cglm/cglm.h>
-#include "../include/jsmn.h"
+#include "../include/json.h"
 
 /**********************************/
 // cupola coordinates
@@ -114,7 +113,6 @@ void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint wi
 void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
 
 void* ORQA_tcp_thread(ORQA_NOARGS void);
-int ORQA_jsoneq(ORQA_IN const char *json,ORQA_IN jsmntok_t *tok, ORQA_IN const char *s);
 
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
@@ -128,7 +126,7 @@ int main(){
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
+    //glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
     glfwSetScrollCallback(window, ORQA_scroll_callback); // zoom in/out using mouse wheel
 
@@ -157,7 +155,7 @@ int main(){
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     GLuint shaderProgram = glCreateProgram();
     GLint success;
-    GLchar infoLog[512];
+    GLchar infoLog[BUFSIZE];
 
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
@@ -165,13 +163,13 @@ int main(){
     glCompileShader(fragmentShader);
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success){
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        glGetShaderInfoLog(vertexShader, BUFSIZE, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::VERTEX::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
         goto shaderError; 
     }
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success){
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        glGetShaderInfoLog(fragmentShader, BUFSIZE, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
         goto shaderError;
     }
@@ -180,7 +178,7 @@ int main(){
     glLinkProgram(shaderProgram);
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        glGetProgramInfoLog(shaderProgram, BUFSIZE, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::PROGRAM::LINKING_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
         goto linkingError; 
     }
@@ -236,17 +234,10 @@ int main(){
     
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glEnable(GL_DEPTH_TEST);
-    
-    int k = 0;
+
     while (!glfwWindowShouldClose(window)){ // render loop
         // input
         ORQA_processInput(window);
-
-        if(k++ % 100 == 1){
-            printf("CameraUp: %f, %f, %f\n", cameraUp[0], cameraUp[1], cameraUp[2]);
-            printf("CameraFront: %f, %f, %f\n", cameraFront[0], cameraFront[1], cameraFront[2]);
-        }
-        
 
         // render
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -394,14 +385,6 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
     return 0;
 }
 
-int ORQA_jsoneq(ORQA_IN const char *json,ORQA_IN jsmntok_t *tok, ORQA_IN const char *s){
-    if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start && 
-    strncmp(json + tok->start, s, tok->end - tok->start) == 0){
-        return 0;
-    }
-    return -1;
-}
-
 void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){ // closes window on ESC
         quit = GL_TRUE;
@@ -462,12 +445,8 @@ void* ORQA_tcp_thread(){
     float yaw, pitch, roll, lastRoll;
     int optval = 1;
     int portno = 8000;
+    float rollOffset = 0.0f;
     vec3 front;
-
-    // json parser init
-    jsmn_parser p;
-    jsmntok_t t[125];
-    jsmn_init(&p);
 
     // create socket
     parentfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -496,22 +475,15 @@ void* ORQA_tcp_thread(){
         bzero(buf, BUFSIZE);
         n = read(childfd, buf, BUFSIZE);
         if (n < 0) { perror("ERROR reading from socket"); exit(1); }
-        
+        // printf("server received %d bytes: %s", n, buf);
+
         // parsing
-        err = jsmn_parse(&p, buf, strlen(buf), t, 125);
-        if (err < 0) printf("Failed to parse JSON: %d\n", err);
-        for (int i = 1; i < err; i++) { // parsing yaw, pitch and roll
-            if (ORQA_jsoneq(buf, &t[i], "yaw") == 0) {
-                yaw = -atof(buf + t[i + 1].start);
-                i++;
-            } else if (ORQA_jsoneq(buf, &t[i], "pitch") == 0) {
-                pitch = -atof(buf + t[i + 1].start);
-                i++;
-            } else if (ORQA_jsoneq(buf, &t[i], "roll") == 0) {
-                roll = atof(buf + t[i + 1].start);
-                i++;
-            }
-        }
+        JSONObject *json = parseJSON(buf);
+        yaw = -atof(json->pairs[0].value->stringValue);
+        pitch = -atof(json->pairs[1].value->stringValue);
+        roll = atof(json->pairs[2].value->stringValue);
+
+        // printf("yaw: %f, pitch: %f, roll: %f\n", yaw, pitch, roll);
         
         yaw = ORQA_radians(yaw);
         pitch = ORQA_radians(pitch);
@@ -527,7 +499,7 @@ void* ORQA_tcp_thread(){
         cameraFront[2] = front[2];
 
         
-        float rollOffset = lastRoll - roll;
+        rollOffset = lastRoll - roll;
         lastRoll = roll;
         
         glm_rotate(rollMat, ORQA_radians(rollOffset), cameraFront);
