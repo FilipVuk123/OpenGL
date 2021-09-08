@@ -439,7 +439,7 @@ void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpo
 void* ORQA_tcp_thread(){
     printf("In thread\n");
     glm_mat4_identity(rollMat);
-    int parentfd, childfd, clientlen, n, err; 
+    int parentfd, childfd, clientlen, n; 
     struct sockaddr_in serveraddr, clientaddr; 
     char buf[BUFSIZE];
     float yaw, pitch, roll, lastRoll;

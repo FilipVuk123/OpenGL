@@ -5,8 +5,6 @@
 #include <stdlib.h>
 
 typedef char*                                   string;
-#define true                                    (1)
-#define false                                   (0)
 #define TRUE                                    true
 #define FALSE                                   false
 
@@ -47,8 +45,8 @@ typedef union _jsonvalue {
 
 JSONObject *parseJSON(string);
 void freeJSONFromMemory(JSONObject *);
-static int strNextOccurence(string, char);
-static JSONObject * _parseJSON(string, int *);
+int strNextOccurence(string, char);
+JSONObject * _parseJSON(string, int *);
 
 
 
