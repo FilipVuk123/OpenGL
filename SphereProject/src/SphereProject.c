@@ -51,12 +51,13 @@ GLuint indices[]={
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080; 
-GLFWwindow* window;
+GLFWwindow *window;
 
 // camera position
 vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
 vec3 cameraFront = (vec3){0.0f, 0.0f, -1.0f};
 vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
+vec3 worldUp = (vec3){0.0f, 1.0f, 0.0f};
 vec3 cameraRight, cameraTarget, cameraCentar;
 float yaw = -90.0f;
 float pitch = 0.0f;
@@ -106,12 +107,11 @@ const GLchar *fragmentShaderSource = "#version 460 core\n"
 
 int ORQA_initGLFW(ORQA_NOARGS void);
 GLfloat ORQA_radians(ORQA_IN const GLfloat deg);
-void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos);
+void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos);
 void ORQA_GenSphere(ORQA_IN const float radius, ORQA_IN const unsigned int numLatitudeLines, ORQA_IN const unsigned int numLongitudeLines);
 void ORQA_processInput(ORQA_REF GLFWwindow *window);
-void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height);
-void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
-
+void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
+void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
 void* ORQA_tcp_thread(ORQA_NOARGS void);
 
 int main(){
@@ -125,7 +125,7 @@ int main(){
     }
     glfwMakeContextCurrent(window);
 
-    glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback);
+    glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback); // manipulate view port
     //glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
     glfwSetScrollCallback(window, ORQA_scroll_callback); // zoom in/out using mouse wheel
@@ -137,7 +137,6 @@ int main(){
     }    
 
     // generating sphere
-    
     ORQA_GenSphere(radius, sectors, stacks);
     const unsigned int verticesSize = numVertices*5;
     const unsigned int indicesSize = numTriangles*3;
@@ -218,7 +217,7 @@ int main(){
     stbi_image_free(data);
 
     // MVP matrices
-    mat4 model, projection, view, temp, MVP;
+    mat4 model, projection, view, MVP;
     
     GLuint MVPLoc = glGetUniformLocation(shaderProgram, "MVP");
 
@@ -229,9 +228,11 @@ int main(){
     glm_vec3_add(cameraPos, cameraFront, cameraTarget);
     glm_lookat(cameraPos, cameraTarget, cameraUp, view);
     
-    glm_mat4_mul(view, model, temp);
-    glm_mat4_mul(projection, temp, MVP);
+    glm_mat4_mul(view, model, MVP);
+    glm_mat4_mul(projection, MVP, MVP);
     
+    glUniformMatrix4fv(MVPLoc, 1, GL_FALSE, &MVP[0][0]); 
+
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glEnable(GL_DEPTH_TEST);
 
@@ -246,12 +247,11 @@ int main(){
 
         // zoom and rotate
         glm_perspective(fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, projection);
-        
-        glm_mat4_mul(view, model, MVP);
-        glm_mat4_mul(projection, MVP, MVP);
-
         glm_vec3_add(cameraPos, cameraFront, cameraCentar);
         glm_lookat(cameraPos, cameraCentar, cameraUp, view);
+
+        glm_mat4_mul(view, model, MVP);
+        glm_mat4_mul(projection, MVP, MVP);
 
         // send MVP matrix to vertex shader
         glUniformMatrix4fv(MVPLoc, 1, GL_FALSE, &MVP[0][0]); 
@@ -280,7 +280,7 @@ int main(){
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
-    return EXIT_SUCCESS;
+    return 0;
 }
 
 /*
@@ -392,17 +392,17 @@ void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
     }
 }
 
-void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height){
+void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height){
     glViewport(0, 0, width, height); // size of the rendering window
 }
 
-void ORQA_scroll_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
+void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
     fov -= (GLfloat)yoffset/5;
     if (fov < 4.0f) fov = 4.0f;
     if (fov > 6.2f) fov = 6.2f;
 }
 
-void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
+void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
     if(firstMouse){ // x/yoffset needs to be 0 at first call
         lastX = xpos;
         lastY = ypos;
@@ -436,7 +436,7 @@ void ORQA_mouse_callback(ORQA_REF GLFWwindow* window, ORQA_IN const GLdouble xpo
     cameraFront[2] = front[2];
 }
 
-void* ORQA_tcp_thread(){
+void* ORQA_tcp_thread(ORQA_NOARGS void){
     printf("In thread\n");
     glm_mat4_identity(rollMat);
     int parentfd, childfd, clientlen, n; 
@@ -475,7 +475,6 @@ void* ORQA_tcp_thread(){
         bzero(buf, BUFSIZE);
         n = read(childfd, buf, BUFSIZE);
         if (n < 0) { perror("ERROR reading from socket"); exit(1); }
-        // printf("server received %d bytes: %s", n, buf);
 
         // parsing
         JSONObject *json = parseJSON(buf);
@@ -483,11 +482,7 @@ void* ORQA_tcp_thread(){
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = atof(json->pairs[2].value->stringValue);
 
-        // printf("yaw: %f, pitch: %f, roll: %f\n", yaw, pitch, roll);
-        
-        yaw = ORQA_radians(yaw);
-        pitch = ORQA_radians(pitch);
-        roll = ORQA_radians(roll);
+        yaw = ORQA_radians(yaw); pitch = ORQA_radians(pitch); // deg to rad
 
         front[0] = cos(yaw) * cos(pitch);
         front[1] = sin(pitch);
@@ -497,13 +492,19 @@ void* ORQA_tcp_thread(){
         cameraFront[0] = front[0];
         cameraFront[1] = front[1];
         cameraFront[2] = front[2];
+        
+        glm_vec3_cross(cameraFront, worldUp, cameraRight);
+        glm_vec3_normalize(cameraRight);
 
-        
-        rollOffset = lastRoll - roll;
+        glm_vec3_cross(cameraRight, cameraFront, cameraUp);
+        glm_vec3_normalize(cameraUp);
+
+        // implement camera rolling
+        rollOffset = (roll - lastRoll)/2;
         lastRoll = roll;
-        
         glm_rotate(rollMat, ORQA_radians(rollOffset), cameraFront);
         glm_mat4_mulv3(rollMat, cameraUp, 1.0f, cameraUp);
+        glm_vec3_normalize(cameraUp);
         
         close(childfd);
     }

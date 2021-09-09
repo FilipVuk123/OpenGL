@@ -33,8 +33,7 @@ void freeJSONFromMemory(JSONObject *obj) {
     }
     
 }
-
-static int strNextOccurence(string str, char ch) {
+int strNextOccurence(string str, char ch) {
     int pos = 0;
     
     if(str == NULL)
@@ -47,7 +46,7 @@ static int strNextOccurence(string str, char ch) {
     return (*str == '\0') ? -1 : pos;
 }
 
-static JSONObject * _parseJSON(string str, int * offset) {
+JSONObject * _parseJSON(string str, int * offset) {
     
     int _offset = 0;
     
