@@ -6,7 +6,6 @@
 #define ORQA_NOARGS
 
 #define BUFSIZE 1024
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "../include/stb_image.h" // using this image-loading library
@@ -62,7 +61,7 @@ vec3 cameraRight, cameraTarget, cameraCentar;
 float yaw = -90.0f;
 float pitch = 0.0f;
 float roll = 0.0f;
-GLfloat fov = 5.0f;
+GLfloat fov = 4.8f;
 
 // mouse state
 GLboolean firstMouse = GL_TRUE;
@@ -126,7 +125,7 @@ int main(){
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback); // manipulate view port
-    //glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
+    // glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
     glfwSetScrollCallback(window, ORQA_scroll_callback); // zoom in/out using mouse wheel
 
@@ -206,10 +205,10 @@ int main(){
 
     // load and create a texture 
     GLint width, height, nrChannels;
-    // unsigned char *data = stbi_load("../data/panorama1.bmp", &width, &height, &nrChannels, 0); 
+    unsigned char *data = stbi_load("../data/panorama1.bmp", &width, &height, &nrChannels, 0); 
     // unsigned char *data = stbi_load("../data/result2.jpg", &width, &height, &nrChannels, 0); 
     // unsigned char *data = stbi_load("../data/earth.jpg", &width, &height, &nrChannels, 0); 
-    unsigned char *data = stbi_load("../data/360test.jpg", &width, &height, &nrChannels, 0); 
+    // unsigned char *data = stbi_load("../data/360test.jpg", &width, &height, &nrChannels, 0); 
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -235,7 +234,6 @@ int main(){
     glUniformMatrix4fv(MVPLoc, 1, GL_FALSE, &MVP[0][0]); 
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
-    glEnable(GL_DEPTH_TEST);
 
     while (!glfwWindowShouldClose(window)){ // render loop
         // input
@@ -399,7 +397,7 @@ void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint wi
 
 void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
     fov -= (GLfloat)yoffset/5;
-    if (fov < 4.0f) fov = 4.0f;
+    if (fov < 4.8f) fov = 4.8f;
     if (fov > 6.2f) fov = 6.2f;
 }
 
@@ -442,7 +440,7 @@ void *ORQA_tcp_thread(ORQA_NOARGS void){
     glm_mat4_identity(rollMat);
     int parentfd, childfd, clientlen, n; 
     struct sockaddr_in serveraddr, clientaddr; 
-    char buf[BUFSIZE];
+    char jsonStr[BUFSIZE];
     float yaw, pitch, roll, lastRoll;
     int optval = 1;
     int portno = 8000;
@@ -471,23 +469,25 @@ void *ORQA_tcp_thread(ORQA_NOARGS void){
     while (!quit) {
         childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen);
         if (childfd < 0) { perror("ERROR on accept"); exit(1);}
-        
-        // reading
-        bzero(buf, BUFSIZE);
-        n = read(childfd, buf, BUFSIZE);
-        if (n < 0) { perror("ERROR reading from socket"); exit(1); }
 
+        // reading
+        bzero(jsonStr, BUFSIZE);
+        n = read(childfd, jsonStr, BUFSIZE);
+        if (n < 0) { perror("ERROR reading from socket"); exit(1); }
+        
         // parsing
-        JSONObject *json = parseJSON(buf);
+        JSONObject *json = parseJSON(jsonStr);
         yaw = -atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = atof(json->pairs[2].value->stringValue);
 
+        // roll calculations
+        rollOffset = (roll - lastRoll)/1.5f;
+        lastRoll = roll;
+
         yaw = ORQA_radians(yaw); pitch = ORQA_radians(pitch); // deg to rad
         
-        
         // THE BEST VERSION
-        // pitch and yaw calculations
         front[0] = cos(yaw) * cos(pitch);
         front[1] = sin(pitch);
         front[2] = sin(yaw) * cos(pitch);
@@ -498,16 +498,12 @@ void *ORQA_tcp_thread(ORQA_NOARGS void){
         cameraFront[2] = front[2];
         
         glm_vec3_cross(cameraFront, worldUp, cameraRight);
-        glm_vec3_normalize(cameraRight);
 
         glm_vec3_cross(cameraRight, cameraFront, cameraUp);
-        glm_vec3_normalize(cameraUp);
 
-        // roll calculations
-        rollOffset = (roll - lastRoll)/2;
-        lastRoll = roll;
         glm_rotate(rollMat, ORQA_radians(rollOffset), cameraFront);
         glm_mat4_mulv3(rollMat, cameraUp, 1.0f, cameraUp);
+        glm_vec3_normalize(cameraRight);
         glm_vec3_normalize(cameraUp);
         
         close(childfd);
