@@ -56,7 +56,7 @@ GLFWwindow *window;
 // camera position
 vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
 vec3 cameraFront = (vec3){0.0f, 0.0f, -1.0f};
-vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f};
+vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f}; 
 vec3 worldUp = (vec3){0.0f, 1.0f, 0.0f};
 vec3 cameraRight, cameraTarget, cameraCentar;
 float yaw = -90.0f;
@@ -116,7 +116,7 @@ void* ORQA_tcp_thread(ORQA_NOARGS void);
 
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
-
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // no borders -> Full screen
     window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "The Project", NULL, NULL); // glfw window object creation
     if (window == NULL){
         fprintf(stderr, "In file: %s, line: %d Failed to create GLFW window\n", __FILE__, __LINE__);
@@ -224,6 +224,7 @@ int main(){
     glm_mat4_identity(model);
     glm_mat4_identity(view);
     glm_mat4_identity(projection);
+    glm_mat4_identity(MVP);
 
     glm_vec3_add(cameraPos, cameraFront, cameraTarget);
     glm_lookat(cameraPos, cameraTarget, cameraUp, view);
@@ -436,7 +437,7 @@ void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpo
     cameraFront[2] = front[2];
 }
 
-void* ORQA_tcp_thread(ORQA_NOARGS void){
+void *ORQA_tcp_thread(ORQA_NOARGS void){
     printf("In thread\n");
     glm_mat4_identity(rollMat);
     int parentfd, childfd, clientlen, n; 
@@ -483,7 +484,10 @@ void* ORQA_tcp_thread(ORQA_NOARGS void){
         roll = atof(json->pairs[2].value->stringValue);
 
         yaw = ORQA_radians(yaw); pitch = ORQA_radians(pitch); // deg to rad
-
+        
+        
+        // THE BEST VERSION
+        // pitch and yaw calculations
         front[0] = cos(yaw) * cos(pitch);
         front[1] = sin(pitch);
         front[2] = sin(yaw) * cos(pitch);
@@ -499,7 +503,7 @@ void* ORQA_tcp_thread(ORQA_NOARGS void){
         glm_vec3_cross(cameraRight, cameraFront, cameraUp);
         glm_vec3_normalize(cameraUp);
 
-        // implement camera rolling
+        // roll calculations
         rollOffset = (roll - lastRoll)/2;
         lastRoll = roll;
         glm_rotate(rollMat, ORQA_radians(rollOffset), cameraFront);
