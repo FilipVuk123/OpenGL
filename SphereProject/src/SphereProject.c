@@ -435,14 +435,15 @@ void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpo
 
 void *ORQA_tcp_thread(ORQA_NOARGS void){
     glm_mat4_identity(rollMat);
-    int parentfd, childfd, clientlen, n; 
+    int parentfd, childfd, n;
+    unsigned int clientlen; 
     struct sockaddr_in serveraddr, clientaddr; 
     char jsonStr[BUFSIZE];
     float yaw, pitch, roll, lastRoll;
     int optval = 1;
     int portno = 8000;
     float rollOffset = 0.0f;
-    vec3 front, up, right;
+    vec3 front;
 
     // create socket
     parentfd = socket(AF_INET, SOCK_STREAM, 0);
