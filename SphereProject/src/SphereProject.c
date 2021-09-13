@@ -22,6 +22,7 @@
 #include <sys/types.h> 
 #include <cglm/cglm.h>
 #include "../include/json.h"
+#include "../include/video_reader.h"
 
 /**************************************/
 /*
@@ -49,7 +50,7 @@ GLuint indices[]={
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080; 
-GLFWwindow *window;
+// GLFWwindow *window;
 
 // camera position
 vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
@@ -111,11 +112,12 @@ void ORQA_processInput(ORQA_REF GLFWwindow *window);
 void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
 void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
 void* ORQA_tcp_thread(ORQA_NOARGS void);
+static uint8_t* ORQA_load_video_frame(const char *filename, int *width_out, int *height_out);
 
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // no borders -> Full screen
-    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "The Project", NULL, NULL); // glfw window object creation
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "The Project", NULL, NULL); // glfw window object creation
     if (window == NULL){
         fprintf(stderr, "In file: %s, line: %d Failed to create GLFW window\n", __FILE__, __LINE__);
         glfwTerminate();
@@ -124,7 +126,7 @@ int main(){
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback); // manipulate view port
-    // glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
+    glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
     glfwSetScrollCallback(window, ORQA_scroll_callback); // zoom in/out using mouse wheel
 
@@ -145,7 +147,7 @@ int main(){
 
     // TCP thread init
     pthread_t tcp_thread;
-    pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, NULL);
+    // pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, NULL);
 
     // shader stuff
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
@@ -202,8 +204,18 @@ int main(){
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
+    GLint width, height;
     // load and create a texture 
-    GLint width, height, nrChannels;
+    uint8_t *data= ORQA_load_video_frame("../data/Cartoon.mp4", &width, &height);
+    if(data){
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data); // seg fault -> data!!!
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else {
+        fprintf(stderr, "In file: %s, line: %d Failed to load frame\n", __FILE__, __LINE__);
+    }
+    free(data);
+    /*
+    GLuint width, height, nrChannels;
     unsigned char *data = stbi_load("../data/panorama1.bmp", &width, &height, &nrChannels, 0); 
     // unsigned char *data = stbi_load("../data/result2.jpg", &width, &height, &nrChannels, 0); 
     // unsigned char *data = stbi_load("../data/earth.jpg", &width, &height, &nrChannels, 0); 
@@ -212,11 +224,10 @@ int main(){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
-    stbi_image_free(data);
+    stbi_image_free(data);*/
 
     // MVP matrices
     mat4 model, projection, view, MVP;
-    
     GLuint MVPLoc = glGetUniformLocation(shaderProgram, "MVP");
 
     glm_mat4_identity(model);
@@ -264,6 +275,7 @@ int main(){
         glfwPollEvents();
     }
     // deallocating stuff
+    // video_reader_free(&vr_state);
     pthread_exit(NULL);
     free(Vs);
     free(Is);
@@ -513,3 +525,110 @@ void *ORQA_tcp_thread(ORQA_NOARGS void){
     }
     return 0;
 }
+
+uint8_t* ORQA_load_video_frame(const char *filename, int *width_out, int *height_out){
+    
+    AVFormatContext* av_format_ctx = avformat_alloc_context();
+    if (!av_format_ctx){
+        fprintf(stderr, "In file: %s, line: %d Could not create AVFormatContex!\n", __FILE__, __LINE__);
+        return 0;
+    }
+
+    if (avformat_open_input(&av_format_ctx, filename, NULL, NULL) != 0){
+        fprintf(stderr, "In file: %s, line: %d Could not open video file!!\n", __FILE__, __LINE__);
+        return 0;
+    }
+
+    AVCodecParameters *av_codec_params;
+    AVCodec *av_codec;
+    int video_stream_index = -1;
+
+    for (unsigned int i = 0; i < av_format_ctx->nb_streams; i++){
+        av_codec_params = av_format_ctx->streams[i]->codecpar;
+        av_codec = avcodec_find_decoder(av_codec_params->codec_id);
+
+        if(!av_codec){
+            continue;
+        }
+        if(av_codec_params->codec_type == AVMEDIA_TYPE_VIDEO){
+            video_stream_index = i;
+            break;
+        }
+    }
+    if (video_stream_index == -1) {
+        printf("Couldn't find valid video stream inside file\n");
+        return 0;
+    }
+
+    AVCodecContext *av_codec_ctx = avcodec_alloc_context3(av_codec);
+    if(!av_codec_ctx){
+        fprintf(stderr, "In file: %s, line: %d Could not create CodecContex!\n", __FILE__, __LINE__);
+        return 0;
+    }
+
+    if(avcodec_parameters_to_context(av_codec_ctx, av_codec_params) < 0){
+        fprintf(stderr, "In file: %s, line: %d Could not initialize AVCodecContex!\n", __FILE__, __LINE__);
+        return 0;
+    }
+    if(avcodec_open2(av_codec_ctx, av_codec, NULL) < 0){
+        fprintf(stderr, "In file: %s, line: %d Could not open codec!\n", __FILE__, __LINE__);
+        return 0;
+    }
+
+    AVFrame *av_frame = av_frame_alloc();
+    if(!av_frame){
+        fprintf(stderr, "In file: %s, line: %d Could not allocate frame!\n", __FILE__, __LINE__);
+        return 0;
+    }
+    AVPacket *av_packet = av_packet_alloc();
+    if(!av_packet){
+        fprintf(stderr, "In file: %s, line: %d Could not allocate packet!\n", __FILE__, __LINE__);
+        return 0;
+    }
+
+    int response;
+    while(av_read_frame(av_format_ctx, av_packet) >= 0){ // stupid naming...
+        if(av_packet->stream_index != video_stream_index) continue;
+        response = avcodec_send_packet(av_codec_ctx, av_packet);
+        if (response < 0){
+            fprintf(stderr, "In file: %s, line: %s Failed to decode packet: %d\n", av_err2str(response), __FILE__, __LINE__);
+            return 0;
+        }
+        response = avcodec_receive_frame(av_codec_ctx, av_frame);
+        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
+            continue;
+        } else if (response < 0){
+            fprintf(stderr, "In file: %s, line: %s Failed to decode frame: %d\n", av_err2str(response), __FILE__, __LINE__);
+            return 0;
+        }
+        av_packet_unref(av_packet);
+        break;
+    } 
+
+    uint8_t *data = calloc(av_frame->width*av_frame->height*3, sizeof(unsigned char));
+    if(!data) printf("Failed!");
+    for (int i = 0; i < av_frame->width; i++){
+        for (int j = 0; j < av_frame->height; j++){ 
+            *(data + j*av_frame->width*3 + 3*i) = av_frame->data[0][j* av_frame->linesize[0] + i];
+            *(data + j*av_frame->width*3 + 3*i + 1) = av_frame->data[0][j* av_frame->linesize[0] + i];
+            *(data + j*av_frame->width*3 + 3*i + 2) = av_frame->data[0][j* av_frame->linesize[0] + i];
+        }
+    }
+    *width_out = av_frame->width;
+    *height_out = av_frame->height;
+
+    // clean up
+    avformat_close_input(&av_format_ctx);
+    avformat_free_context(av_format_ctx);
+    av_frame_free(&av_frame);
+    av_packet_free(&av_packet);
+    avcodec_free_context(&av_codec_ctx);
+
+    return data;
+}
+
+
+
+
+
+
