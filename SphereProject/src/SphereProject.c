@@ -25,6 +25,7 @@
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libswscale/swscale.h> // not working -> no RGB :(
 #include <inttypes.h>
 
 /*******************************************************************/
@@ -83,8 +84,7 @@ GLfloat lastY = SCR_HEIGHT/2.0f;
 const GLfloat radius = 1.0f;
 const GLuint sectors = 250; 
 const GLuint stacks = 250;
-GLuint numVertices;
-GLuint numTriangles;
+GLuint numVertices, numTriangles;
 GLfloat *Vs;
 GLuint *Is;
 
@@ -100,7 +100,7 @@ const GLchar *vertexShaderSource = "#version 460 core\n"
     "uniform mat4 MVP;\n"
     "void main()\n"
     "{\n"
-    "   gl_Position = MVP*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // lokal space to clip space
+    "   gl_Position = MVP*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
     "   TexCoord = vec2(1. - aTexCoord.x, aTexCoord.y);\n" // mirror textures for inside sphere
     "}\n\0";
 
@@ -113,17 +113,23 @@ const GLchar *fragmentShaderSource = "#version 460 core\n"
     "   FragColor = texture(texture1, TexCoord);\n" 
     "}\n\0";
 
-int ORQA_initGLFW(ORQA_NOARGS void);
-GLfloat ORQA_radians(ORQA_IN const GLfloat deg);
-void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos);
-void ORQA_GenSphere(ORQA_IN const float radius, ORQA_IN const unsigned int numLatitudeLines, ORQA_IN const unsigned int numLongitudeLines);
-void ORQA_processInput(ORQA_REF GLFWwindow *window);
-void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
-void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
-void* ORQA_tcp_thread(ORQA_NOARGS void);
-int ORQA_video_reader_open_file(ORQA_REF video_reader *state, ORQA_IN const char* filename);
-uint8_t *ORQA_video_reader_read_frame(ORQA_REF video_reader* state);
-void ORQA_video_reader_free(ORQA_REF video_reader *state);
+static int ORQA_initGLFW(ORQA_NOARGS void);
+static  GLfloat ORQA_radians(ORQA_IN const GLfloat deg);
+static  void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos);
+static void ORQA_GenSphere(ORQA_IN const float radius, ORQA_IN const unsigned int numLatitudeLines, ORQA_IN const unsigned int numLongitudeLines);
+static void ORQA_processInput(ORQA_REF GLFWwindow *window);
+static void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
+static void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
+static void* ORQA_tcp_thread(ORQA_NOARGS void);
+static int ORQA_video_reader_open_file(ORQA_REF video_reader *state, ORQA_IN const char* filename);
+static uint8_t *ORQA_video_reader_read_frame(ORQA_REF video_reader* state);
+static void ORQA_video_reader_free(ORQA_REF video_reader *state);
+static const char* av_make_error(int errnum) {
+    static char str[AV_ERROR_MAX_STRING_SIZE];
+    memset(str, 0, sizeof(str));
+    return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
+}
+
 
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
@@ -217,15 +223,19 @@ int main(){
 
 
     // loading video file!
-    GLint width, height;
     video_reader vr_state;
+    /*
+    if(!ORQA_video_reader_open_file(&vr_state, "../data/SpongeBobCartoon.mp4")){
+        printf("Could not open file\n");
+        return 1;
+    }*/
     if(!ORQA_video_reader_open_file(&vr_state, "../data/Cartoon.mp4")){
         printf("Could not open file\n");
         return 1;
     }
-    
-    width = vr_state.width;
-    height = vr_state.height;
+
+    const GLuint width = vr_state.width; 
+    const GLuint height = vr_state.height;
     uint8_t *frame_data = ORQA_video_reader_read_frame(&vr_state);
 
     if(frame_data){
@@ -248,7 +258,7 @@ int main(){
         glGenerateMipmap(GL_TEXTURE_2D);
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
     stbi_image_free(data);*/
-
+ 
     // MVP matrices
     mat4 model, projection, view, MVP;
     GLuint MVPLoc = glGetUniformLocation(shaderProgram, "MVP");
@@ -265,7 +275,6 @@ int main(){
     glm_mat4_mul(projection, MVP, MVP);
     
     glUniformMatrix4fv(MVPLoc, 1, GL_FALSE, &MVP[0][0]); 
-
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
 
     while (!glfwWindowShouldClose(window)){ // render loop
@@ -317,7 +326,8 @@ int main(){
     shaderError:
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
-    glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
+    // glfw: terminate, clearing all previously allocated GLFW resources.
+    glfwTerminate(); 
     return 0;
 }
 
@@ -329,7 +339,7 @@ double time = (end.tv_nsec - start.tv_nsec);
 printf("%f\n", time);
 */
 
-void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitudeLines, ORQA_IN const GLuint numLongitudeLines){
+static void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitudeLines, ORQA_IN const GLuint numLongitudeLines){
     // One vertex at every latitude-longitude intersection, plus one for the north pole and one for the south.
     numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; 
     GLfloat *verticesX = calloc(numVertices, sizeof(GLfloat));
@@ -407,11 +417,11 @@ void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitu
     }
 }
 
-GLfloat ORQA_radians(ORQA_IN const GLfloat deg){ // calculate radians
+static GLfloat ORQA_radians(ORQA_IN const GLfloat deg){ // calculate radians
     return (deg*M_PI/180.0f); 
 }
 
-int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
+static int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
     if(!glfwInit()){
         fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
         glfwTerminate();
@@ -424,24 +434,24 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
     return 0;
 }
 
-void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
+static void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){ // closes window on ESC
         quit = GL_TRUE;
         glfwSetWindowShouldClose(window, GL_TRUE);
     }
 }
 
-void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height){
+static void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height){
     glViewport(0, 0, width, height); // size of the rendering window
 }
 
-void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
+static void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
     fov -= (GLfloat)yoffset/5;
     if (fov < 4.8f) fov = 4.8f;
     if (fov > 6.2f) fov = 6.2f;   
 }
 
-void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
+static void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
     if(firstMouse){ // x/yoffset needs to be 0 at first call
         lastX = xpos;
         lastY = ypos;
@@ -475,7 +485,7 @@ void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpo
     cameraFront[2] = front[2];
 }
 
-void *ORQA_tcp_thread(ORQA_NOARGS void){
+static void *ORQA_tcp_thread(ORQA_NOARGS void){
     int parentfd, childfd, n;
     unsigned int clientlen; 
     struct sockaddr_in serveraddr, clientaddr; 
@@ -524,7 +534,7 @@ void *ORQA_tcp_thread(ORQA_NOARGS void){
         if(pitch == 0 && yaw == 0 && roll == 0){
             cameraPos[0] = 0.0f; cameraPos[1] = 0.0f; cameraPos[2] = 0.0f;
             cameraFront[0] = 0.0f; cameraFront[1] = 0.0f; cameraFront[2] = -1.0f;
-            cameraUp[0] = 0.0f; cameraUp[1] = 1.0f; cameraUp[2] = 0.0f; 
+            cameraUp[0] = 0.0f; cameraUp[1] = 1.0f; cameraUp[2] = 0.0f;
             continue;
         } 
 
@@ -552,8 +562,8 @@ void *ORQA_tcp_thread(ORQA_NOARGS void){
     return 0;
 }
 
-int ORQA_video_reader_open_file(video_reader *state, const char *filename){
-
+static int ORQA_video_reader_open_file(video_reader *state, const char *filename){
+    // Open the file using libavformat
     state->av_format_ctx = avformat_alloc_context();
     if (!state->av_format_ctx){
         fprintf(stderr, "In file: %s, line: %d Could not create AVFormatContex!\n", __FILE__, __LINE__);
@@ -564,7 +574,7 @@ int ORQA_video_reader_open_file(video_reader *state, const char *filename){
         fprintf(stderr, "In file: %s, line: %d Could not open video file!!\n", __FILE__, __LINE__);
         return 0;
     }
-
+    // Find the valid video stream inside the file
     AVCodecParameters *av_codec_params;
     AVCodec *av_codec;
     state->video_stream_index = -1;
@@ -588,6 +598,7 @@ int ORQA_video_reader_open_file(video_reader *state, const char *filename){
         return 0;
     }
 
+    // Set up a codec context for the decoder
     state->av_codec_ctx = avcodec_alloc_context3(av_codec);
     if(!state->av_codec_ctx){
         fprintf(stderr, "In file: %s, line: %d Could not create CodecContex!\n", __FILE__, __LINE__);
@@ -616,28 +627,30 @@ int ORQA_video_reader_open_file(video_reader *state, const char *filename){
     return 1;
 }
    
-uint8_t *ORQA_video_reader_read_frame(video_reader *state){
+static uint8_t *ORQA_video_reader_read_frame(video_reader *state){
 
     int response;
-    while(av_read_frame(state->av_format_ctx, state->av_packet) == 0){ // stupid naming...
+    // Decode one frame
+    while(av_read_frame(state->av_format_ctx, state->av_packet) == 0){
         if(state->av_packet->stream_index != state->video_stream_index) continue;
         response = avcodec_send_packet(state->av_codec_ctx, state->av_packet);
         if (response < 0){
-            fprintf(stderr, "In file: %s, line: %s Failed to decode packet: %d\n", av_err2str(response), __FILE__, __LINE__);
+            fprintf(stderr, "In file: %s, line: %s Failed to decode packet: %d\n", av_make_error(response), __FILE__, __LINE__);
             return 0;
         }
         response = avcodec_receive_frame(state->av_codec_ctx, state->av_frame);
         if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
             continue;
         } else if (response < 0){
-            fprintf(stderr, "In file: %s, line: %s Failed to decode frame: %d\n", av_err2str(response), __FILE__, __LINE__);
+            fprintf(stderr, "In file: %s, line: %s Failed to decode frame: %d\n", av_make_error(response), __FILE__, __LINE__);
             return 0;
         }
         av_packet_unref(state->av_packet);
         break;
     } 
+    // load frame into data
     uint8_t *data = calloc(state->av_frame->width*state->av_frame->height*3, sizeof(unsigned char));
-    if(!data) printf("Failed!");
+    if(!data) printf("Failed to allocate data!");
     for (int i = 0; i < state->av_frame->width; i++){
         for (int j = 0; j < state->av_frame->height; j++){ 
             *(data + j*state->av_frame->width*3 + 3*i) = state->av_frame->data[0][j* state->av_frame->linesize[0] + i];
@@ -648,7 +661,7 @@ uint8_t *ORQA_video_reader_read_frame(video_reader *state){
     return data;
 }
 
-void ORQA_video_reader_free(video_reader *state){
+static void ORQA_video_reader_free(video_reader *state){
     // clean up
     avformat_close_input(&state->av_format_ctx);
     avformat_free_context(state->av_format_ctx);
@@ -656,4 +669,3 @@ void ORQA_video_reader_free(video_reader *state){
     av_packet_free(&state->av_packet);
     avcodec_free_context(&state->av_codec_ctx);
 }
-
