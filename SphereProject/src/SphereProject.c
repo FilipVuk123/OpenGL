@@ -26,7 +26,6 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h> // not working -> no RGB :(
-#include <inttypes.h>
 
 /*******************************************************************/
 /*
@@ -82,8 +81,8 @@ GLfloat lastY = SCR_HEIGHT/2.0f;
 
 // sphere attributes
 const GLfloat radius = 1.0f;
-const GLuint sectors = 250; 
-const GLuint stacks = 250;
+const GLuint sectors = 100; 
+const GLuint stacks = 100;
 GLuint numVertices, numTriangles;
 GLfloat *Vs;
 GLuint *Is;
@@ -129,7 +128,6 @@ static const char* av_make_error(int errnum) {
     memset(str, 0, sizeof(str));
     return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
 }
-
 
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
@@ -197,13 +195,12 @@ int main(){
         glGetProgramInfoLog(shaderProgram, BUFSIZE, NULL, infoLog);
         fprintf(stderr, "In file: %s, line: %d ERROR::SHADER::PROGRAM::LINKING_FAILED\nError:\n%s\n", __FILE__, __LINE__, infoLog);
         goto linkingError; 
-    }
+    } 
 
     GLuint VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO); 
     glGenBuffers(1, &EBO);
-
     glBindVertexArray(VAO); 
     glBindBuffer(GL_ARRAY_BUFFER , VBO);
     glBufferData(GL_ARRAY_BUFFER , sizeof(vertices), vertices, GL_STATIC_DRAW );
@@ -221,7 +218,6 @@ int main(){
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-
     // loading video file!
     video_reader vr_state;
     /*
@@ -234,8 +230,7 @@ int main(){
         return 1;
     }
 
-    const GLuint width = vr_state.width; 
-    const GLuint height = vr_state.height;
+    const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
     uint8_t *frame_data = ORQA_video_reader_read_frame(&vr_state);
 
     if(frame_data){
@@ -263,16 +258,12 @@ int main(){
     mat4 model, projection, view, MVP;
     GLuint MVPLoc = glGetUniformLocation(shaderProgram, "MVP");
 
-    glm_mat4_identity(model);
-    glm_mat4_identity(view);
-    glm_mat4_identity(projection);
-    glm_mat4_identity(MVP);
+    glm_mat4_identity(model); glm_mat4_identity(view); glm_mat4_identity(projection); glm_mat4_identity(MVP);
 
     glm_vec3_add(cameraPos, cameraFront, cameraTarget);
     glm_lookat(cameraPos, cameraTarget, cameraUp, view);
     
-    glm_mat4_mul(view, model, MVP);
-    glm_mat4_mul(projection, MVP, MVP);
+    glm_mat4_mul(view, model, MVP); glm_mat4_mul(projection, MVP, MVP);
     
     glUniformMatrix4fv(MVPLoc, 1, GL_FALSE, &MVP[0][0]); 
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
@@ -315,8 +306,7 @@ int main(){
     // deallocating stuff
     ORQA_video_reader_free(&vr_state);
     pthread_exit(NULL);
-    free(Vs);
-    free(Is);
+    free(Vs); free(Is);
     glDeleteVertexArrays(1, &VAO); 
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);

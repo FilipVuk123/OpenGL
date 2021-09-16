@@ -1,9 +1,8 @@
 CC=gcc
 
-CFLAGS   := -Iinclude  -pipe -Wall -Wextra -pedantic -g
-LDFLAGS  := -ldl -lpthread -lavformat -lavcodec -lswscale -lavutil 
+CFLAGS   := -Iinclude  -pipe -Wall -Wextra -pedantic -g 
+LDFLAGS  := -ldl -lpthread -lavformat -lavcodec -lswscale -lavutil
 LDLIBS   := -lm -ldl -lglfw -lpthread -lavformat -lavcodec -lswscale -lavutil
-
 
 SRC_DIR:=src
 BIN_DIR:=bin
