@@ -51,7 +51,7 @@ vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
 vec3 cameraFront = (vec3){0.0f, 0.0f, -1.0f};
 vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f}; 
 vec3 worldUp = (vec3){0.0f, 1.0f, 0.0f};
-vec3 cameraRight, cameraTarget, cameraCentar;
+vec3 cameraRight;
 float yaw = 0.0f;
 float pitch = 0.0f;
 GLfloat fov = 4.8f;
@@ -220,15 +220,9 @@ int main(){
     // MVP matrices
     mat4 model, projection, view, MVP;
     GLuint MVPLoc = glGetUniformLocation(shaderProgram, "MVP");
-
+    vec3 cameraTarget, cameraCentar;
     glm_mat4_identity(model); glm_mat4_identity(view); glm_mat4_identity(projection); glm_mat4_identity(MVP);
 
-    glm_vec3_add(cameraPos, cameraFront, cameraTarget);
-    glm_lookat(cameraPos, cameraTarget, cameraUp, view);
-    
-    glm_mat4_mul(view, model, MVP); glm_mat4_mul(projection, MVP, MVP);
-    
-    glUniformMatrix4fv(MVPLoc, 1, GL_FALSE, &MVP[0][0]); 
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
 
     while (!glfwWindowShouldClose(window)){ // render loop
@@ -251,7 +245,6 @@ int main(){
         glUniformMatrix4fv(MVPLoc, 1, GL_FALSE, &MVP[0][0]); 
 
         // get video frame
-
         uint8_t *frame_data = ORQA_video_reader_read_frame(&vr_state);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame_data); 
         glGenerateMipmap(GL_TEXTURE_2D);
