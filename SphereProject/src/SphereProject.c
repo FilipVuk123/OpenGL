@@ -69,6 +69,8 @@ GLuint *Is;
 
 GLboolean quit = GL_FALSE;
 
+pthread_mutex_t mutexLock;
+
 // time
 // struct timespec start, end;
 
@@ -229,8 +231,12 @@ int main(){
     glm_mat4_identity(model); glm_mat4_identity(view); glm_mat4_identity(projection);
 
     // TCP thread init
-    // pthread_t tcp_thread;
-    // pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, &cam);
+    pthread_t tcp_thread;
+    pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, &cam);
+    if (pthread_mutex_init(&mutexLock, NULL) != 0) {
+        printf("\n Mutex init has failed! \n");
+        return 1;
+    }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
 
@@ -446,7 +452,7 @@ static void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdou
 }
 
 static void *ORQA_tcp_thread(ORQA_REF Camera *c){
-
+    // setup mutex!
 
     int parentfd, childfd, n;
     unsigned int clientlen; 
@@ -506,6 +512,8 @@ static void *ORQA_tcp_thread(ORQA_REF Camera *c){
 
         yaw = ORQA_radians(yaw); pitch = ORQA_radians(pitch); rollOffset = ORQA_radians(rollOffset);
         
+        pthread_mutex_lock(&mutexLock);
+
         c->cameraFront[0]  = cos(yaw) * cos(pitch);
         c->cameraFront[1]  = sin(pitch);
         c->cameraFront[2]  = sin(yaw) * cos(pitch);
@@ -518,6 +526,8 @@ static void *ORQA_tcp_thread(ORQA_REF Camera *c){
         glm_mat4_mulv3(rollMat, c->cameraUp, 1.0f, c->cameraUp);
         glm_vec3_normalize(c->cameraRight);
         glm_vec3_normalize(c->cameraUp);
+
+        pthread_mutex_unlock(&mutexLock);
     
         close(childfd);
     }
