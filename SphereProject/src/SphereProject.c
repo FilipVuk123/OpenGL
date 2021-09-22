@@ -46,13 +46,17 @@ const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080; 
 
 // camera position
+typedef struct Camera{
+    vec3 cameraPos, cameraFront, cameraRight, cameraUp, cameraCentar;
+}Camera;
+/*
 vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
 vec3 cameraFront = (vec3){0.0f, 0.0f, -1.0f};
 vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f}; 
-vec3 worldUp = (vec3){0.0f, 1.0f, 0.0f};
-vec3 cameraRight;
-float yaw = 0.0f;
-float pitch = 0.0f;
+vec3 cameraRight;*/
+vec3 worldUp = (vec3){0.0f, 1.0f, 0.0f}; // this is const value but can not be initialized as such
+float yaw_m = 0.0f;
+float pitch_m = 0.0f;
 GLfloat fov = 4.8f;
 
 // mouse state
@@ -77,10 +81,12 @@ const GLchar *vertexShaderSource = "#version 460 core\n"
     "layout (location = 0) in vec3 aPos;\n"
     "layout (location = 1) in vec2 aTexCoord;\n"
     "out vec2 TexCoord;\n"
-    "uniform mat4 MVP;\n"
+    "uniform mat4 model;\n"
+    "uniform mat4 view;\n"
+    "uniform mat4 proj;\n"
     "void main()\n"
     "{\n"
-    "   gl_Position = MVP*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
+    "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
     "   TexCoord = vec2(1. - aTexCoord.x, aTexCoord.y);\n" // mirror textures for inside sphere
     "}\n\0";
 
@@ -100,7 +106,7 @@ static void ORQA_GenSphere(ORQA_IN const float radius, ORQA_IN const unsigned in
 static void ORQA_processInput(ORQA_REF GLFWwindow *window);
 static void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
 static void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
-static void* ORQA_tcp_thread(ORQA_NOARGS void);
+static void* ORQA_tcp_thread(ORQA_REF Camera *c);
 
 int main(){
     if (ORQA_initGLFW() == -1) return 0;
@@ -112,7 +118,7 @@ int main(){
         return -1;
     }
     glfwMakeContextCurrent(window);
-
+    
     glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback); // manipulate view port
     glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
@@ -132,10 +138,6 @@ int main(){
     GLuint indices[indicesSize];
     for(unsigned int i = 0; i < verticesSize; i++) vertices[i] = *(Vs + i);
     for(unsigned int i = 0; i < indicesSize; i++) indices[i] = *(Is + i);
-
-    // TCP thread init
-    pthread_t tcp_thread;
-    // pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, NULL);
 
     // shader stuff
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
@@ -191,6 +193,12 @@ int main(){
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
+    Camera cam;
+    cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
+    cam.cameraFront[0] = 0.0f; cam.cameraFront[1] = 0.0f; cam.cameraFront[2] = -1.0f;
+    cam.cameraUp[0] = 0.0f; cam.cameraUp[1] = 1.0f; cam.cameraUp[2] = 0.0f;
+    glfwSetWindowUserPointer(window, &cam);
+
     // loading video file!
     video_reader vr_state;
     
@@ -216,10 +224,16 @@ int main(){
     stbi_image_free(data);*/
  
     // MVP matrices
-    mat4 model, projection, view, MVP;
-    GLuint MVPLoc = glGetUniformLocation(shaderProgram, "MVP");
-    vec3 cameraTarget, cameraCentar;
-    glm_mat4_identity(model); glm_mat4_identity(view); glm_mat4_identity(projection); glm_mat4_identity(MVP);
+    mat4 model, projection, view;
+    GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
+    GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
+    GLuint projLoc = glGetUniformLocation(shaderProgram, "proj");
+    
+    glm_mat4_identity(model); glm_mat4_identity(view); glm_mat4_identity(projection);
+
+    // TCP thread init
+    // pthread_t tcp_thread;
+    // pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, &cam);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
 
@@ -233,14 +247,14 @@ int main(){
         glUseProgram(shaderProgram);
 
         glm_perspective(fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, projection); // zoom
-        glm_vec3_add(cameraPos, cameraFront, cameraCentar);
-        glm_lookat(cameraPos, cameraCentar, cameraUp, view); // rotations
 
-        glm_mat4_mul(view, model, MVP);
-        glm_mat4_mul(projection, MVP, MVP);
+        glm_vec3_add(cam.cameraPos, cam.cameraFront, cam.cameraCentar);
+        glm_lookat(cam.cameraPos, cam.cameraCentar, cam.cameraUp, view); // rotations
 
         // send MVP matrix to vertex shader
-        glUniformMatrix4fv(MVPLoc, 1, GL_FALSE, &MVP[0][0]); 
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]); 
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]); 
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]); 
 
         // get video frame
         uint8_t *frame_data = ORQA_video_reader_read_frame(&vr_state);
@@ -397,6 +411,8 @@ static void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xo
 }
 
 static void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
+    Camera *cam = glfwGetWindowUserPointer(window);	
+
     if(firstMouse){ // x/yoffset needs to be 0 at first call
         lastX = xpos;
         lastY = ypos;
@@ -411,26 +427,29 @@ static void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdou
     xoffset *= sensitivity;
     yoffset *= sensitivity;
 
-    yaw += xoffset;
-    pitch += yoffset;
+    yaw_m += xoffset;
+    pitch_m += yoffset;
 
     // when pitch is out of bounds, screen doesn't get flipped
-    if(pitch > 89.0f) pitch = 89.0f;
-    if(pitch < -89.0f) pitch = -89.0f;
+    if(pitch_m > 89.0f) pitch_m = 89.0f;
+    if(pitch_m < -89.0f) pitch_m = -89.0f;
 
     vec3 front;
-    front[0] = cos(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
-    front[1] = sin(ORQA_radians(pitch));
-    front[2] = sin(ORQA_radians(yaw)) * cos(ORQA_radians(pitch));
+    front[0] = cos(ORQA_radians(yaw_m)) * cos(ORQA_radians(pitch_m));
+    front[1] = sin(ORQA_radians(pitch_m));
+    front[2] = sin(ORQA_radians(yaw_m)) * cos(ORQA_radians(pitch_m));
 
     glm_vec3_normalize(front);
-
-    cameraFront[0] = front[0];
-    cameraFront[1] = front[1];
-    cameraFront[2] = front[2];
+    
+    cam->cameraFront[0] = front[0];
+    cam->cameraFront[1] = front[1];
+    cam->cameraFront[2] = front[2];
+    
 }
 
-static void *ORQA_tcp_thread(ORQA_NOARGS void){
+static void *ORQA_tcp_thread(ORQA_REF Camera *c){
+
+
     int parentfd, childfd, n;
     unsigned int clientlen; 
     struct sockaddr_in serveraddr, clientaddr; 
@@ -477,9 +496,9 @@ static void *ORQA_tcp_thread(ORQA_NOARGS void){
         roll = atof(json->pairs[2].value->stringValue);
 
         if(pitch == 0 && yaw == 0 && roll == 0){
-            cameraPos[0] = 0.0f; cameraPos[1] = 0.0f; cameraPos[2] = 0.0f;
-            cameraFront[0] = 0.0f; cameraFront[1] = 0.0f; cameraFront[2] = -1.0f;
-            cameraUp[0] = 0.0f; cameraUp[1] = 1.0f; cameraUp[2] = 0.0f;
+            c->cameraPos[0] = 0.0f; c->cameraPos[1] = 0.0f; c->cameraPos[2] = 0.0f;
+            c->cameraFront[0] = 0.0f; c->cameraFront[1] = 0.0f; c->cameraFront[2] = -1.0f;
+            c->cameraUp[0] = 0.0f; c->cameraUp[1] = 1.0f; c->cameraUp[2] = 0.0f;
             continue;
         } 
 
@@ -489,18 +508,18 @@ static void *ORQA_tcp_thread(ORQA_NOARGS void){
 
         yaw = ORQA_radians(yaw); pitch = ORQA_radians(pitch); rollOffset = ORQA_radians(rollOffset);
         
-        cameraFront[0]  = cos(yaw) * cos(pitch);
-        cameraFront[1]  = sin(pitch);
-        cameraFront[2]  = sin(yaw) * cos(pitch);
-        glm_vec3_normalize(cameraFront);
+        c->cameraFront[0]  = cos(yaw) * cos(pitch);
+        c->cameraFront[1]  = sin(pitch);
+        c->cameraFront[2]  = sin(yaw) * cos(pitch);
+        glm_vec3_normalize(c->cameraFront);
         
-        glm_vec3_cross(cameraFront, worldUp, cameraRight);
-        glm_vec3_cross(cameraRight, cameraFront, cameraUp);
+        glm_vec3_cross(c->cameraFront, worldUp, c->cameraRight);
+        glm_vec3_cross(c->cameraRight, c->cameraFront, c->cameraUp);
 
-        glm_rotate(rollMat, rollOffset, cameraFront);
-        glm_mat4_mulv3(rollMat, cameraUp, 1.0f, cameraUp);
-        glm_vec3_normalize(cameraRight);
-        glm_vec3_normalize(cameraUp);
+        glm_rotate(rollMat, rollOffset, c->cameraFront);
+        glm_mat4_mulv3(rollMat, c->cameraUp, 1.0f, c->cameraUp);
+        glm_vec3_normalize(c->cameraRight);
+        glm_vec3_normalize(c->cameraUp);
     
         close(childfd);
     }
