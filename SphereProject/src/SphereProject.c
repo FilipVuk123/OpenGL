@@ -48,21 +48,16 @@ const GLuint SCR_HEIGHT = 1080;
 // camera position
 typedef struct Camera{
     vec3 cameraPos, cameraFront, cameraRight, cameraUp, cameraCentar;
+    vec3 worldUp;
+    GLfloat fov;
 }Camera;
-/*
-vec3 cameraPos = (vec3){0.0f, 0.0f, 0.0f};
-vec3 cameraFront = (vec3){0.0f, 0.0f, -1.0f};
-vec3 cameraUp = (vec3){0.0f, 1.0f, 0.0f}; 
-vec3 cameraRight;*/
-vec3 worldUp = (vec3){0.0f, 1.0f, 0.0f}; // this is const value but can not be initialized as such
-float yaw_m = 0.0f;
-float pitch_m = 0.0f;
-GLfloat fov = 4.8f;
 
 // mouse state
 GLboolean firstMouse = GL_TRUE;
 GLfloat lastX = SCR_WIDTH/2.0f; 
 GLfloat lastY = SCR_HEIGHT/2.0f;
+float yaw_m = 0.0f;
+float pitch_m = 0.0f;
 
 // sphere attributes
 const GLfloat radius = 1.0f;
@@ -197,6 +192,8 @@ int main(){
     cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
     cam.cameraFront[0] = 0.0f; cam.cameraFront[1] = 0.0f; cam.cameraFront[2] = -1.0f;
     cam.cameraUp[0] = 0.0f; cam.cameraUp[1] = 1.0f; cam.cameraUp[2] = 0.0f;
+    cam.worldUp[0] = 0.0f; cam.worldUp[1] = 1.0f; cam.worldUp[2] = 0.0f;
+    cam.fov = 4.8f;
     glfwSetWindowUserPointer(window, &cam);
 
     // loading video file!
@@ -246,7 +243,7 @@ int main(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(shaderProgram);
 
-        glm_perspective(fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, projection); // zoom
+        glm_perspective(cam.fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, projection); // zoom
 
         glm_vec3_add(cam.cameraPos, cam.cameraFront, cam.cameraCentar);
         glm_lookat(cam.cameraPos, cam.cameraCentar, cam.cameraUp, view); // rotations
@@ -405,9 +402,10 @@ static void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN G
 }
 
 static void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset){
-    fov -= (GLfloat)yoffset/5;
-    if (fov < 4.8f) fov = 4.8f;
-    if (fov > 6.2f) fov = 6.2f;   
+    Camera *cam = glfwGetWindowUserPointer(window);	
+    cam->fov -= (GLfloat)yoffset/5;
+    if (cam->fov < 4.8f) cam->fov = 4.8f;
+    if (cam->fov > 6.2f) cam->fov = 6.2f;   
 }
 
 static void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
@@ -513,7 +511,7 @@ static void *ORQA_tcp_thread(ORQA_REF Camera *c){
         c->cameraFront[2]  = sin(yaw) * cos(pitch);
         glm_vec3_normalize(c->cameraFront);
         
-        glm_vec3_cross(c->cameraFront, worldUp, c->cameraRight);
+        glm_vec3_cross(c->cameraFront, c->worldUp, c->cameraRight);
         glm_vec3_cross(c->cameraRight, c->cameraFront, c->cameraUp);
 
         glm_rotate(rollMat, rollOffset, c->cameraFront);
