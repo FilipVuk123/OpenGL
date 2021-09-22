@@ -8,18 +8,17 @@
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 
-
 typedef struct video_reader{
-    int width;
+    int width; 
     int height;
-    int video_stream_index;
+    int video_stream_index; 
 
-    AVFormatContext *av_format_ctx;
+    AVFormatContext *av_format_ctx; 
     AVCodecContext *av_codec_ctx;
-    AVFrame *av_frame;
+    AVFrame *av_frame; 
     AVFrame *av_frame_rgb;
     AVPacket *av_packet;
-    struct SwsContex *sws_scaler_ctx;
+    struct SwsContext *sws_scaler_ctx;
 } video_reader;
 
 int ORQA_video_reader_open_file(ORQA_REF video_reader *state, ORQA_IN const char* filename);

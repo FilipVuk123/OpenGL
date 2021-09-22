@@ -59,15 +59,14 @@ int ORQA_video_reader_open_file(video_reader *state, const char *filename){
         return 0;
     }
 
-    state->av_frame = av_frame_alloc();
-    if(!state->av_frame){
-        fprintf(stderr, "In file: %s, line: %d Could not allocate frame!\n", __FILE__, __LINE__);
-        return 0;
-    }
-
     state->av_packet = av_packet_alloc();
     if(!state->av_packet){
         fprintf(stderr, "In file: %s, line: %d Could not allocate packet!\n", __FILE__, __LINE__);
+        return 0;
+    }
+    state->av_frame = av_frame_alloc();
+    if(!state->av_frame){
+        fprintf(stderr, "In file: %s, line: %d Could not allocate frame!\n", __FILE__, __LINE__);
         return 0;
     }
 
@@ -95,33 +94,17 @@ uint8_t *ORQA_video_reader_read_frame(video_reader *state){
         break;
     }  
     // load frame into data
+    // use memcpy!
     uint8_t *data = calloc(state->av_frame->width*state->av_frame->height*3, sizeof(unsigned char));
     if(!data) printf("Failed to allocate data!");
     for (int i = 0; i < state->av_frame->width; i++){
         for (int j = 0; j < state->av_frame->height; j++){ 
-            *(data + j*state->av_frame->width*3 + 3*i) = state->av_frame->data[0][j* state->av_frame->linesize[0] + i];
+            *(data + j*state->av_frame->width*3 + 3*i) = state->av_frame->data[2][j* state->av_frame->linesize[0] + i];
             *(data + j*state->av_frame->width*3 + 3*i + 1) = state->av_frame->data[0][j* state->av_frame->linesize[0] + i];
-            *(data + j*state->av_frame->width*3 + 3*i + 2) = state->av_frame->data[0][j* state->av_frame->linesize[0] + i];
+            *(data + j*state->av_frame->width*3 + 3*i + 2) = state->av_frame->data[1][j* state->av_frame->linesize[0] + i];
         }
-    }
+    }    
     return data;
-    /*
-    if (!state->sws_scaler_ctx) {
-        state->sws_scaler_ctx = sws_getContext(state->width, state->height, state->av_codec_ctx->pix_fmt,
-                                        state->width, state->height, AV_PIX_FMT_RGB0,
-                                        SWS_BILINEAR, NULL, NULL, NULL);
-    }
-    if (!state->sws_scaler_ctx) {
-        printf("Couldn't initialize sw scaler\n");
-        return 0;
-    }
-    uint8_t *frame_buffer = calloc(state->av_frame->width*state->av_frame->height*4, sizeof(unsigned char));
-    uint8_t* dest[4] = { frame_buffer, NULL, NULL, NULL };
-    free(frame_buffer);
-    int dest_linesize[4] = { state->width * 4, 0, 0, 0 };
-    // Assertion desc failed at src/libswscale/swscale_internal.h
-    sws_scale(state->sws_scaler_ctx, state->av_frame->data, state->av_frame->linesize, 0, state->av_frame->height, dest, dest_linesize);
-    return dest;*/
 }
 
 void ORQA_video_reader_free(video_reader *state){
@@ -131,5 +114,4 @@ void ORQA_video_reader_free(video_reader *state){
     av_frame_free(&state->av_frame);
     av_packet_free(&state->av_packet);
     avcodec_free_context(&state->av_codec_ctx);
-    // sws_freeContext(state->sws_scaler_ctx);
 }

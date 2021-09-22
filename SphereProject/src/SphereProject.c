@@ -20,9 +20,8 @@
 #include <unistd.h>	// write
 #include <netinet/in.h>
 #include <sys/types.h> 
-#include <cglm/cglm.h>
+#include <cglm/cglm.h> 
 #include "../include/json.h"
-
 #include "video_reader.h"
 
 /*******************************************************************/
@@ -195,14 +194,13 @@ int main(){
     // loading video file!
     video_reader vr_state;
     
-    if(!ORQA_video_reader_open_file(&vr_state, "../data/360video.mp4")){
+    if(!ORQA_video_reader_open_file(&vr_state, "../data/CartoonRGB.mp4")){
         printf("Could not open file\n");
         return 1;
     }
     
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
 
-    
     // loading image!
     /*
     GLuint im_width, im_height, im_nrChannels;
@@ -249,7 +247,6 @@ int main(){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame_data); 
         glGenerateMipmap(GL_TEXTURE_2D);
         free (frame_data);
-        // ORQA_video_reader_read_frame(&vr_state);
 
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);
