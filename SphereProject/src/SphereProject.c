@@ -202,16 +202,15 @@ int main(){
     // loading video file!
     // Before loading generate RGB: $ ffmpeg -y -i input.mp4 -c:v libx264rgb output.mp4
     video_reader vr_state;
-    /*
     if(!ORQA_video_reader_open_file(&vr_state, "../data/CartoonRGB.mp4")){
         printf("Could not open file\n");
         return 1;
     }
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
-    */
+    
 
     // loading image!
-    
+    /*
     GLuint im_width, im_height, im_nrChannels;
     // unsigned char *data = stbi_load("../data/result0.jpg", &im_width, &im_height, &im_nrChannels, 0); 
     // unsigned char *data = stbi_load("../data/panorama1.bmp", &im_width, &im_height, &im_nrChannels, 0); 
@@ -222,7 +221,7 @@ int main(){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, im_width, im_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
-    stbi_image_free(data);
+    stbi_image_free(data);*/
  
     // MVP matrices
     mat4 model, projection, view;
@@ -253,9 +252,6 @@ int main(){
 
         glm_perspective(cam.fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, projection); // zoom
 
-        /*glm_vec3_add(cam.cameraPos, cam.cameraFront, cam.cameraCentar);
-        glm_lookat(cam.cameraPos, cam.cameraCentar, cam.cameraUp, view); // rotations
-        */
         glm_quat_look(cam.cameraPos, cam.resultQuat, view);
 
         // send MVP matrices to vertex shader
@@ -264,10 +260,10 @@ int main(){
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]); 
 
         // get video frame
-        /*uint8_t *frame_data = ORQA_video_reader_read_frame(&vr_state);
+        uint8_t *frame_data = ORQA_video_reader_read_frame(&vr_state);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame_data); 
         glGenerateMipmap(GL_TEXTURE_2D);
-        free (frame_data);*/
+        free (frame_data);
 
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -498,41 +494,6 @@ static void *ORQA_tcp_thread(ORQA_REF Camera *c){
         n = read(childfd, jsonStr, BUFSIZE);
         if (n < 0) { perror("ERROR reading from socket"); exit(1); }
         // printf("server received %d bytes: %s", n, jsonStr);
-        // using Euler angles
-        /*
-        JSONObject *json = parseJSON(jsonStr);
-        yaw = -atof(json->pairs[0].value->stringValue);
-        pitch = -atof(json->pairs[1].value->stringValue);
-        roll = atof(json->pairs[2].value->stringValue);
-
-        
-        if(pitch == 0 && yaw == 0 && roll == 0){
-            c->cameraPos[0] = 0.0f; c->cameraPos[1] = 0.0f; c->cameraPos[2] = 0.0f;
-            c->cameraFront[0] = 0.0f; c->cameraFront[1] = 0.0f; c->cameraFront[2] = -1.0f;
-            c->cameraUp[0] = 0.0f; c->cameraUp[1] = 1.0f; c->cameraUp[2] = 0.0f;
-            continue;
-        } 
-        
-        // roll calculations
-        rollOffset = (roll - lastRoll);
-        lastRoll = roll;
-
-        yaw = ORQA_radians(yaw); pitch = ORQA_radians(pitch); rollOffset = ORQA_radians(rollOffset);
-        
-        pthread_mutex_lock(&mutexLock);
-
-        c->cameraFront[0]  = cos(yaw) * cos(pitch);
-        c->cameraFront[1]  = sin(pitch);
-        c->cameraFront[2]  = sin(yaw) * cos(pitch);
-        glm_vec3_normalize(c->cameraFront);
-        
-        glm_vec3_cross(c->cameraFront, c->worldUp, c->cameraRight);
-        glm_vec3_cross(c->cameraRight, c->cameraFront, c->cameraUp);
-
-        glm_rotate(rollMat, rollOffset, c->cameraFront);
-        glm_mat4_mulv3(rollMat, c->cameraUp, 1.0f, c->cameraUp);
-        glm_vec3_normalize(c->cameraRight);
-        glm_vec3_normalize(c->cameraUp);*/
 
         // Using quaternions
         JSONObject *json = parseJSON(jsonStr);
@@ -548,8 +509,8 @@ static void *ORQA_tcp_thread(ORQA_REF Camera *c){
         glm_quatv(rollQuat,roll, (vec3){0.0f, 0.0f, 1.0f});
     
         pthread_mutex_lock(&mutexLock);
-        glm_quat_mul(rollQuat, yawQuat, c->resultQuat);
-        glm_quat_mul(c->resultQuat, pitchQuat, c->resultQuat);
+        glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
+        glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
         pthread_mutex_unlock(&mutexLock);
     
         close(childfd);
