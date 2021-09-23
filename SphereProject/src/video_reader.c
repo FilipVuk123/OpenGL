@@ -99,9 +99,10 @@ uint8_t *ORQA_video_reader_read_frame(video_reader *state){
     if(!data) printf("Failed to allocate data!");
     for (int i = 0; i < state->av_frame->width; i++){
         for (int j = 0; j < state->av_frame->height; j++){ 
-            *(data + j*state->av_frame->width*3 + 3*i) = state->av_frame->data[2][j* state->av_frame->linesize[0] + i];
-            *(data + j*state->av_frame->width*3 + 3*i + 1) = state->av_frame->data[0][j* state->av_frame->linesize[0] + i];
-            *(data + j*state->av_frame->width*3 + 3*i + 2) = state->av_frame->data[1][j* state->av_frame->linesize[0] + i];
+            int tmp = j* state->av_frame->linesize[0] + i;
+            *(data + j*state->av_frame->width*3 + 3*i) = state->av_frame->data[2][tmp];
+            *(data + j*state->av_frame->width*3 + 3*i + 1) = state->av_frame->data[0][tmp];
+            *(data + j*state->av_frame->width*3 + 3*i + 2) = state->av_frame->data[1][tmp];
         }
     }    
     return data;
@@ -115,3 +116,4 @@ void ORQA_video_reader_free(video_reader *state){
     av_packet_free(&state->av_packet);
     avcodec_free_context(&state->av_codec_ctx);
 }
+

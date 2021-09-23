@@ -50,6 +50,7 @@ typedef struct Camera{
     vec3 cameraPos, cameraFront, cameraRight, cameraUp, cameraCentar;
     vec3 worldUp;
     GLfloat fov;
+    versor resultQuat;
 }Camera;
 
 // mouse state
@@ -117,9 +118,9 @@ int main(){
     glfwMakeContextCurrent(window);
     
     glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback); // manipulate view port
-    glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
-    glfwSetScrollCallback(window, ORQA_scroll_callback); // zoom in/out using mouse wheel
+    // glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
+    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
+    // glfwSetScrollCallback(window, ORQA_scroll_callback); // zoom in/out using mouse wheel
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
@@ -199,28 +200,29 @@ int main(){
     glfwSetWindowUserPointer(window, &cam);
 
     // loading video file!
+    // Before loading generate RGB: $ ffmpeg -y -i input.mp4 -c:v libx264rgb output.mp4
     video_reader vr_state;
-    
+    /*
     if(!ORQA_video_reader_open_file(&vr_state, "../data/CartoonRGB.mp4")){
         printf("Could not open file\n");
         return 1;
     }
-    
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
+    */
 
     // loading image!
-    /*
+    
     GLuint im_width, im_height, im_nrChannels;
-    unsigned char *data = stbi_load("../data/result0.jpg", &im_width, &im_height, &im_nrChannels, 0); 
+    // unsigned char *data = stbi_load("../data/result0.jpg", &im_width, &im_height, &im_nrChannels, 0); 
     // unsigned char *data = stbi_load("../data/panorama1.bmp", &im_width, &im_height, &im_nrChannels, 0); 
     // unsigned char *data = stbi_load("../data/result2.jpg", &im_width, &im_height, &im_nrChannels, 0); 
     // unsigned char *data = stbi_load("../data/earth.jpg", &im_width, &im_height, &im_nrChannels, 0); 
-    // unsigned char *data = stbi_load("../data/360test.jpg", &im_width, &im_height, &im_nrChannels, 0); 
+    unsigned char *data = stbi_load("../data/360test.jpg", &im_width, &im_height, &im_nrChannels, 0); 
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, im_width, im_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
-    stbi_image_free(data);*/
+    stbi_image_free(data);
  
     // MVP matrices
     mat4 model, projection, view;
@@ -234,7 +236,7 @@ int main(){
     pthread_t tcp_thread;
     pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
-        printf("\n Mutex init has failed! \n");
+        fprintf(stderr, "Mutex init has failed! \n");
         return 1;
     }
 
@@ -251,19 +253,21 @@ int main(){
 
         glm_perspective(cam.fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, projection); // zoom
 
-        glm_vec3_add(cam.cameraPos, cam.cameraFront, cam.cameraCentar);
+        /*glm_vec3_add(cam.cameraPos, cam.cameraFront, cam.cameraCentar);
         glm_lookat(cam.cameraPos, cam.cameraCentar, cam.cameraUp, view); // rotations
+        */
+        glm_quat_look(cam.cameraPos, cam.resultQuat, view);
 
-        // send MVP matrix to vertex shader
+        // send MVP matrices to vertex shader
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]); 
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]); 
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]); 
 
         // get video frame
-        uint8_t *frame_data = ORQA_video_reader_read_frame(&vr_state);
+        /*uint8_t *frame_data = ORQA_video_reader_read_frame(&vr_state);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame_data); 
         glGenerateMipmap(GL_TEXTURE_2D);
-        free (frame_data);
+        free (frame_data);*/
 
         // build texture
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -462,8 +466,9 @@ static void *ORQA_tcp_thread(ORQA_REF Camera *c){
     int optval = 1;
     int portno = 8000;
     float rollOffset = 0.0f;
-    mat4 rollMat;
-    glm_mat4_identity(rollMat);
+    mat4 rollMat; glm_mat4_identity(rollMat);
+    versor rollQuat, pitchQuat, yawQuat;
+    glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
 
     // create socket
     parentfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -492,20 +497,22 @@ static void *ORQA_tcp_thread(ORQA_REF Camera *c){
         bzero(jsonStr, BUFSIZE);
         n = read(childfd, jsonStr, BUFSIZE);
         if (n < 0) { perror("ERROR reading from socket"); exit(1); }
-        
-        // parsing
+        // printf("server received %d bytes: %s", n, jsonStr);
+        // using Euler angles
+        /*
         JSONObject *json = parseJSON(jsonStr);
         yaw = -atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = atof(json->pairs[2].value->stringValue);
 
+        
         if(pitch == 0 && yaw == 0 && roll == 0){
             c->cameraPos[0] = 0.0f; c->cameraPos[1] = 0.0f; c->cameraPos[2] = 0.0f;
             c->cameraFront[0] = 0.0f; c->cameraFront[1] = 0.0f; c->cameraFront[2] = -1.0f;
             c->cameraUp[0] = 0.0f; c->cameraUp[1] = 1.0f; c->cameraUp[2] = 0.0f;
             continue;
         } 
-
+        
         // roll calculations
         rollOffset = (roll - lastRoll);
         lastRoll = roll;
@@ -525,8 +532,24 @@ static void *ORQA_tcp_thread(ORQA_REF Camera *c){
         glm_rotate(rollMat, rollOffset, c->cameraFront);
         glm_mat4_mulv3(rollMat, c->cameraUp, 1.0f, c->cameraUp);
         glm_vec3_normalize(c->cameraRight);
-        glm_vec3_normalize(c->cameraUp);
+        glm_vec3_normalize(c->cameraUp);*/
 
+        // Using quaternions
+        JSONObject *json = parseJSON(jsonStr);
+        yaw = atof(json->pairs[0].value->stringValue);
+        pitch = -atof(json->pairs[1].value->stringValue);
+        roll = -atof(json->pairs[2].value->stringValue);
+        if (yaw < -90.0f && yaw > 90.0f)  roll = -roll;
+
+        yaw = ORQA_radians(yaw); pitch = ORQA_radians(pitch); roll = ORQA_radians(roll);
+
+        glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f});
+        glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f}); 
+        glm_quatv(rollQuat,roll, (vec3){0.0f, 0.0f, 1.0f});
+    
+        pthread_mutex_lock(&mutexLock);
+        glm_quat_mul(rollQuat, yawQuat, c->resultQuat);
+        glm_quat_mul(c->resultQuat, pitchQuat, c->resultQuat);
         pthread_mutex_unlock(&mutexLock);
     
         close(childfd);
