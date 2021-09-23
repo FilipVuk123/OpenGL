@@ -208,9 +208,8 @@ int main(){
     }
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
     
-
-    // loading image!
     /*
+    // loading image!
     GLuint im_width, im_height, im_nrChannels;
     // unsigned char *data = stbi_load("../data/result0.jpg", &im_width, &im_height, &im_nrChannels, 0); 
     // unsigned char *data = stbi_load("../data/panorama1.bmp", &im_width, &im_height, &im_nrChannels, 0); 
@@ -258,8 +257,8 @@ int main(){
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]); 
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]); 
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]); 
-
         // get video frame
+        
         uint8_t *frame_data = ORQA_video_reader_read_frame(&vr_state);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame_data); 
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -342,6 +341,8 @@ static void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint nu
         *(Vs + i++) = *(textures2+j);
         j++;
     }
+    free(verticesX); free(verticesY); free(verticesZ); 
+    free(textures1); free(textures2);
     
     // indices
     numTriangles = numLatitudeLines * numLongitudeLines * 2;
@@ -500,7 +501,7 @@ static void *ORQA_tcp_thread(ORQA_REF Camera *c){
         yaw = atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
-        if (yaw < -90.0f && yaw > 90.0f)  roll = -roll;
+        pthread_mutex_lock(&mutexLock);
 
         yaw = ORQA_radians(yaw); pitch = ORQA_radians(pitch); roll = ORQA_radians(roll);
 
@@ -508,7 +509,6 @@ static void *ORQA_tcp_thread(ORQA_REF Camera *c){
         glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f}); 
         glm_quatv(rollQuat,roll, (vec3){0.0f, 0.0f, 1.0f});
     
-        pthread_mutex_lock(&mutexLock);
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
         pthread_mutex_unlock(&mutexLock);
