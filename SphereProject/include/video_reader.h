@@ -16,7 +16,6 @@ typedef struct video_reader{
     AVFormatContext *av_format_ctx; 
     AVCodecContext *av_codec_ctx;
     AVFrame *av_frame; 
-    AVFrame *av_frame_rgb;
     AVPacket *av_packet;
     struct SwsContext *sws_scaler_ctx;
 } video_reader;
