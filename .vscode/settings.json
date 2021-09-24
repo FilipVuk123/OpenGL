@@ -50,7 +50,9 @@
         "list": "cpp",
         "math.h": "c",
         "glad.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "socket.h": "c",
+        "gen_sphere.h": "c"
     },
     "C_Cpp.errorSquiggles": "Enabled"
 }

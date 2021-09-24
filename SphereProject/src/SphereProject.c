@@ -9,10 +9,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "../include/stb_image.h" // using this image-loading library
-#include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <pthread.h>
 #include <time.h>
 #include <sys/socket.h>
@@ -23,6 +20,7 @@
 #include <cglm/cglm.h> 
 #include "../include/json.h"
 #include "video_reader.h"
+#include "../include/gen_sphere.h"
 
 /*******************************************************************/
 /*
@@ -49,14 +47,6 @@ typedef struct Camera{
     GLfloat fov;
     versor resultQuat;
 }Camera;
-
-// sphere attributes
-const GLfloat radius = 1.0f;
-const GLuint sectors = 100; 
-const GLuint stacks = 100;
-GLuint numVertices, numTriangles;
-GLfloat *Vs;
-GLuint *Is;
 
 pthread_mutex_t mutexLock;
 // time
@@ -88,7 +78,6 @@ const GLchar *fragmentShaderSource =
 
 static int ORQA_initGLFW(ORQA_NOARGS void);
 static  GLfloat ORQA_radians(ORQA_IN const GLfloat deg);
-static void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitudeLines, ORQA_IN const GLuint numLongitudeLines);
 static  void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos);
 static void ORQA_processInput(ORQA_REF GLFWwindow *window);
 static void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
@@ -118,13 +107,12 @@ int main(){
     }    
 
     // generating sphere
-    ORQA_GenSphere(radius, sectors, stacks);
-    const unsigned int verticesSize = numVertices*5;
-    const unsigned int indicesSize = numTriangles*3;
-    GLfloat vertices[verticesSize];
-    GLuint indices[indicesSize];
-    for(unsigned int i = 0; i < verticesSize; i++) vertices[i] = *(Vs + i);
-    for(unsigned int i = 0; i < indicesSize; i++) indices[i] = *(Is + i);
+    sphere sph;
+    sph.radius = 1.0f; sph.sectors = 100; sph.stacks = 100;
+    ORQA_GenSphere(&sph);
+    GLfloat vertices[sph.numVertices*5]; for(unsigned int i = 0; i < sph.numVertices*5; i++) vertices[i] = *(sph.Vs + i);
+    GLuint indices[sph.numTriangles*3]; for(unsigned int i = 0; i < sph.numTriangles*3; i++) indices[i] = *(sph.Is + i);
+    ORQA_Sphere_free(&sph);
 
     // shader stuff
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
@@ -189,7 +177,7 @@ int main(){
     // loading video file!
     // Before loading generate RGB: $ ffmpeg -y -i input.mp4 -c:v libx264rgb output.mp4
     video_reader vr_state;
-    if(!ORQA_video_reader_open_file(&vr_state, "../data/CartoonRGB.mp4")){
+    if(!ORQA_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
         printf("Could not open file\n");
         return 1;
     }
@@ -264,7 +252,6 @@ int main(){
     // deallocating stuff
     ORQA_video_reader_free(&vr_state);
     pthread_exit(NULL);
-    free(Vs); free(Is);
     glDeleteVertexArrays(1, &VAO); 
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
@@ -285,87 +272,6 @@ clock_gettime(CLOCK_REALTIME, &end);
 double time = (end.tv_nsec - start.tv_nsec);
 printf("%f\n", time);
 */
-
-static void ORQA_GenSphere(ORQA_IN const GLfloat radius, ORQA_IN const GLuint numLatitudeLines, ORQA_IN const GLuint numLongitudeLines){
-    // One vertex at every latitude-longitude intersection, plus one for the north pole and one for the south.
-    numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; 
-    GLfloat *verticesX = calloc(numVertices, sizeof(GLfloat));
-    GLfloat *verticesY = calloc(numVertices, sizeof(GLfloat));
-    GLfloat *verticesZ = calloc(numVertices, sizeof(GLfloat));
-    GLfloat *textures1 = calloc(numVertices, sizeof(GLfloat));
-    GLfloat *textures2 = calloc(numVertices, sizeof(GLfloat));
-
-    // poles
-    *(verticesX) = 0; *(verticesY) = radius; *(verticesZ) = 0; *(textures1) = 0; *(textures2) = 1;
-    *(verticesX+numVertices-1)=0; *(verticesY+numVertices-1)=-radius; *(verticesZ+numVertices-1)=0; *(textures1+numVertices-1)=0; *(textures2+numVertices-1)=0;
-
-    GLuint k = 1;
-    const GLfloat latitudeSpacing = 1.0f / (numLatitudeLines + 1.0f);
-    const GLfloat longitudeSpacing = 1.0f / (numLongitudeLines);
-    // vertices
-    for(GLuint latitude = 0; latitude < numLatitudeLines; latitude++) {
-        for(GLuint longitude = 0; longitude <= numLongitudeLines; longitude++){
-            *(textures1 + k) = longitude * longitudeSpacing; 
-            *(textures2 + k) = 1.0f - (latitude + 1) * latitudeSpacing;
-            const GLfloat theta = (GLfloat)(*(textures1 + k) * 2.0f * M_PI);
-            const GLfloat phi = (GLfloat)((*(textures2 + k) - 0.5f) * M_PI);
-            const GLfloat c = (GLfloat)cos(phi);
-            *(verticesX + k) = c * cos(theta) * radius; 
-            *(verticesY + k) = sin(phi) * radius; 
-            *(verticesZ + k) = c * sin(theta) * radius;
-            k++;
-        }
-    }
-
-    Vs = calloc(numVertices*5, sizeof(GLfloat));
-    GLuint j = 0;
-    for(GLuint i = 0; i < 5*numVertices;){
-        *(Vs + i++) = *(verticesX+j);
-        *(Vs + i++) = *(verticesY+j);
-        *(Vs + i++) = *(verticesZ+j);
-        *(Vs + i++) = *(textures1+j);
-        *(Vs + i++) = *(textures2+j);
-        j++;
-    }
-    free(verticesX); free(verticesY); free(verticesZ); 
-    free(textures1); free(textures2);
-
-    // indices
-    numTriangles = numLatitudeLines * numLongitudeLines * 2;
-    Is = calloc((numTriangles)*3, sizeof(GLint));
-    j = 0;
-    // pole one indices
-    for (GLuint i = 0; i < numLongitudeLines; i++){
-        *(Is + j++) = 0;
-        *(Is + j++) = i + 2;
-        *(Is + j++) = i + 1;
-    }
-    // no pole indices
-    GLuint rowLength = numLongitudeLines + 1;
-    for (GLuint latitude = 0; latitude < numLatitudeLines - 1; latitude++){
-        GLuint rowStart = (latitude * rowLength) + 1;
-        for (GLuint longitude = 0; longitude < numLongitudeLines; longitude++){
-            GLuint firstCorner = rowStart + longitude;
-            // First triangle of quad: Top-Left, Bottom-Left, Bottom-Right
-            *(Is + j++) = firstCorner;
-            *(Is + j++) = firstCorner + rowLength + 1;
-            *(Is + j++) = firstCorner + rowLength;
-            // Second triangle of quad: Top-Left, Bottom-Right, Top-Right
-            *(Is + j++) = firstCorner;
-            *(Is + j++) = firstCorner + 1;
-            *(Is + j++) = firstCorner + rowLength + 1;
-        }        
-    }
-    // pole two indices
-    GLuint pole = numVertices-1;
-    GLuint bottomRow = ((numLatitudeLines - 1) * rowLength) + 1;
-    for (GLuint i = 0; i < numLongitudeLines; i++){
-        *(Is + j++) = pole;
-        *(Is + j++) = bottomRow + i;
-        *(Is + j++) = bottomRow + i + 1;
-    }
-}
-
 
 static GLfloat ORQA_radians(ORQA_IN const GLfloat deg){ // calculate radians
     return (deg*M_PI/180.0f); 
