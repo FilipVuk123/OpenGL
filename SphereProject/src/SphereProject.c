@@ -65,7 +65,8 @@ pthread_mutex_t mutexLock;
 // time
 // struct timespec start, end;
 
-const GLchar *vertexShaderSource = "#version 460 core\n"
+const GLchar *vertexShaderSource = 
+    "#version 460 core\n"
     "layout (location = 0) in vec3 aPos;\n"
     "layout (location = 1) in vec2 aTexCoord;\n"
     "out vec2 TexCoord;\n"
@@ -78,7 +79,8 @@ const GLchar *vertexShaderSource = "#version 460 core\n"
     "   TexCoord = vec2(1. - aTexCoord.x, aTexCoord.y);\n" // mirror textures for inside sphere
     "}\n\0";
 
-const GLchar *fragmentShaderSource = "#version 460 core\n"
+const GLchar *fragmentShaderSource = 
+    "#version 460 core\n"
     "in vec2 TexCoord;\n"
     "out vec4 FragColor;\n"
     "uniform sampler2D texture1;\n" 
@@ -186,8 +188,8 @@ int main(){
     cam.cameraFront[0] = 0.0f; cam.cameraFront[1] = 0.0f; cam.cameraFront[2] = -1.0f;
     cam.cameraUp[0] = 0.0f; cam.cameraUp[1] = 1.0f; cam.cameraUp[2] = 0.0f;
     cam.worldUp[0] = 0.0f; cam.worldUp[1] = 1.0f; cam.worldUp[2] = 0.0f;
+    cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
     cam.fov = 4.8f;
-
     glfwSetWindowUserPointer(window, &cam);
 
     // loading video file!
@@ -419,7 +421,6 @@ static void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdou
 }
 
 static void *ORQA_tcp_thread(ORQA_REF Camera *c){
-    // setup mutex!
 
     int parentfd, childfd, n;
     unsigned int clientlen; 
