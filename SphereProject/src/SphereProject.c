@@ -45,8 +45,7 @@ const GLuint SCR_HEIGHT = 1080;
 
 // camera position
 typedef struct Camera{
-    vec3 cameraPos, cameraFront, cameraRight, cameraUp, cameraCentar;
-    vec3 worldUp;
+    vec3 cameraPos;
     GLfloat fov;
     versor resultQuat;
 }Camera;
@@ -59,9 +58,7 @@ GLuint numVertices, numTriangles;
 GLfloat *Vs;
 GLuint *Is;
 
-
 pthread_mutex_t mutexLock;
-
 // time
 // struct timespec start, end;
 
@@ -185,9 +182,6 @@ int main(){
 
     Camera cam;
     cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
-    cam.cameraFront[0] = 0.0f; cam.cameraFront[1] = 0.0f; cam.cameraFront[2] = -1.0f;
-    cam.cameraUp[0] = 0.0f; cam.cameraUp[1] = 1.0f; cam.cameraUp[2] = 0.0f;
-    cam.worldUp[0] = 0.0f; cam.worldUp[1] = 1.0f; cam.worldUp[2] = 0.0f;
     cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
     cam.fov = 4.8f;
     glfwSetWindowUserPointer(window, &cam);
@@ -250,8 +244,8 @@ int main(){
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]); 
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]); 
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]); 
+        
         // get video frame
-
         uint8_t *frame_data = ORQA_video_reader_read_frame(&vr_state);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame_data); 
         glGenerateMipmap(GL_TEXTURE_2D);
