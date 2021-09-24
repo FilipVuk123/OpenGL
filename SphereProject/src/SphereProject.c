@@ -8,19 +8,19 @@
 #define BUFSIZE 1024
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "../include/stb_image.h" // using this image-loading library
 #include <stdio.h>
 #include <pthread.h>
 #include <time.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>	// inet_addr
-#include <unistd.h>	// write
+#include <unistd.h>
 #include <netinet/in.h>
 #include <sys/types.h> 
 #include <cglm/cglm.h> 
-#include "../include/json.h"
+#include "json.h"
 #include "video_reader.h"
-#include "../include/gen_sphere.h"
+#include "stb_image.h" // using this image-loading library
+#include "gen_sphere.h"
 
 /*******************************************************************/
 /*
@@ -110,8 +110,8 @@ int main(){
     sphere sph;
     sph.radius = 1.0f; sph.sectors = 100; sph.stacks = 100;
     ORQA_GenSphere(&sph);
-    GLfloat vertices[sph.numVertices*5]; for(unsigned int i = 0; i < sph.numVertices*5; i++) vertices[i] = *(sph.Vs + i);
-    GLuint indices[sph.numTriangles*3]; for(unsigned int i = 0; i < sph.numTriangles*3; i++) indices[i] = *(sph.Is + i);
+    GLfloat vertices[sph.numVertices*5]; for(int i = 0; i < sph.numVertices*5; i++) vertices[i] = *(sph.Vs + i);
+    GLuint indices[sph.numTriangles*3]; for(int i = 0; i < sph.numTriangles*3; i++) indices[i] = *(sph.Is + i);
     ORQA_Sphere_free(&sph);
 
     // shader stuff

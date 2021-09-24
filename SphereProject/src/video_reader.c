@@ -94,12 +94,12 @@ uint8_t *ORQA_video_reader_read_frame(video_reader *state){
         break;
     }  
     // load frame into data
-    // use memcpy!
     uint8_t *data = calloc(state->av_frame->width*state->av_frame->height*3, sizeof(unsigned char));
     if(!data) fprintf(stderr, "Failed to allocate data!");
-    for (int i = 0; i < state->av_frame->width; i++){ // optimize with memcpy?
+    // optimize those "for loops" with memcpy?
+    for (int i = 0; i < state->av_frame->width; i++){ 
         for (int j = 0; j < state->av_frame->height; j++){ 
-            int tmp = j* state->av_frame->linesize[0] + i; // state->av_frame->linesize[0] is "const"
+            int tmp = j* state->av_frame->linesize[0] + i;
             *(data + j*state->av_frame->width*3 + 3*i) = state->av_frame->data[2][tmp]; // blue
             *(data + j*state->av_frame->width*3 + 3*i + 1) = state->av_frame->data[0][tmp]; // red
             *(data + j*state->av_frame->width*3 + 3*i + 2) = state->av_frame->data[1][tmp]; // green
