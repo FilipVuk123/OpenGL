@@ -40,12 +40,12 @@ const GLuint indices[]={
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080; 
 
-// camera position
-typedef struct Camera{
+// camera_t position
+typedef struct camera_t{
     vec3 cameraPos;
     GLfloat fov;
     versor resultQuat;
-}Camera;
+}camera_t;
 
 pthread_mutex_t mutexLock;
 // time
@@ -81,7 +81,7 @@ static  void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdo
 static void orqa_process_input(ORQA_REF GLFWwindow *window);
 static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
 static void orqa_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
-static void* orqa_tcp_thread(ORQA_REF Camera *c);
+static void* orqa_tcp_thread(ORQA_REF camera_t *c);
 
 int main(){
     if (orqa_GLFW_init() == -1) return 0;
@@ -95,9 +95,9 @@ int main(){
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, orqa_framebuffer_size_callback); // manipulate view port
-    glfwSetCursorPosCallback(window, orqa_mouse_callback); // move camera with cursor
-    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
-    glfwSetScrollCallback(window, orqa_scroll_callback); // zoom in/out using mouse wheel
+    glfwSetCursorPosCallback(window, orqa_mouse_callback); // move camera_t with cursor
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
+    // glfwSetScrollCallback(window, orqa_scroll_callback); // zoom in/out using mouse wheel
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
@@ -167,7 +167,7 @@ int main(){
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    Camera cam;
+    camera_t cam;
     cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
     cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
     cam.fov = 4.8f;
@@ -183,11 +183,18 @@ int main(){
 
     // loading video file!
     // Before loading generate RGB: $ ffmpeg -y -i input.mp4 -c:v libx264rgb output.mp4
-    video_reader_t vr_state;
+    video_reader_t vr_state;  
     if(!orqa_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
         printf("Could not open file\n");
         return 1;
     }
+    /*
+    if(!orqa_video_reader_open_file(&vr_state, "../data/CartoonRGB.mp4")){
+        printf("Could not open file\n");
+        return 1;
+    }*/
+    
+
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
 
     /*
@@ -299,14 +306,14 @@ static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN G
 }
 
 static void orqa_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN GLdouble xoffset, ORQA_IN GLdouble yoffset){
-    Camera *cam = glfwGetWindowUserPointer(window);	
+    camera_t *cam = glfwGetWindowUserPointer(window);	
     cam->fov -= (GLfloat)yoffset/5;
     if (cam->fov < 4.8f) cam->fov = 4.8f;
     if (cam->fov > 6.2f) cam->fov = 6.2f;   
 }
 
 static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
-    Camera *cam = glfwGetWindowUserPointer(window);	
+    camera_t *cam = glfwGetWindowUserPointer(window);	
     versor pitchQuat, yawQuat;
     float yaw, pitch;
 
@@ -318,7 +325,7 @@ static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdou
     glm_quat_mul(yawQuat, pitchQuat, cam->resultQuat);
 }
 
-static void *orqa_tcp_thread(ORQA_REF Camera *c){
+static void *orqa_tcp_thread(ORQA_REF camera_t *c){
 
     int parentfd, childfd, n;
     unsigned int clientlen; 
