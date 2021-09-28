@@ -1,6 +1,6 @@
 #include "gen_sphere.h"
 
-void ORQA_GenSphere(sphere *s){
+void orqa_gen_sphere(orqa_sphere_t *s){
     unsigned int numLatitudeLines = s->stacks; unsigned int numLongitudeLines = s->sectors;
     s->numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; 
     float *verticesX = calloc(s->numVertices, sizeof(float));
@@ -41,7 +41,9 @@ void ORQA_GenSphere(sphere *s){
         *(s->Vs + i++) = *(textures2+j);
         j++;
     }
-    free(verticesX); free(verticesY); free(verticesZ); 
+    free(verticesX); 
+    free(verticesY); 
+    free(verticesZ); 
     free(textures1); free(textures2);
 
     // indices
@@ -80,6 +82,6 @@ void ORQA_GenSphere(sphere *s){
     }
 }
 
-void ORQA_Sphere_free(sphere *sph){
+void orqa_sphere_free(orqa_sphere_t *sph){
     free(sph->Vs); free(sph->Is);
 }

@@ -6,7 +6,7 @@ const char* av_make_error(int errnum) {
     return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
 }
 
-int ORQA_video_reader_open_file(video_reader *state, const char *filename){
+int orqa_video_reader_open_file(video_reader_t *state, const char *filename){
     // Open the file using libavformat
     state->av_format_ctx = avformat_alloc_context();
     if (!state->av_format_ctx){
@@ -73,7 +73,7 @@ int ORQA_video_reader_open_file(video_reader *state, const char *filename){
     return 1;
 }
    
-uint8_t *ORQA_video_reader_read_frame(video_reader *state){
+uint8_t *orqa_video_reader_read_frame(video_reader_t *state){
     int response;
     // Decode one frame
     while(av_read_frame(state->av_format_ctx, state->av_packet) == 0){
@@ -108,7 +108,7 @@ uint8_t *ORQA_video_reader_read_frame(video_reader *state){
     return data;
 }
 
-void ORQA_video_reader_free(video_reader *state){
+void orqa_video_reader_free(video_reader_t *state){
     // clean up
     avformat_close_input(&state->av_format_ctx);
     avformat_free_context(state->av_format_ctx);

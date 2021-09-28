@@ -4,13 +4,13 @@
 #include <stdlib.h>
 #include <math.h>
 
-typedef struct sphere{
+typedef struct orqa_sphere_t{
     float radius; 
     int stacks, sectors, numVertices, numTriangles; 
     float *Vs;
     int *Is;
-} sphere;
+} orqa_sphere_t;
 
-void ORQA_GenSphere(sphere *sph);
-void ORQA_Sphere_free(sphere *sph);
+void orqa_gen_sphere(orqa_sphere_t *sph);
+void orqa_sphere_free(orqa_sphere_t *sph);
 #endif

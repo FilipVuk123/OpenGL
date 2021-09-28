@@ -15,7 +15,6 @@
 #include <arpa/inet.h>	// inet_addr
 #include <unistd.h>
 #include <netinet/in.h>
-#include <sys/types.h> 
 #include <cglm/cglm.h> 
 #include "json.h"
 #include "video_reader.h"
@@ -76,16 +75,16 @@ const GLchar *fragmentShaderSource =
     "   FragColor = texture(texture1, TexCoord);\n" 
     "}\n\0";
 
-static int ORQA_initGLFW(ORQA_NOARGS void);
-static  GLfloat ORQA_radians(ORQA_IN const GLfloat deg);
-static  void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos);
-static void ORQA_processInput(ORQA_REF GLFWwindow *window);
-static void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
-static void ORQA_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
-static void* ORQA_tcp_thread(ORQA_REF Camera *c);
+static int orqa_GLFW_init(ORQA_NOARGS void);
+static  GLfloat orqa_radians(ORQA_IN const GLfloat deg);
+static  void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos);
+static void orqa_process_input(ORQA_REF GLFWwindow *window);
+static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
+static void orqa_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
+static void* orqa_tcp_thread(ORQA_REF Camera *c);
 
 int main(){
-    if (ORQA_initGLFW() == -1) return 0;
+    if (orqa_GLFW_init() == -1) return 0;
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // no borders -> Full screen
     GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "The Project", NULL, NULL); // glfw window object creation
     if (window == NULL){
@@ -95,10 +94,10 @@ int main(){
     }
     glfwMakeContextCurrent(window);
 
-    glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback); // manipulate view port
-    glfwSetCursorPosCallback(window, ORQA_mouse_callback); // move camera with cursor
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
-    glfwSetScrollCallback(window, ORQA_scroll_callback); // zoom in/out using mouse wheel
+    glfwSetFramebufferSizeCallback(window, orqa_framebuffer_size_callback); // manipulate view port
+    glfwSetCursorPosCallback(window, orqa_mouse_callback); // move camera with cursor
+    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
+    glfwSetScrollCallback(window, orqa_scroll_callback); // zoom in/out using mouse wheel
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
@@ -107,12 +106,12 @@ int main(){
     }    
 
     // generating sphere
-    sphere sph;
+    orqa_sphere_t sph;
     sph.radius = 1.0f; sph.sectors = 100; sph.stacks = 100;
-    ORQA_GenSphere(&sph);
+    orqa_gen_sphere(&sph);
     GLfloat vertices[sph.numVertices*5]; for(int i = 0; i < sph.numVertices*5; i++) vertices[i] = *(sph.Vs + i);
     GLuint indices[sph.numTriangles*3]; for(int i = 0; i < sph.numTriangles*3; i++) indices[i] = *(sph.Is + i);
-    ORQA_Sphere_free(&sph);
+    orqa_sphere_free(&sph);
 
     // shader stuff
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
@@ -174,10 +173,18 @@ int main(){
     cam.fov = 4.8f;
     glfwSetWindowUserPointer(window, &cam);
 
+    // TCP thread init
+    pthread_t tcp_thread;
+    pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
+    if (pthread_mutex_init(&mutexLock, NULL) != 0) {
+        fprintf(stderr, "Mutex init has failed! \n");
+        return 1;
+    }
+
     // loading video file!
     // Before loading generate RGB: $ ffmpeg -y -i input.mp4 -c:v libx264rgb output.mp4
-    video_reader vr_state;
-    if(!ORQA_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
+    video_reader_t vr_state;
+    if(!orqa_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
         printf("Could not open file\n");
         return 1;
     }
@@ -199,25 +206,16 @@ int main(){
 
     // MVP matrices
     mat4 model, projection, view;
+    glm_mat4_identity(model); glm_mat4_identity(view); glm_mat4_identity(projection);
     GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
     GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
     GLuint projLoc = glGetUniformLocation(shaderProgram, "proj");
-
-    glm_mat4_identity(model); glm_mat4_identity(view); glm_mat4_identity(projection);
-
-    // TCP thread init
-    // pthread_t tcp_thread;
-    // pthread_create(&tcp_thread, NULL, ORQA_tcp_thread, &cam);
-    if (pthread_mutex_init(&mutexLock, NULL) != 0) {
-        fprintf(stderr, "Mutex init has failed! \n");
-        return 1;
-    }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
 
     while (!glfwWindowShouldClose(window)){ // render loop
         // input
-        ORQA_processInput(window);
+        orqa_process_input(window);
 
         // render
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -234,12 +232,12 @@ int main(){
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]); 
         
         // get video frame
-        uint8_t *frame_data = ORQA_video_reader_read_frame(&vr_state);
+        uint8_t *frame_data = orqa_video_reader_read_frame(&vr_state);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame_data); 
         glGenerateMipmap(GL_TEXTURE_2D);
         free (frame_data);
 
-        // build texture
+        // build texture  
         glBindTexture(GL_TEXTURE_2D, texture);
 
         // draw
@@ -250,7 +248,7 @@ int main(){
         glfwPollEvents();
     }
     // deallocating stuff
-    ORQA_video_reader_free(&vr_state);
+    orqa_video_reader_free(&vr_state);
     pthread_exit(NULL);
     glDeleteVertexArrays(1, &VAO); 
     glDeleteBuffers(1, &VBO);
@@ -273,11 +271,11 @@ double time = (end.tv_nsec - start.tv_nsec);
 printf("%f\n", time);
 */
 
-static GLfloat ORQA_radians(ORQA_IN const GLfloat deg){ // calculate radians
+static GLfloat orqa_radians(ORQA_IN const GLfloat deg){ // calculate radians
     return (deg*M_PI/180.0f); 
 }
 
-static int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
+static int orqa_GLFW_init(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
     if(!glfwInit()){
         fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
         glfwTerminate();
@@ -290,29 +288,29 @@ static int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW wi
     return 0;
 }
 
-static void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
+static void orqa_process_input(ORQA_REF GLFWwindow *window){ // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){ // closes window on ESC
         glfwSetWindowShouldClose(window, GL_TRUE);
     }
 }
 
-static void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height){
+static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height){
     glViewport(0, 0, width, height); // size of the rendering window
 }
 
-static void ORQA_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN GLdouble xoffset, ORQA_IN GLdouble yoffset){
+static void orqa_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN GLdouble xoffset, ORQA_IN GLdouble yoffset){
     Camera *cam = glfwGetWindowUserPointer(window);	
     cam->fov -= (GLfloat)yoffset/5;
     if (cam->fov < 4.8f) cam->fov = 4.8f;
     if (cam->fov > 6.2f) cam->fov = 6.2f;   
 }
 
-static void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
+static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
     Camera *cam = glfwGetWindowUserPointer(window);	
     versor pitchQuat, yawQuat;
     float yaw, pitch;
 
-    yaw = ORQA_radians(xpos/10); pitch = ORQA_radians(ypos/10); 
+    yaw = orqa_radians(xpos/10); pitch = orqa_radians(ypos/10); 
 
     glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f});
     glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f}); 
@@ -320,7 +318,7 @@ static void ORQA_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdou
     glm_quat_mul(yawQuat, pitchQuat, cam->resultQuat);
 }
 
-static void *ORQA_tcp_thread(ORQA_REF Camera *c){
+static void *orqa_tcp_thread(ORQA_REF Camera *c){
 
     int parentfd, childfd, n;
     unsigned int clientlen; 
@@ -369,7 +367,7 @@ static void *ORQA_tcp_thread(ORQA_REF Camera *c){
         roll = -atof(json->pairs[2].value->stringValue);
         pthread_mutex_lock(&mutexLock);
 
-        yaw = ORQA_radians(yaw); pitch = ORQA_radians(pitch); roll = ORQA_radians(roll);
+        yaw = orqa_radians(yaw); pitch = orqa_radians(pitch); roll = orqa_radians(roll);
 
         glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f});
         glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f}); 
