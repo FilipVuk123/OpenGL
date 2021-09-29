@@ -3,6 +3,8 @@
 
 #define ORQA_IN
 #define ORQA_REF
+#define ORQA_OUT
+#define ORQA_NOARGS
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
