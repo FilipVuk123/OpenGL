@@ -381,17 +381,18 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
         yaw = atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
-        pthread_mutex_lock(&mutexLock);
 
         // Using quaternions to calculate camera rotations
         yaw = orqa_radians(yaw); pitch = orqa_radians(pitch); roll = orqa_radians(roll);
 
-        glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f});
-        glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f}); 
-        glm_quatv(rollQuat,roll, (vec3){0.0f, 0.0f, 1.0f});
-    
+        pthread_mutex_lock(&mutexLock);
+        glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f}); 
+        glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f});  
+        glm_quatv(rollQuat,roll, (vec3){0.0f, 0.0f, 1.0f}); 
+        
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
+        glm_quat_normalize(c->resultQuat);
         pthread_mutex_unlock(&mutexLock);
     
         close(childfd);
