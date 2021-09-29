@@ -285,11 +285,12 @@ double time = (end.tv_nsec - start.tv_nsec);
 printf("%f\n", time);
 */
 
-static GLfloat orqa_radians(ORQA_IN const GLfloat deg){ // calculate radians
-    return (deg*M_PI/180.0f); 
+static GLfloat orqa_radians(ORQA_IN const GLfloat deg){ 
+    return (deg*M_PI/180.0f); // calculate radians
 }
 
-static int orqa_GLFW_init(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
+static int orqa_GLFW_init(ORQA_NOARGS void){ 
+    // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
     if(!glfwInit()){
         fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
         glfwTerminate();
@@ -302,7 +303,8 @@ static int orqa_GLFW_init(ORQA_NOARGS void){ // glfw: we first initialize GLFW w
     return 0;
 }
 
-static void orqa_process_input(ORQA_REF GLFWwindow *window){ // keeps all the input code
+static void orqa_process_input(ORQA_REF GLFWwindow *window){ 
+    // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){ // closes window on ESC
         glfwSetWindowShouldClose(window, GL_TRUE);
     }
@@ -335,20 +337,20 @@ static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdou
 }
 
 static void *orqa_tcp_thread(ORQA_REF camera_t *c){
-    // inits
-    int parentfd, childfd, n;
-    unsigned int clientlen; 
+    // inits 
     struct sockaddr_in serveraddr, clientaddr; 
+    int childfd;
     char jsonStr[BUFSIZE];
     float yaw, pitch, roll;
-    int optval = 1;
-    int portno = 8000;
-    mat4 rollMat; glm_mat4_identity(rollMat);
+    mat4 rollMat; 
+    glm_mat4_identity(rollMat);
     versor rollQuat, pitchQuat, yawQuat;
     glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
+    int optval = 1;
+    int portno = 8000;
 
     // create socket
-    parentfd = socket(AF_INET, SOCK_STREAM, 0);
+    int parentfd = socket(AF_INET, SOCK_STREAM, 0);
     if (parentfd < 0) { perror("ERROR opening socket"); exit(1);}
     
     // socket attributes
@@ -364,7 +366,7 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
 
     // listening
     if (listen(parentfd, 5) < 0) { perror("ERROR on listen"); exit(1);}
-    clientlen = sizeof(clientaddr);
+    unsigned int clientlen = sizeof(clientaddr);
 
     while (1) {
         childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen); // accepting
@@ -372,7 +374,7 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
 
         // reading
         bzero(jsonStr, BUFSIZE);
-        n = read(childfd, jsonStr, BUFSIZE);
+        int n = read(childfd, jsonStr, BUFSIZE);
         if (n < 0) { perror("ERROR reading from socket"); exit(1); }
         // printf("server received %d bytes: %s", n, jsonStr);
 

@@ -1,6 +1,11 @@
 #ifndef gen_sphere_h
 #define gen_sphere_h
 
+#define ORQA_IN
+#define ORQA_REF
+#define ORQA_OUT
+#define ORQA_NOARGS
+
 #include <stdlib.h>
 #include <math.h>
 
@@ -11,6 +16,6 @@ typedef struct orqa_sphere_t{
     int *Is;
 } orqa_sphere_t;
 
-void orqa_gen_sphere(orqa_sphere_t *sph);
-void orqa_sphere_free(orqa_sphere_t *sph);
+void orqa_gen_sphere(ORQA_REF orqa_sphere_t *sph);
+void orqa_sphere_free(ORQA_REF orqa_sphere_t *sph);
 #endif
