@@ -40,7 +40,7 @@ const GLuint indices[]={
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080; 
 
-// camera_t position
+// camera_t attributes
 typedef struct camera_t{
     vec3 cameraPos;
     GLfloat fov;
@@ -48,6 +48,7 @@ typedef struct camera_t{
 }camera_t;
 
 pthread_mutex_t mutexLock;
+
 // time
 // struct timespec start, end;
 
@@ -85,7 +86,7 @@ static void* orqa_tcp_thread(ORQA_REF camera_t *c);
 
 int main(){
     if (orqa_GLFW_init() == -1) return 0;
-    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // no borders -> Full screen
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Full screen
     GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "The Project", NULL, NULL); // glfw window object creation
     if (window == NULL){
         fprintf(stderr, "In file: %s, line: %d Failed to create GLFW window\n", __FILE__, __LINE__);
@@ -113,7 +114,7 @@ int main(){
     GLuint indices[sph.numTriangles*3]; for(int i = 0; i < sph.numTriangles*3; i++) indices[i] = *(sph.Is + i);
     orqa_sphere_free(&sph);
 
-    // shader stuff
+    // shader init, compilation and linking
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     GLuint shaderProgram = glCreateProgram();
@@ -146,6 +147,7 @@ int main(){
         goto linkingError; 
     } 
 
+    // init & binding array & buffer objects
     GLuint VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO); 
@@ -156,6 +158,7 @@ int main(){
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indices), indices, GL_STATIC_DRAW );
 
+    // get indexes for shader variables
     GLuint positionLocation = glGetAttribLocation(shaderProgram, "aPos");
     GLuint texCoordLocation = glGetAttribLocation(shaderProgram, "aTexCoord");
     glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
@@ -163,17 +166,19 @@ int main(){
     glVertexAttribPointer(texCoordLocation, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(texCoordLocation);
 
+    // texture init
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
+    // camera init
     camera_t cam;
     cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
     cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
     cam.fov = 4.8f;
-    glfwSetWindowUserPointer(window, &cam);
+    glfwSetWindowUserPointer(window, &cam); // sent camera object to callback functions
 
-    // TCP thread init
+    // TCP thread & mutex init
     pthread_t tcp_thread;
     pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
@@ -193,8 +198,6 @@ int main(){
         printf("Could not open file\n");
         return 1;
     }*/
-    
-
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
 
     /*
@@ -211,9 +214,11 @@ int main(){
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
     stbi_image_free(data);*/
 
-    // MVP matrices
+    // MVP matrices init
     mat4 model, projection, view;
     glm_mat4_identity(model); glm_mat4_identity(view); glm_mat4_identity(projection);
+
+    // get MVP shader indexes
     GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
     GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
     GLuint projLoc = glGetUniformLocation(shaderProgram, "proj");
@@ -229,8 +234,10 @@ int main(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(shaderProgram);
 
+        // generate projection matrix
         glm_perspective(cam.fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, projection); // zoom
 
+        // generate view matrix
         glm_quat_look(cam.cameraPos, cam.resultQuat, view);
 
         // send MVP matrices to vertex shader
@@ -238,7 +245,7 @@ int main(){
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]); 
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]); 
         
-        // get video frame
+        // get video frame -> generate texture
         uint8_t *frame_data = orqa_video_reader_read_frame(&vr_state);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame_data); 
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -307,7 +314,8 @@ static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN G
 
 static void orqa_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN GLdouble xoffset, ORQA_IN GLdouble yoffset){
     camera_t *cam = glfwGetWindowUserPointer(window);	
-    cam->fov -= (GLfloat)yoffset/5;
+    cam->fov -= (GLfloat)yoffset/5; // update fov
+    // cap fov in between 4.8 and 6.2
     if (cam->fov < 4.8f) cam->fov = 4.8f;
     if (cam->fov > 6.2f) cam->fov = 6.2f;   
 }
@@ -319,14 +327,15 @@ static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdou
 
     yaw = orqa_radians(xpos/10); pitch = orqa_radians(ypos/10); 
 
+    // calculate rotations using quaternions 
     glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f});
     glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f}); 
 
-    glm_quat_mul(yawQuat, pitchQuat, cam->resultQuat);
+    glm_quat_mul(yawQuat, pitchQuat, cam->resultQuat); // get final quat
 }
 
 static void *orqa_tcp_thread(ORQA_REF camera_t *c){
-
+    // inits
     int parentfd, childfd, n;
     unsigned int clientlen; 
     struct sockaddr_in serveraddr, clientaddr; 
@@ -358,7 +367,7 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
     clientlen = sizeof(clientaddr);
 
     while (1) {
-        childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen);
+        childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen); // accepting
         if (childfd < 0) { perror("ERROR on accept"); exit(1);}
 
         // reading
@@ -367,13 +376,14 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
         if (n < 0) { perror("ERROR reading from socket"); exit(1); }
         // printf("server received %d bytes: %s", n, jsonStr);
 
-        // Using quaternions
+        // parse JSON
         JSONObject *json = parseJSON(jsonStr);
         yaw = atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
         pthread_mutex_lock(&mutexLock);
 
+        // Using quaternions to calculate camera rotations
         yaw = orqa_radians(yaw); pitch = orqa_radians(pitch); roll = orqa_radians(roll);
 
         glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f});

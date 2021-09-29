@@ -2,7 +2,7 @@
 
 void orqa_gen_sphere(orqa_sphere_t *s){
     unsigned int numLatitudeLines = s->stacks; unsigned int numLongitudeLines = s->sectors;
-    s->numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; 
+    s->numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; // 2 poles
     float *verticesX = calloc(s->numVertices, sizeof(float));
     float *verticesY = calloc(s->numVertices, sizeof(float));
     float *verticesZ = calloc(s->numVertices, sizeof(float));
@@ -14,9 +14,10 @@ void orqa_gen_sphere(orqa_sphere_t *s){
     *(verticesX+s->numVertices-1)=0; *(verticesY+s->numVertices-1)=-s->radius; *(verticesZ+s->numVertices-1)=0; *(textures1+s->numVertices-1)=0; *(textures2+s->numVertices-1)=0;
 
     unsigned int k = 1;
+    // calculate spacint in between longitude and latitute lines
     const float latitudeSpacing = 1.0f / (numLatitudeLines + 1.0f);
     const float longitudeSpacing = 1.0f / (numLongitudeLines);
-    // vertices
+    // vertices and textures
     for(unsigned int latitude = 0; latitude < numLatitudeLines; latitude++) {
         for(unsigned int longitude = 0; longitude <= numLongitudeLines; longitude++){
             *(textures1 + k) = longitude * longitudeSpacing; 
@@ -83,5 +84,6 @@ void orqa_gen_sphere(orqa_sphere_t *s){
 }
 
 void orqa_sphere_free(orqa_sphere_t *sph){
+    // deallocate stuff
     free(sph->Vs); free(sph->Is);
 }

@@ -58,7 +58,8 @@ int orqa_video_reader_open_file(video_reader_t *state, const char *filename){
         fprintf(stderr, "In file: %s, line: %d Could not open codec!\n", __FILE__, __LINE__);
         return 0;
     }
-
+    
+    // packet and frame allocations
     state->av_packet = av_packet_alloc();
     if(!state->av_packet){
         fprintf(stderr, "In file: %s, line: %d Could not allocate packet!\n", __FILE__, __LINE__);
@@ -96,7 +97,7 @@ uint8_t *orqa_video_reader_read_frame(video_reader_t *state){
     // load frame into data
     uint8_t *data = calloc(state->av_frame->width*state->av_frame->height*3, sizeof(unsigned char));
     if(!data) fprintf(stderr, "Failed to allocate data!");
-    // optimize those "for loops" with memcpy?
+
     for (int i = 0; i < state->av_frame->width; i++){ 
         for (int j = 0; j < state->av_frame->height; j++){ 
             int tmp = j* state->av_frame->linesize[0] + i;
