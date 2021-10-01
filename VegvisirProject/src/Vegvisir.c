@@ -189,7 +189,7 @@ int main(){
     // loading video file!
     // Before loading generate RGB: $ ffmpeg -y -i input.mp4 -c:v libx264rgb output.mp4
     video_reader_t vr_state;  
-    if(!orqa_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
+    if(orqa_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
         printf("Could not open file\n");
         return 1;
     }
