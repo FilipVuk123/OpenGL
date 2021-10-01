@@ -54,7 +54,7 @@ typedef struct camera_t{
 pthread_mutex_t mutexLock;
 
 const GLchar *vertexShaderSource = 
-    "#version 460 core\n"
+    "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
     "layout (location = 1) in vec2 aTexCoord;\n"
     "out vec2 TexCoord;\n"
@@ -68,7 +68,7 @@ const GLchar *vertexShaderSource =
     "}\n\0";
 
 const GLchar *fragmentShaderSource = 
-    "#version 460 core\n"
+    "#version 330 core\n"
     "in vec2 TexCoord;\n"
     "out vec4 FragColor;\n"
     "uniform sampler2D texture1;\n" 
