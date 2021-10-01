@@ -192,7 +192,7 @@ int main(){
     video_reader_t vr_state;  
     if(orqa_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
         printf("Could not open file\n");
-        goto videoError;
+        goto loadError;
     }
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
 
@@ -210,7 +210,7 @@ int main(){
         stbi_image_free(data);
     } else{
         fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
-        goto imageError;
+        goto loadError;
     } 
     */
 
@@ -262,11 +262,10 @@ int main(){
         glfwPollEvents();
     }
     // deallocating stuff
-    videoError:
+    loadError:
     orqa_video_reader_free(&vr_state);
     threadError:
     pthread_exit(NULL);
-    imageError:
     glDeleteVertexArrays(1, &VAO); 
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
