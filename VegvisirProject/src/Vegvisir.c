@@ -5,12 +5,16 @@
 #define ORQA_OUT
 #define ORQA_NOARGS
 
+typedef enum{
+    OPENGL_OK           = 0,
+    OPENGL_INIT_ERROR   = -1
+} OpenGLFlags;
+
 #define BUFSIZE 1024
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <pthread.h>
-#include <time.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>	// inet_addr
 #include <unistd.h>
@@ -19,7 +23,7 @@
 #include "json.h"
 #include "video_reader.h"
 #include "stb_image.h" // using this image-loading library
-#include "gen_sphere.h"
+#include "gen_sphere.h" 
 
 /*******************************************************************/
 /*
@@ -48,9 +52,6 @@ typedef struct camera_t{
 }camera_t;
 
 pthread_mutex_t mutexLock;
-
-// time
-// struct timespec start, end;
 
 const GLchar *vertexShaderSource = 
     "#version 460 core\n"
@@ -85,13 +86,13 @@ static void orqa_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xo
 static void* orqa_tcp_thread(ORQA_REF camera_t *c);
 
 int main(){
-    if (orqa_GLFW_init() == -1) return 0;
+    if (orqa_GLFW_init()) return OPENGL_INIT_ERROR;
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Full screen
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "The Project", NULL, NULL); // glfw window object creation
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", NULL, NULL); // glfw window object creation
     if (window == NULL){
         fprintf(stderr, "In file: %s, line: %d Failed to create GLFW window\n", __FILE__, __LINE__);
         glfwTerminate();
-        return -1;
+        return OPENGL_INIT_ERROR;
     }
     glfwMakeContextCurrent(window);
 
@@ -103,7 +104,7 @@ int main(){
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
         glfwTerminate();
-        return -1;
+        return OPENGL_INIT_ERROR;
     }    
 
     // generating sphere
@@ -183,7 +184,7 @@ int main(){
     pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
-        return 1;
+        goto threadError;
     }
 
     // loading video file!
@@ -191,13 +192,8 @@ int main(){
     video_reader_t vr_state;  
     if(orqa_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
         printf("Could not open file\n");
-        return 1;
+        goto videoError;
     }
-    /*
-    if(!orqa_video_reader_open_file(&vr_state, "../data/CartoonRGB.mp4")){
-        printf("Could not open file\n");
-        return 1;
-    }*/
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
 
     /*
@@ -211,8 +207,12 @@ int main(){
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, im_width, im_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
-    } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
-    stbi_image_free(data);*/
+        stbi_image_free(data);
+    } else{
+        fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
+        goto imageError;
+    } 
+    */
 
     // MVP matrices init
     mat4 model, projection, view;
@@ -262,8 +262,11 @@ int main(){
         glfwPollEvents();
     }
     // deallocating stuff
+    videoError:
     orqa_video_reader_free(&vr_state);
+    threadError:
     pthread_exit(NULL);
+    imageError:
     glDeleteVertexArrays(1, &VAO); 
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
@@ -273,17 +276,9 @@ int main(){
     shaderError:
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    glfwTerminate(); 
-    return 0;
+    glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
+    return OPENGL_OK;
 }
-/*
-// time in nanoseconds?
-clock_gettime(CLOCK_REALTIME, &start);
-clock_gettime(CLOCK_REALTIME, &end);
-double time = (end.tv_nsec - start.tv_nsec);
-printf("%f\n", time);
-*/
 
 /// This function converts radians from degrees.
 /// Returns radians in float.
@@ -292,19 +287,19 @@ static GLfloat orqa_radians(ORQA_IN const GLfloat deg){
 }
 
 /// This function initializes GLFW.
-/// Returns 0 on success and -1 on failure.
+/// Returns OPENGL_OK on success and OPENGL_INIT_ERROR on failure.
 static int orqa_GLFW_init(ORQA_NOARGS void){ 
     // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
     if(!glfwInit()){
         fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
         glfwTerminate();
-        return -1;
+        return OPENGL_INIT_ERROR;
     }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Specify API version 3.3
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // Specify API version 3.3
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // creating contex profile
     
-    return 0;
+    return OPENGL_OK;
 }
 
 /// This function keeps all the input code.
