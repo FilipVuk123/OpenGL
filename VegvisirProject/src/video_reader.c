@@ -15,6 +15,17 @@ int orqa_video_reader_open_file(video_reader_t *state, const char *filename){
         fprintf(stderr, "In file: %s, line: %d Could not create AVFormatContex!\n", __FILE__, __LINE__);
         return VIDEO_FILE_ALLOC_ERROR;
     }
+    // packet and frame allocations
+    state->av_packet = av_packet_alloc();
+    if(!state->av_packet){
+        fprintf(stderr, "In file: %s, line: %d Could not allocate packet!\n", __FILE__, __LINE__);
+        return VIDEO_FILE_ALLOC_ERROR;
+    }
+    state->av_frame = av_frame_alloc();
+    if(!state->av_frame){
+        fprintf(stderr, "In file: %s, line: %d Could not allocate frame!\n", __FILE__, __LINE__);
+        return VIDEO_FILE_ALLOC_ERROR;
+    }
 
     if (avformat_open_input(&state->av_format_ctx, filename, NULL, NULL) != 0){
         fprintf(stderr, "In file: %s, line: %d Could not open video file!!\n", __FILE__, __LINE__);
@@ -30,9 +41,8 @@ int orqa_video_reader_open_file(video_reader_t *state, const char *filename){
         av_codec_params = state->av_format_ctx->streams[i]->codecpar;
         av_codec = avcodec_find_decoder(av_codec_params->codec_id);
 
-        if(!av_codec){
-            continue;
-        }
+        if(!av_codec) continue;
+        
         if(av_codec_params->codec_type == AVMEDIA_TYPE_VIDEO){
             state->video_stream_index = i;
             state->width = av_codec_params->width;
@@ -58,18 +68,6 @@ int orqa_video_reader_open_file(video_reader_t *state, const char *filename){
     }
     if(avcodec_open2(state->av_codec_ctx, av_codec, NULL) < 0){
         fprintf(stderr, "In file: %s, line: %d Could not open codec!\n", __FILE__, __LINE__);
-        return VIDEO_FILE_ALLOC_ERROR;
-    }
-    
-    // packet and frame allocations
-    state->av_packet = av_packet_alloc();
-    if(!state->av_packet){
-        fprintf(stderr, "In file: %s, line: %d Could not allocate packet!\n", __FILE__, __LINE__);
-        return VIDEO_FILE_ALLOC_ERROR;
-    }
-    state->av_frame = av_frame_alloc();
-    if(!state->av_frame){
-        fprintf(stderr, "In file: %s, line: %d Could not allocate frame!\n", __FILE__, __LINE__);
         return VIDEO_FILE_ALLOC_ERROR;
     }
 

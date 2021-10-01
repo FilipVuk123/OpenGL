@@ -160,12 +160,12 @@ int main(){
     glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indices), indices, GL_STATIC_DRAW );
 
     // get indexes for shader variables
-    GLuint positionLocation = glGetAttribLocation(shaderProgram, "aPos");
-    GLuint texCoordLocation = glGetAttribLocation(shaderProgram, "aTexCoord");
-    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
-    glEnableVertexAttribArray(positionLocation);
-    glVertexAttribPointer(texCoordLocation, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
-    glEnableVertexAttribArray(texCoordLocation);
+    GLuint posLoc = glGetAttribLocation(shaderProgram, "aPos");
+    GLuint texLoc = glGetAttribLocation(shaderProgram, "aTexCoord");
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (3* sizeof(float)));
+    glEnableVertexAttribArray(texLoc);
 
     // texture init
     GLuint texture;
@@ -195,17 +195,17 @@ int main(){
         goto loadError;
     }
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
-
+    fprintf(stderr, "%d, %d\n", width, height);
     /*
     // loading image!
-    GLuint im_width, im_height, im_nrChannels;
-    // unsigned char *data = stbi_load("../data/result0.jpg", &im_width, &im_height, &im_nrChannels, 0); 
-    // unsigned char *data = stbi_load("../data/panorama1.bmp", &im_width, &im_height, &im_nrChannels, 0); 
-    // unsigned char *data = stbi_load("../data/result2.jpg", &im_width, &im_height, &im_nrChannels, 0); 
-    // unsigned char *data = stbi_load("../data/earth.jpg", &im_width, &im_height, &im_nrChannels, 0); 
-    unsigned char *data = stbi_load("../data/360test.jpg", &im_width, &im_height, &im_nrChannels, 0); 
+    GLuint width, height, nrChannels;
+    // unsigned char *data = stbi_load("../data/result0.jpg", &width, &height, &nrChannels, 0); 
+    // unsigned char *data = stbi_load("../data/panorama1.bmp", &width, &height, &nrChannels, 0); 
+    // unsigned char *data = stbi_load("../data/result2.jpg", &width, &height, &nrChannels, 0); 
+    // unsigned char *data = stbi_load("../data/earth.jpg", &width, &height, &nrChannels, 0); 
+    unsigned char *data = stbi_load("../data/360test.jpg", &width, &height, &nrChannels, 0); 
     if (data){
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, im_width, im_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         stbi_image_free(data);
     } else{
@@ -215,8 +215,8 @@ int main(){
     */
 
     // MVP matrices init
-    mat4 model, projection, view;
-    glm_mat4_identity(model); glm_mat4_identity(view); glm_mat4_identity(projection);
+    mat4 model, proj, view;
+    glm_mat4_identity(model); glm_mat4_identity(view); glm_mat4_identity(proj);
 
     // get MVP shader indexes
     GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
@@ -224,6 +224,7 @@ int main(){
     GLuint projLoc = glGetUniformLocation(shaderProgram, "proj");
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
+    glUseProgram(shaderProgram);
 
     while (!glfwWindowShouldClose(window)){ // render loop
         // input
@@ -232,10 +233,9 @@ int main(){
         // render
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glUseProgram(shaderProgram);
 
         // generate projection matrix
-        glm_perspective(cam.fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, projection); // zoom
+        glm_perspective(cam.fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, proj); // zoom
 
         // generate view matrix
         glm_quat_look(cam.cameraPos, cam.resultQuat, view);
@@ -243,13 +243,13 @@ int main(){
         // send MVP matrices to vertex shader
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]); 
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]); 
-        glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]); 
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, &proj[0][0]); 
         
         // get video frame -> generate texture
-        uint8_t *frame_data = orqa_video_reader_read_frame(&vr_state);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame_data); 
+        uint8_t *frame = orqa_video_reader_read_frame(&vr_state);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame); 
         glGenerateMipmap(GL_TEXTURE_2D);
-        free (frame_data);
+        free (frame);
 
         // build texture  
         glBindTexture(GL_TEXTURE_2D, texture);
