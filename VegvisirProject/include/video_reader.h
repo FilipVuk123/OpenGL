@@ -6,6 +6,15 @@
 #define ORQA_OUT
 #define ORQA_NOARGS
 
+typedef enum{
+    VIDEO_FILE_OK           = 0,
+    VIDEO_FILE_OPEN_ERROR   = -1,
+    VIDEO_FILE_ALLOC_ERROR  = -2,
+    VIDEO_FILE_INIT_ERROR   = -3,
+    VIDEO_FILE_STREAM_ERROR = -4,
+    VIDEO_FILE_ERROR        = -5
+}VideoFileFlag;
+
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>

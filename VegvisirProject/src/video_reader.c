@@ -1,14 +1,5 @@
 #include "video_reader.h"
 
-typedef enum{
-    VIDEO_FILE_OK           = 0,
-    VIDEO_FILE_OPEN_ERROR   = -1,
-    VIDEO_FILE_ALLOC_ERROR  = -2,
-    VIDEO_FILE_INIT_ERROR   = -3,
-    VIDEO_FILE_STREAM_ERROR = -4,
-    VIDEO_FILE_ERROR        = -5
-}VideoFileFlag;
-
 const char* av_make_error(int errnum) {
     static char str[AV_ERROR_MAX_STRING_SIZE];
     memset(str, 0, sizeof(str));
