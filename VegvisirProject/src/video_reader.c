@@ -16,7 +16,7 @@ const char* av_make_error(int errnum) {
 }
 
 /// This function opens video file then initializes and allocates all the necessary video frames and decoders.
-/// Returns 1 on success and 0 on failure.
+/// Returns VIDEO_FILE_OK on success and some VIDEO_FILE_ERROR on failure.
 int orqa_video_reader_open_file(video_reader_t *state, const char *filename){
     // Open the file using libavformat
     state->av_format_ctx = avformat_alloc_context();
@@ -86,7 +86,7 @@ int orqa_video_reader_open_file(video_reader_t *state, const char *filename){
 }
 
 /// This function decodes frames from opened video file and stores frame data.
-/// Returns unsinged char containing frame data.
+/// Returns unsinged char containing frame data on success and some VIDEO_FILE_ERROR on failure.
 uint8_t *orqa_video_reader_read_frame(video_reader_t *state){
     int response;
     // Decode one frame
