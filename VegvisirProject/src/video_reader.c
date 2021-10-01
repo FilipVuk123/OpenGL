@@ -1,5 +1,14 @@
 #include "video_reader.h"
 
+typedef enum{
+    VIDEO_FILE_OK           = 0,
+    VIDEO_FILE_OPEN_ERROR   = -1,
+    VIDEO_FILE_ALLOC_ERROR  = -2,
+    VIDEO_FILE_INIT_ERROR   = -3,
+    VIDEO_FILE_STREAM_ERROR = -4,
+    VIDEO_FILE_ERROR        = -5
+}VideoFileFlag;
+
 const char* av_make_error(int errnum) {
     static char str[AV_ERROR_MAX_STRING_SIZE];
     memset(str, 0, sizeof(str));
@@ -13,12 +22,12 @@ int orqa_video_reader_open_file(video_reader_t *state, const char *filename){
     state->av_format_ctx = avformat_alloc_context();
     if (!state->av_format_ctx){
         fprintf(stderr, "In file: %s, line: %d Could not create AVFormatContex!\n", __FILE__, __LINE__);
-        return 0;
+        return VIDEO_FILE_ALLOC_ERROR;
     }
 
     if (avformat_open_input(&state->av_format_ctx, filename, NULL, NULL) != 0){
         fprintf(stderr, "In file: %s, line: %d Could not open video file!!\n", __FILE__, __LINE__);
-        return 0;
+        return VIDEO_FILE_OPEN_ERROR;
     }
     
     // Find the valid video stream inside the file
@@ -42,38 +51,38 @@ int orqa_video_reader_open_file(video_reader_t *state, const char *filename){
     }
     if (state->video_stream_index == -1) {
         printf("Couldn't find valid video stream inside file\n");
-        return 0;
+        return VIDEO_FILE_STREAM_ERROR;
     }
 
     // Set up a codec context for the decoder
     state->av_codec_ctx = avcodec_alloc_context3(av_codec);
     if(!state->av_codec_ctx){
         fprintf(stderr, "In file: %s, line: %d Could not create CodecContex!\n", __FILE__, __LINE__);
-        return 0;
+        return VIDEO_FILE_ALLOC_ERROR;
     }
 
     if(avcodec_parameters_to_context(state->av_codec_ctx, av_codec_params) < 0){
         fprintf(stderr, "In file: %s, line: %d Could not initialize AVCodecContex!\n", __FILE__, __LINE__);
-        return 0;
+        return VIDEO_FILE_ALLOC_ERROR;
     }
     if(avcodec_open2(state->av_codec_ctx, av_codec, NULL) < 0){
         fprintf(stderr, "In file: %s, line: %d Could not open codec!\n", __FILE__, __LINE__);
-        return 0;
+        return VIDEO_FILE_ALLOC_ERROR;
     }
     
     // packet and frame allocations
     state->av_packet = av_packet_alloc();
     if(!state->av_packet){
         fprintf(stderr, "In file: %s, line: %d Could not allocate packet!\n", __FILE__, __LINE__);
-        return 0;
+        return VIDEO_FILE_ALLOC_ERROR;
     }
     state->av_frame = av_frame_alloc();
     if(!state->av_frame){
         fprintf(stderr, "In file: %s, line: %d Could not allocate frame!\n", __FILE__, __LINE__);
-        return 0;
+        return VIDEO_FILE_ALLOC_ERROR;
     }
 
-    return 1;
+    return VIDEO_FILE_OK;
 }
 
 /// This function decodes frames from opened video file and stores frame data.
@@ -86,14 +95,14 @@ uint8_t *orqa_video_reader_read_frame(video_reader_t *state){
         response = avcodec_send_packet(state->av_codec_ctx, state->av_packet);
         if (response < 0){
             fprintf(stderr, "In file: %s, line: %s Failed to decode packet: %d\n", av_make_error(response), __FILE__, __LINE__);
-            return 0;
+            return VIDEO_FILE_ERROR;
         }
         response = avcodec_receive_frame(state->av_codec_ctx, state->av_frame);
         if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
             continue;
         } else if (response < 0){
             fprintf(stderr, "In file: %s, line: %s Failed to decode frame: %d\n", av_make_error(response), __FILE__, __LINE__);
-            return 0;
+            return VIDEO_FILE_ERROR;
         }
         av_packet_unref(state->av_packet);
         break;
