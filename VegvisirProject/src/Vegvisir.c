@@ -285,10 +285,14 @@ double time = (end.tv_nsec - start.tv_nsec);
 printf("%f\n", time);
 */
 
+/// This function converts radians from degrees.
+/// Returns radians in float.
 static GLfloat orqa_radians(ORQA_IN const GLfloat deg){ 
     return (deg*M_PI/180.0f); // calculate radians
 }
 
+/// This function initializes GLFW.
+/// Returns 0 on success and -1 on failure.
 static int orqa_GLFW_init(ORQA_NOARGS void){ 
     // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
     if(!glfwInit()){
@@ -303,6 +307,8 @@ static int orqa_GLFW_init(ORQA_NOARGS void){
     return 0;
 }
 
+/// This function keeps all the input code.
+/// Closes GLFW windows when Esc key is pressed.
 static void orqa_process_input(ORQA_REF GLFWwindow *window){ 
     // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){ // closes window on ESC
@@ -310,10 +316,12 @@ static void orqa_process_input(ORQA_REF GLFWwindow *window){
     }
 }
 
+/// This callback function keeps track of window size and updates it when needed.
 static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height){
     glViewport(0, 0, width, height); // size of the rendering window
 }
 
+/// This callback function updates FieldOfView when using mouse wheel.
 static void orqa_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN GLdouble xoffset, ORQA_IN GLdouble yoffset){
     camera_t *cam = glfwGetWindowUserPointer(window);	
     cam->fov -= (GLfloat)yoffset/5; // update fov
@@ -322,6 +330,7 @@ static void orqa_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN GLdouble x
     if (cam->fov > 6.2f) cam->fov = 6.2f;   
 }
 
+/// This callback function performs motorless gimbal procedure on mouse movement.
 static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
     camera_t *cam = glfwGetWindowUserPointer(window);	
     versor pitchQuat, yawQuat;
@@ -336,6 +345,7 @@ static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdou
     glm_quat_mul(yawQuat, pitchQuat, cam->resultQuat); // get final quat
 }
 
+/// This function connects to ORQA FPV.One goggles via TCP socket and performs motorless gimbal while goggles are in use.
 static void *orqa_tcp_thread(ORQA_REF camera_t *c){
     // inits 
     struct sockaddr_in serveraddr, clientaddr; 

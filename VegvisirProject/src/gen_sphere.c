@@ -1,5 +1,6 @@
 #include "gen_sphere.h"
 
+/// This function generates sphere vertices and indices.
 void orqa_gen_sphere(orqa_sphere_t *s){
     unsigned int numLatitudeLines = s->stacks; unsigned int numLongitudeLines = s->sectors;
     s->numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; // 2 poles
@@ -83,6 +84,7 @@ void orqa_gen_sphere(orqa_sphere_t *s){
     }
 }
 
+/// This function deallocates used memory.
 void orqa_sphere_free(orqa_sphere_t *sph){
     // deallocate stuff
     free(sph->Vs); free(sph->Is);
