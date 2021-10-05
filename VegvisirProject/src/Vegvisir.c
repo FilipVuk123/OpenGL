@@ -232,7 +232,7 @@ int main(){
 
         // render
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT); // | GL_DEPTH_BUFFER_BIT);
 
         // generate projection matrix
         glm_perspective(cam.fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, proj); // zoom
@@ -387,7 +387,7 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
         yaw = atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
-
+        free(json);
         // Using quaternions to calculate camera rotations
         yaw = orqa_radians(yaw); pitch = orqa_radians(pitch); roll = orqa_radians(roll);
 
