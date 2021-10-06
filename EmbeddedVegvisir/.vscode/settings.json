@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "avcodec.h": "c",
+        "pthread.h": "c",
+        "typeinfo": "c",
+        "glad.h": "c",
+        "glfw3.h": "c",
+        "unistd.h": "c",
+        "video_reader.h": "c",
+        "inet.h": "c",
+        "in.h": "c",
+        "cglm.h": "c",
+        "frustum.h": "c",
+        "khrplatform.h": "c",
+        "avformat.h": "c"
+    }
+}
