@@ -58,7 +58,7 @@ BPATH=$(BDIR)/$(BFILE) # Final output file (full path with filename)
 INC=-I$(HDIR)
 
 LIB:=lib
-LFLAGS=-L$(LIB) -lpthread -lm -ldl -lglfw -lavformat -lavcodec -lavutil
+LFLAGS=-L$(LIB) 
 LIBDIRS:=$(shell find $(LIB) -type d)
 LIBS:= $(patsubst %,-L%, $(LIBDIRS:%/=%))
 
