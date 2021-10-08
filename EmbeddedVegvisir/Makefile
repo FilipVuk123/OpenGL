@@ -58,7 +58,7 @@ BPATH=$(BDIR)/$(BFILE) # Final output file (full path with filename)
 INC=-I$(HDIR)
 
 LIB:=lib
-LFLAGS=-L$(LIB) 
+LFLAGS=-L$(LIB) -lm -lEGL -lGLESv2 -lwayland-client -lwayland-egl -lwayland-cursor
 LIBDIRS:=$(shell find $(LIB) -type d)
 LIBS:= $(patsubst %,-L%, $(LIBDIRS:%/=%))
 

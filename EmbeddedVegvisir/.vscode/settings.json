@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "display.h": "c",
+        "wayland-egl.h": "c",
+        "wayland-client.h": "c",
+        "egl.h": "c",
+        "gl2.h": "c"
+    }
+}
