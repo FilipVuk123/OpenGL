@@ -1,72 +1,107 @@
-
 #include <stdio.h>
-#include <GLES2/gl2.h>
+#include <stdlib.h>
 
-#include <stdio.h>
-#include <pthread.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>	// inet_addr
-#include <unistd.h>
-#include <netinet/in.h>
-#include <cglm/cglm.h> 
-#include "json.h"
-#include "gen_sphere.h"
+#define INFOLOG_LEN 1024
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#define GLFW_INCLUDE_ES32
+#include <GLFW/glfw3.h>
+
+static const GLuint WIDTH = 800;
+static const GLuint HEIGHT = 600;
 
 
-const unsigned int SCR_WIDTH = 1920;
-const unsigned int SCR_HEIGHT = 1080; 
+static const GLchar* vertex_shader_source =
+    "#version 100\n"
+    "attribute vec3 position;\n"
+    "void main() {\n"
+    "   gl_Position = vec4(position, 1.0);\n"
+    "}\n";
+static const GLchar* fragment_shader_source =
+    "#version 100\n"
+    "void main() {\n"
+    "   gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
+    "}\n";
+static const GLfloat vertices[] = {
+        0.0f,  0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+    -0.5f, -0.5f, 0.0f,
+};
 
-const char *vertexShaderSource = 
-    "#version 200 es\n"
-    "precision mediump float;\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "layout (location = 1) in vec2 aTexCoord;\n"
-    "out vec2 TexCoord;\n"
-    "uniform mat4 model;\n"
-    "uniform mat4 view;\n"
-    "uniform mat4 proj;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" 
-    "   TexCoord = vec2(1. - aTexCoord.x, aTexCoord.y);\n"
-    "}\n\0";
+GLint common_get_shader_program(const char *vertex_shader_source, const char *fragment_shader_source) {
+    GLchar infoLog[INFOLOG_LEN];
+    GLint fragment_shader;
+    GLint shader_program;
+    GLint success;
+    GLint vertex_shader;
 
-const char *fragmentShaderSource = 
-    "#version 200 es\n"
-    "precision mediump float;\n"
-    "in vec2 TexCoord;\n"
-    "out vec4 FragColor;\n"
-    "uniform sampler2D texture1;\n" 
-    "void main()\n"
-    "{\n"
-    "   FragColor = texture(texture1, TexCoord);\n" 
-    "}\n\0";
+    /* Vertex shader */
+    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
+    glCompileShader(vertex_shader);
+    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(vertex_shader, INFOLOG_LEN, NULL, infoLog);
+        printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n%s\n", infoLog);
+    }
 
-typedef struct camera_t{
-    vec3 cameraPos;
-    GLfloat fov;
-    versor resultQuat;
-}camera_t;
+    /* Fragment shader */
+    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
+    glCompileShader(fragment_shader);
+    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(fragment_shader, INFOLOG_LEN, NULL, infoLog);
+        printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n%s\n", infoLog);
+    }
 
-int main(){
-    
-    // generating sphere
-    orqa_sphere_t sph;
-    sph.radius = 1.0f; sph.sectors = 50; sph.stacks = 50;
-    orqa_gen_sphere(&sph);
-    GLfloat vertices[sph.numVertices*5]; for(int i = 0; i < sph.numVertices*5; i++) vertices[i] = *(sph.Vs + i);
-    GLuint indices[sph.numTriangles*3]; for(int i = 0; i < sph.numTriangles*3; i++) indices[i] = *(sph.Is + i);
-    orqa_sphere_free(&sph);
+    /* Link shaders */
+    shader_program = glCreateProgram();
+    glAttachShader(shader_program, vertex_shader);
+    glAttachShader(shader_program, fragment_shader);
+    glLinkProgram(shader_program);
+    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(shader_program, INFOLOG_LEN, NULL, infoLog);
+        printf("ERROR::SHADER::PROGRAM::LINKING_FAILED\n%s\n", infoLog);
+    }
 
-    camera_t cam;
-    cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
-    cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
-    cam.fov = 4.8f;
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+    return shader_program;
+}
 
-    printf("Hello world!\n");
-    
-    return 0;
+int main(void) {
+
+    glfwInit();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, __FILE__, NULL, NULL);
+    glfwMakeContextCurrent(window);
+
+    printf("GL_VERSION  : %s\n", glGetString(GL_VERSION) );
+
+    GLuint shader_program = common_get_shader_program(vertex_shader_source, fragment_shader_source);
+    GLuint pos = glGetAttribLocation(shader_program, "position");
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glViewport(0, 0, WIDTH, HEIGHT);
+    GLuint VBO;
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+    glEnableVertexAttribArray(pos);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glUseProgram(shader_program);
+
+    while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+        glClear(GL_COLOR_BUFFER_BIT);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glfwSwapBuffers(window);
+    }
+    glDeleteBuffers(1, &VBO);
+    glfwTerminate();
+    return EXIT_SUCCESS;
 }

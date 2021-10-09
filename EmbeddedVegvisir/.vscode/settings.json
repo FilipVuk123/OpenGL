@@ -4,6 +4,8 @@
         "wayland-egl.h": "c",
         "wayland-client.h": "c",
         "egl.h": "c",
-        "gl2.h": "c"
+        "gl2.h": "c",
+        "glfw3.h": "c",
+        "gl3.h": "c"
     }
 }
