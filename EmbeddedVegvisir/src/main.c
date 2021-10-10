@@ -32,6 +32,7 @@ typedef struct camera_t{
     versor resultQuat;
 }camera_t;
 
+/*
 const GLfloat vertices[] = {
         // pisitions          // texture coords
          0.5f,  0.5f, 0.0f,   1.0f, 1.0f, // top right vertex
@@ -42,7 +43,7 @@ const GLfloat vertices[] = {
 const GLuint indices[] = {  
         0, 1, 3, // first triangle
         1, 2, 3  // second triangle
-};
+};*/
 
 const GLchar *vertexShaderSource = 
     "attribute vec3 aPos;\n"
@@ -83,6 +84,13 @@ int main(void) {
 
     glfwSetFramebufferSizeCallback(window, orqa_framebuffer_size_callback); // manipulate view port
 
+    orqa_sphere_t sph;
+    sph.radius = 1.0f; sph.sectors = 100; sph.stacks = 100;
+    orqa_gen_sphere(&sph);
+    GLfloat vertices[sph.numVertices*5]; for(int i = 0; i < sph.numVertices*5; i++) vertices[i] = *(sph.Vs + i);
+    GLuint indices[sph.numTriangles*3]; for(int i = 0; i < sph.numTriangles*3; i++) indices[i] = *(sph.Is + i);
+    orqa_sphere_free(&sph);
+
     // shader init, compilation and linking
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -122,6 +130,7 @@ int main(void) {
     glGenBuffers(1, &VBO); 
     glGenBuffers(1, &EBO);
     glBindVertexArray(VAO); 
+
     glBindBuffer(GL_ARRAY_BUFFER , VBO);
     glBufferData(GL_ARRAY_BUFFER , sizeof(vertices), vertices, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBO);
@@ -144,11 +153,11 @@ int main(void) {
     camera_t cam;
     cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
     cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
-    cam.fov = 4.8f;
+    cam.fov = 5.2f;
 
     // loading image!
     GLuint width, height, nrChannels;
-    unsigned char *data = stbi_load("./data/image", &width, &height, &nrChannels, 0); 
+    unsigned char *data = stbi_load("./data/earth.jpg", &width, &height, &nrChannels, 0); 
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -170,16 +179,18 @@ int main(void) {
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glUseProgram(shaderProgram);
 
-    while (!glfwWindowShouldClose(window)){ // render loop
+    
+    const int numElements = sizeof(indices)/sizeof(indices[0]);
+    while (1){ // render loop
         // render
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT); // | GL_DEPTH_BUFFER_BIT);
 
         // generate projection matrix
-        // glm_perspective(cam.fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, proj); // zoom
+        glm_perspective(cam.fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, proj); // zoom
 
         // generate view matrix
-        // glm_quat_look(cam.cameraPos, cam.resultQuat, view);
+        glm_quat_look(cam.cameraPos, cam.resultQuat, view);
 
         // send MVP matrices to vertex shader
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]); 
@@ -190,7 +201,7 @@ int main(void) {
         glBindTexture(GL_TEXTURE_2D, texture);
 
         // draw
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, numElements, GL_UNSIGNED_INT, 0);
 
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
