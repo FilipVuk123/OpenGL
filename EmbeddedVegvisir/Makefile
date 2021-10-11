@@ -20,8 +20,8 @@
 #
 #=========================================================
 
-# ARM_IP_BASE=10.220.27.
-ARM_IP_BASE=192.168.0.
+ARM_IP_BASE=10.220.27.
+# ARM_IP_BASE=192.168.0.
 ARM_BDIR=""
 
 ARM_SDK_ENV=/opt/fsl-imx-wayland/5.4-zeus/environment-setup-aarch64-poky-linux
@@ -59,7 +59,7 @@ BPATH=$(BDIR)/$(BFILE) # Final output file (full path with filename)
 INC=-I$(HDIR)
 
 LIB:=lib
-LFLAGS=-L$(LIB) -lm -lglfw -lGLESv2
+LFLAGS=-L$(LIB) -lm -lglfw -lGLESv2 -lpthread
 LIBDIRS:=$(shell find $(LIB) -type d)
 LIBS:= $(patsubst %,-L%, $(LIBDIRS:%/=%))
 

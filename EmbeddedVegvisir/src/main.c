@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 #define BUFSIZE     1024
 #define ORQA_IN
 #define ORQA_REF
@@ -11,11 +10,16 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#define GLFW_INCLUDE_ES32
+#define GLFW_INCLUDE_ES31
 #include <GLFW/glfw3.h>
 #include <cglm/cglm.h>
-
+#include <pthread.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>	// inet_addr
+#include <unistd.h>
+#include <netinet/in.h>
 #include "gen_sphere.h"
+#include "json.h"
 
 typedef enum{
     OPENGL_OK           = 0,
@@ -31,19 +35,6 @@ typedef struct camera_t{
     GLfloat fov;
     versor resultQuat;
 }camera_t;
-
-/*
-const GLfloat vertices[] = {
-        // pisitions          // texture coords
-         0.5f,  0.5f, 0.0f,   1.0f, 1.0f, // top right vertex
-         0.5f, -0.5f, 0.0f,   1.0f, 0.0f, // bottom right vertex
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, // bottom left vertex
-        -0.5f,  0.5f, 0.0f,   0.0f, 1.0f  // top left vertex
-};
-const GLuint indices[] = {  
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
-};*/
 
 const GLchar *vertexShaderSource = 
     "attribute vec3 aPos;\n"
@@ -67,8 +58,16 @@ const GLchar *fragmentShaderSource =
     "   gl_FragColor = texture2D(texture1, TexCoord);\n" 
     "}\n\0";
 
+pthread_mutex_t mutexLock;
+
+
 static int orqa_GLFW_init(ORQA_NOARGS void);
 static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
+static  GLfloat orqa_radians(ORQA_IN const GLfloat deg);
+static  void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const double xpos, ORQA_IN const double ypos);
+static void orqa_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN double xoffset,ORQA_IN double yoffset);
+static void* orqa_tcp_thread(ORQA_REF camera_t *c);
+
 
 
 int main(void) {
@@ -83,6 +82,10 @@ int main(void) {
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, orqa_framebuffer_size_callback); // manipulate view port
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, orqa_mouse_callback); // move camera_t with cursor
+    glfwSetScrollCallback(window, orqa_scroll_callback); // zoom in/out using mouse wheel
 
     orqa_sphere_t sph;
     sph.radius = 1.0f; sph.sectors = 100; sph.stacks = 100;
@@ -153,7 +156,8 @@ int main(void) {
     camera_t cam;
     cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
     cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
-    cam.fov = 5.2f;
+    cam.fov = 5.4f;
+    glfwSetWindowUserPointer(window, &cam);
 
     // loading image!
     GLuint width, height, nrChannels;
@@ -166,6 +170,14 @@ int main(void) {
         fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
         goto loadError;
     } 
+
+    // TCP thread & mutex init
+    pthread_t tcp_thread;
+    pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
+    if (pthread_mutex_init(&mutexLock, NULL) != 0) {
+        fprintf(stderr, "Mutex init has failed! \n");
+        goto threadError;
+    }
 
     // MVP matrices init
     mat4 model, proj, view;
@@ -244,5 +256,109 @@ static int orqa_GLFW_init(ORQA_NOARGS void){
 /// This callback function keeps track of window size and updates it when needed.
 static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height){
     glViewport(0, 0, width, height); // size of the rendering window
+}
+
+
+/// This callback function performs motorless gimbal procedure on mouse movement.
+static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const double xpos, ORQA_IN const double ypos){
+    camera_t *cam = glfwGetWindowUserPointer(window);	
+    if (!cam) {
+        fprintf(stderr, "No camera in orqa_mouse_callback()\n");
+        return;
+    }
+    versor pitchQuat, yawQuat;
+    float yaw, pitch;
+
+    yaw = orqa_radians(xpos/10); pitch = orqa_radians(ypos/10); 
+
+    // calculate rotations using quaternions 
+    glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f});
+    glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f}); 
+    
+    glm_quat_mul(yawQuat, pitchQuat, cam->resultQuat); // get final quat
+}
+
+/// This function converts radians from degrees.
+/// Returns radians in float.
+static GLfloat orqa_radians(ORQA_IN const GLfloat deg){ 
+    return (deg*M_PI/180.0f); // calculate radians
+}
+
+/// This callback function updates FieldOfView when using mouse wheel.
+static void orqa_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN double xoffset, ORQA_IN double yoffset){
+    camera_t *cam = glfwGetWindowUserPointer(window);	
+    cam->fov -= (GLfloat)yoffset/5; // update fov
+    if (cam->fov < 5.4f) cam->fov = 5.4f;
+    if (cam->fov > 6.2f) cam->fov = 6.2f;   
+}
+
+/// This function connects to ORQA FPV.One goggles via TCP socket and performs motorless gimbal while goggles are in use.
+static void *orqa_tcp_thread(ORQA_REF camera_t *c){
+    // "sudo wpa_supplicant -c /etc/wpa_supplicant.conf -i wlan0" na pločici
+
+    fprintf(stderr, "In thread!\n");
+    struct sockaddr_in serveraddr, clientaddr; 
+    int childfd;
+    char jsonStr[BUFSIZE];
+    float yaw, pitch, roll;
+    mat4 rollMat; 
+    glm_mat4_identity(rollMat);
+    versor rollQuat, pitchQuat, yawQuat;
+    glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
+    int optval = 1;
+    int portno = 8000;
+
+    // create socket
+    int parentfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (parentfd < 0) { perror("ERROR opening socket"); exit(1);}
+    
+    // socket attributes
+    setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));
+    bzero((char *) &serveraddr, sizeof(serveraddr));
+
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serveraddr.sin_port = htons((unsigned short) portno);
+
+    // binding
+    if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) { perror("ERROR on binding"); exit(1); }
+
+    // listening
+    if (listen(parentfd, 5) < 0) { perror("ERROR on listen"); exit(1);}
+    unsigned int clientlen = sizeof(clientaddr);
+
+    while (1) {
+        fprintf(stderr, "In while\n");
+        childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen); // accepting
+        if (childfd < 0) { perror("ERROR on accept"); exit(1);}
+        fprintf(stderr, "Accepted!\n");
+        // reading
+        bzero(jsonStr, BUFSIZE);
+        int n = read(childfd, jsonStr, BUFSIZE);
+        if (n < 0) { perror("ERROR reading from socket"); exit(1); }
+        printf("server received %d bytes: %s", n, jsonStr);
+
+        // parse JSON
+        JSONObject *json = parseJSON(jsonStr);
+        yaw = atof(json->pairs[0].value->stringValue);
+        pitch = -atof(json->pairs[1].value->stringValue);
+        roll = -atof(json->pairs[2].value->stringValue);
+        free(json);
+        // Using quaternions to calculate camera rotations
+        yaw = orqa_radians(yaw); pitch = orqa_radians(pitch); roll = orqa_radians(roll);
+
+        pthread_mutex_lock(&mutexLock);
+        glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f}); 
+        glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f});  
+        glm_quatv(rollQuat,roll, (vec3){0.0f, 0.0f, 1.0f}); 
+        
+        glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
+        glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
+        glm_quat_normalize(c->resultQuat);
+        pthread_mutex_unlock(&mutexLock);
+    
+        close(childfd);
+    }
+    return 0;
 }
 
