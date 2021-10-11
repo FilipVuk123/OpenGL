@@ -17,7 +17,6 @@ typedef enum{
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
 
 typedef struct video_reader_t{
     int width; 

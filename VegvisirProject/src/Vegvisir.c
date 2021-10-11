@@ -196,6 +196,7 @@ int main(){
     }
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
     fprintf(stderr, "%d, %d\n", width, height);
+    
     /*
     // loading image!
     GLuint width, height, nrChannels;
@@ -255,7 +256,7 @@ int main(){
         glBindTexture(GL_TEXTURE_2D, texture);
 
         // draw
-        glDrawElements(GL_TRIANGLES, sizeof(vertices), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(indices[0]), GL_UNSIGNED_INT, 0);
 
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
