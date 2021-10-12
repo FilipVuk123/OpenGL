@@ -21,7 +21,7 @@ typedef enum{
 #include <netinet/in.h>
 #include <cglm/cglm.h> 
 #include "json.h"
-#include "video_reader.h"
+#include "video_reader.h" 
 #include "stb_image.h" // using this image-loading library
 #include "gen_sphere.h" 
 
@@ -164,7 +164,7 @@ int main(){
     GLuint texLoc = glGetAttribLocation(shaderProgram, "aTexCoord");
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
-    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (3* sizeof(float)));
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(texLoc);
 
     // texture init
