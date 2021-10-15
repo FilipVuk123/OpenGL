@@ -31,7 +31,7 @@ SHELL := /bin/bash
 
 # ====== These default settings are used for non-arm building ==========
 DEFAULT-CC=gcc
-DEFAULT-CFLAGS=-g -pedantic -pipe -Wall 
+DEFAULT-CFLAGS=-g -pedantic -pipe -Wall -Wextra
 
 DATACHANNEL_CXXFLAGS= -DRTC_ENABLE_MEDIA=1 -DRTC_ENABLE_WEBSOCKET=1 -DRTC_SYSTEM_JUICE=0 -DRTC_SYSTEM_SRTP=0 -DUSE_GNUTLS=1 -DUSE_NICE=0 -Ddatachannel_EXPORTS
 

@@ -38,6 +38,10 @@ void
 glmc_quat_copy(versor q, versor dest);
 
 CGLM_EXPORT
+void
+glmc_quat_from_vecs(vec3 a, vec3 b, versor dest);
+
+CGLM_EXPORT
 float
 glmc_quat_norm(versor q);
 
@@ -116,10 +120,14 @@ glmc_quat_mat3t(versor q, mat3 dest);
 CGLM_EXPORT
 void
 glmc_quat_lerp(versor from, versor to, float t, versor dest);
-    
+
 CGLM_EXPORT
 void
 glmc_quat_lerpc(versor from, versor to, float t, versor dest);
+
+CGLM_EXPORT
+void
+glmc_quat_nlerp(versor q, versor r, float t, versor dest);
 
 CGLM_EXPORT
 void

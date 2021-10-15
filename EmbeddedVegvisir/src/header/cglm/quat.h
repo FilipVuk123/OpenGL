@@ -16,6 +16,7 @@
    CGLM_INLINE void glm_quat(versor q, float angle, float x, float y, float z);
    CGLM_INLINE void glm_quatv(versor q, float angle, vec3 axis);
    CGLM_INLINE void glm_quat_copy(versor q, versor dest);
+   CGLM_INLINE void glm_quat_from_vecs(vec3 a, vec3 b, versor dest);
    CGLM_INLINE float glm_quat_norm(versor q);
    CGLM_INLINE void glm_quat_normalize(versor q);
    CGLM_INLINE void glm_quat_normalize_to(versor q, versor dest);
@@ -38,6 +39,7 @@
    CGLM_INLINE void glm_quat_lerp(versor from, versor to, float t, versor dest);
    CGLM_INLINE void glm_quat_lerpc(versor from, versor to, float t, versor dest);
    CGLM_INLINE void glm_quat_slerp(versor q, versor r, float t, versor dest);
+   CGLM_INLINE void glm_quat_nlerp(versor q, versor r, float t, versor dest);
    CGLM_INLINE void glm_quat_look(vec3 eye, versor ori, mat4 dest);
    CGLM_INLINE void glm_quat_for(vec3 dir, vec3 fwd, vec3 up, versor dest);
    CGLM_INLINE void glm_quat_forp(vec3 from,
@@ -58,22 +60,17 @@
 #include "mat4.h"
 #include "mat3.h"
 #include "affine-mat.h"
+#include "affine.h"
 
 #ifdef CGLM_SSE_FP
 #  include "simd/sse2/quat.h"
 #endif
 
-CGLM_INLINE
-void
-glm_mat4_mulv(mat4 m, vec4 v, vec4 dest);
+#ifdef CGLM_NEON_FP
+#  include "simd/neon/quat.h"
+#endif
 
-CGLM_INLINE
-void
-glm_mul_rot(mat4 m1, mat4 m2, mat4 dest);
-
-CGLM_INLINE
-void
-glm_translate(mat4 m, vec3 v);
+CGLM_INLINE void glm_quat_normalize(versor q);
 
 /*
  * IMPORTANT:
@@ -191,9 +188,40 @@ glm_quat_copy(versor q, versor dest) {
 }
 
 /*!
+ * @brief compute quaternion rotating vector A to vector B
+ *
+ * @param[in]   a     vec3 (must have unit length)
+ * @param[in]   b     vec3 (must have unit length)
+ * @param[out]  dest  quaternion (of unit length)
+ */
+CGLM_INLINE
+void
+glm_quat_from_vecs(vec3 a, vec3 b, versor dest) {
+  CGLM_ALIGN(8) vec3 axis;
+  float cos_theta;
+  float cos_half_theta;
+
+  cos_theta = glm_vec3_dot(a, b);
+  if (cos_theta >= 1.f - GLM_FLT_EPSILON) {  /*  a ∥ b  */
+    glm_quat_identity(dest);
+    return;
+  }
+  if (cos_theta < -1.f + GLM_FLT_EPSILON) {  /*  angle(a, b) = π  */
+    glm_vec3_ortho(a, axis);
+    cos_half_theta = 0.f;                    /*  cos π/2 */
+  } else {
+    glm_vec3_cross(a, b, axis);
+    cos_half_theta = 1.0f + cos_theta;       /*  cos 0 + cos θ  */
+  }
+
+  glm_quat_init(dest, axis[0], axis[1], axis[2], cos_half_theta);
+  glm_quat_normalize(dest);
+}
+
+/*!
  * @brief returns norm (magnitude) of quaternion
  *
- * @param[out]  q  quaternion
+ * @param[in]  q  quaternion
  */
 CGLM_INLINE
 float
@@ -412,6 +440,8 @@ glm_quat_mul(versor p, versor q, versor dest) {
    */
 #if defined( __SSE__ ) || defined( __SSE2__ )
   glm_quat_mul_sse2(p, q, dest);
+#elif defined(CGLM_NEON_FP)
+  glm_quat_mul_neon(p, q, dest);
 #else
   dest[0] = p[3] * q[0] + p[0] * q[3] + p[1] * q[2] - p[2] * q[1];
   dest[1] = p[3] * q[1] - p[0] * q[2] + p[1] * q[3] + p[2] * q[0];
@@ -620,6 +650,29 @@ CGLM_INLINE
 void
 glm_quat_lerpc(versor from, versor to, float t, versor dest) {
   glm_vec4_lerpc(from, to, t, dest);
+}
+
+/*!
+ * @brief interpolates between two quaternions
+ *        taking the shortest rotation path using
+ *        normalized linear interpolation (NLERP)
+ *
+ * @param[in]   from  from
+ * @param[in]   to    to
+ * @param[in]   t     interpolant (amount)
+ * @param[out]  dest  result quaternion
+ */
+CGLM_INLINE
+void
+glm_quat_nlerp(versor from, versor to, float t, versor dest) {
+  versor target;
+  float  dot;
+  
+  dot = glm_vec4_dot(from, to);
+  
+  glm_vec4_scale(to, (dot >= 0) ? 1.0f : -1.0f, target);
+  glm_quat_lerp(from, target, t, dest);
+  glm_quat_normalize(dest);
 }
 
 /*!
