@@ -80,13 +80,14 @@ const GLchar *vertexShaderSource180 =
     "   }\n"
     "   TexCoord = vec2(newValueX, newValueY);\n" // mirror textures for inside sphere
     "}\n\0";
+// DSS shader
 const char *vertexShaderSource150 =
     "attribute vec3 aPos;\n"
     "attribute vec2 aTexCoord;\n"
     "varying vec2 TexCoord;\n"
     "float newMin = 0.;\n"
     "float newMax = 1.;\n"
-    "float oldMin = 0.29;\n"
+    "float oldMin = 0.3;\n"
     "float oldMax = 0.7;\n"
     "float oldRange = oldMax - oldMin;\n"
     "float newRange = newMax - newMin;\n"
@@ -126,7 +127,7 @@ static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN G
 static void orqa_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
 static void* orqa_tcp_thread(ORQA_REF camera_t *c);
 
-int main(){
+int main(int argc, char **argv){
     if (orqa_GLFW_init()) return OPENGL_INIT_ERROR;
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Full screen
     GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", NULL, NULL); // glfw window object creation
@@ -163,9 +164,18 @@ int main(){
     GLint success;
     GLchar infoLog[BUFSIZE];
 
-
-
-    glShaderSource(vertexShader, 1, &vertexShaderSource180, NULL);
+    if(argc > 1){
+        if (!strcmp(argv[1], "MRSS")){
+            glShaderSource(vertexShader, 1, &vertexShaderSource180, NULL);
+        } else if (!strcmp(argv[1], "DSS")){
+            glShaderSource(vertexShader, 1, &vertexShaderSource150, NULL);
+        } else {
+            glShaderSource(vertexShader, 1, &vertexShaderSource360, NULL);
+        }
+    }else {
+        glShaderSource(vertexShader, 1, &vertexShaderSource360, NULL);
+    }
+    
     glCompileShader(vertexShader);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
@@ -218,7 +228,7 @@ int main(){
     // camera init
     camera_t cam;
     cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
-    cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
+    cam.resultQuat[0] = 1.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 0.0f;
     cam.fov = 5.2f;
     glfwSetWindowUserPointer(window, &cam); // sent camera object to callback functions
 
@@ -241,15 +251,26 @@ int main(){
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
     fprintf(stderr, "%d, %d\n", width, height);*/
     
-    
     // loading image!
-    GLuint width, height, nrChannels;
-    unsigned char *data = stbi_load("../data/output0.png", &width, &height, &nrChannels, 0); 
+    int width, height, nrChannels;
+    unsigned char *data;
+    if(argc > 1){
+        if (!strcmp(argv[1], "MRSS")){
+            data = stbi_load("../data/MRSS.png", &width, &height, &nrChannels, 0); 
+        } else if (!strcmp(argv[1], "DSS")){
+            data = stbi_load("../data/DSS.png", &width, &height, &nrChannels, 0); 
+        }
+    }else {
+        data = stbi_load("../data/panorama1.bmp", &width, &height, &nrChannels, 0); 
+    }
+    
     if (data){
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        if(argc == 1) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        else glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        
         glGenerateMipmap(GL_TEXTURE_2D);
         stbi_image_free(data);
-    } else{
+    }else{
         fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
         goto loadError;
     } 
@@ -361,8 +382,7 @@ static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN G
 static void orqa_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN GLdouble xoffset, ORQA_IN GLdouble yoffset){
     camera_t *cam = glfwGetWindowUserPointer(window);	
     cam->fov -= (GLfloat)yoffset/5; // update fov
-    // cap fov in between 5.2 and 6.2
-    if (cam->fov < 5.2f) cam->fov = 5.2f;
+    if (cam->fov < 4.2f) cam->fov = 4.2f;
     if (cam->fov > 6.2f) cam->fov = 6.2f;   
 }
 
