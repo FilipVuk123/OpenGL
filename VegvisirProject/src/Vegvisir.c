@@ -59,9 +59,11 @@ const GLchar *vertexShaderSource180 =
     "varying vec2 TexCoord;\n"
     "float newMin = 0.;\n"
     "float newMax = 1.;\n"
-    "float oldMin = 0.25;\n"
-    "float oldMax = 0.75;\n"
-    "float oldRange = oldMax - oldMin;\n"
+    "float oldMinY = 0.25;\n"
+    "float oldMaxY = 0.75;\n"
+    "float oldMinX = 0.;\n"
+    "float oldMaxX = 0.5;\n"
+    "float oldRange = oldMaxY - oldMinY;\n"
     "float newRange = newMax - newMin;\n"
     "float newValueX;\n"
     "float newValueY;\n"
@@ -71,12 +73,12 @@ const GLchar *vertexShaderSource180 =
     "void main()\n"
     "{\n"
     "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
-    "   if ((1. - aTexCoord.x) < oldMin || (1. - aTexCoord.x) > oldMax || aTexCoord.y < oldMin || aTexCoord.y > oldMax){\n"
+    "   if ((1. - aTexCoord.x) < oldMinX || (1. - aTexCoord.x) > oldMaxX || aTexCoord.y < oldMinY || aTexCoord.y > oldMaxY){\n"
     "       newValueX = -1.;\n"
     "       newValueY = -1.;\n"
     "   }else{\n"
-    "       newValueX = ( ((1. - aTexCoord.x) - oldMin) * newRange / oldRange ) + newMin;\n"
-    "       newValueY = ( (aTexCoord.y - oldMin) * newRange / oldRange ) + newMin;\n"
+    "       newValueX = ( ((1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
+    "       newValueY = ( (aTexCoord.y - oldMinY) * newRange / oldRange ) + newMin;\n"
     "   }\n"
     "   TexCoord = vec2(newValueX, newValueY);\n" // mirror textures for inside sphere
     "}\n\0";
@@ -87,10 +89,12 @@ const char *vertexShaderSource150 =
     "varying vec2 TexCoord;\n"
     "float newMin = 0.;\n"
     "float newMax = 1.;\n"
-    "float oldMin = 0.3;\n"
-    "float oldMax = 0.7;\n"
-    "float oldRange = oldMax - oldMin;\n"
-    "float newRange = newMax - newMin;\n"
+    "float oldMinY = 0.3;\n"
+    "float oldMaxY = 0.7;\n"
+    "float oldMinX = 0.;\n"
+    "float oldMaxX = 0.4;\n"
+    "float oldRange = oldMaxY - oldMinY;\n"
+    "float newRange = newMax- newMin;\n"
     "float newValueX;\n"
     "float newValueY;\n"
     "uniform mat4 model;\n"
@@ -99,12 +103,12 @@ const char *vertexShaderSource150 =
     "void main()\n"
     "{\n"
     "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
-    "   if ((1. - aTexCoord.x) < oldMin || (1. - aTexCoord.x) > oldMax || aTexCoord.y < oldMin || aTexCoord.y > oldMax){\n"
+    "   if ((1. - aTexCoord.x) < oldMinX || (1. - aTexCoord.x) > oldMaxX || aTexCoord.y < oldMinY || aTexCoord.y > oldMaxY){\n"
     "       newValueX = -1.;\n"
     "       newValueY = -1.;\n"
     "   }else{\n"
-    "       newValueX = ( ((1. - aTexCoord.x) - oldMin) * newRange / oldRange ) + newMin;\n"
-    "       newValueY = ( (aTexCoord.y - oldMin) * newRange / oldRange ) + newMin;\n"
+    "       newValueX = ( ((1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
+    "       newValueY = ( (aTexCoord.y - oldMinY) * newRange / oldRange ) + newMin;\n"
     "   }\n"
     "   TexCoord = vec2(newValueX, newValueY);\n" // mirror textures for inside sphere
     "}\n\0";
@@ -228,13 +232,13 @@ int main(int argc, char **argv){
     // camera init
     camera_t cam;
     cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
-    cam.resultQuat[0] = 1.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 0.0f;
+    cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
     cam.fov = 5.2f;
     glfwSetWindowUserPointer(window, &cam); // sent camera object to callback functions
 
     // TCP thread & mutex init
     pthread_t tcp_thread;
-    // pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
+    pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -442,7 +446,7 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
         bzero(jsonStr, BUFSIZE);
         int n = read(childfd, jsonStr, BUFSIZE);
         if (n < 0) { perror("ERROR reading from socket"); exit(1); }
-        // printf("server received %d bytes: %s", n, jsonStr);
+        printf("server received %d bytes: %s", n, jsonStr);
 
         // parse JSON
         JSONObject *json = parseJSON(jsonStr);
