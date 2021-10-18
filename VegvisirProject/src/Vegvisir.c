@@ -61,8 +61,8 @@ const GLchar *vertexShaderSource180 =
     "float newMax = 1.;\n"
     "float oldMinY = 0.25;\n"
     "float oldMaxY = 0.75;\n"
-    "float oldMinX = 0.;\n"
-    "float oldMaxX = 0.5;\n"
+    "float oldMinX = 0.05;\n"
+    "float oldMaxX = 0.55;\n"
     "float oldRange = oldMaxY - oldMinY;\n"
     "float newRange = newMax - newMin;\n"
     "float newValueX;\n"
@@ -91,8 +91,8 @@ const char *vertexShaderSource150 =
     "float newMax = 1.;\n"
     "float oldMinY = 0.3;\n"
     "float oldMaxY = 0.7;\n"
-    "float oldMinX = 0.;\n"
-    "float oldMaxX = 0.4;\n"
+    "float oldMinX = 0.05;\n"
+    "float oldMaxX = 0.45;\n"
     "float oldRange = oldMaxY - oldMinY;\n"
     "float newRange = newMax- newMin;\n"
     "float newValueX;\n"
@@ -238,7 +238,7 @@ int main(int argc, char **argv){
 
     // TCP thread & mutex init
     pthread_t tcp_thread;
-    pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
+    // pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -247,13 +247,13 @@ int main(int argc, char **argv){
     // loading video file!
     // Before loading generate RGB: $ ffmpeg -y -i input.mp4 -c:v libx264rgb output.mp4
     video_reader_t vr_state;
-    /*  
-    if(orqa_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
+      /*
+    if(orqa_video_reader_open_file(&vr_state, "../data/CartoonRGB.mp4")){
         printf("Could not open file\n");
         goto loadError;
     }
     const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
-    fprintf(stderr, "%d, %d\n", width, height);*/
+    */
     
     // loading image!
     int width, height, nrChannels;
