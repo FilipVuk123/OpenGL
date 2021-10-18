@@ -57,14 +57,14 @@ const GLchar *vertexShaderSource180 =
     "attribute vec3 aPos;\n"
     "attribute vec2 aTexCoord;\n"
     "varying vec2 TexCoord;\n"
-    "float newMin = 0.;\n"
-    "float newMax = 1.;\n"
-    "float oldMinY = 0.25;\n"
-    "float oldMaxY = 0.75;\n"
-    "float oldMinX = 0.05;\n"
-    "float oldMaxX = 0.55;\n"
-    "float oldRange = oldMaxY - oldMinY;\n"
-    "float newRange = newMax - newMin;\n"
+    "const float newMin = 0.;\n"
+    "const float newMax = 1.;\n"
+    "const float oldMinY = 0.25;\n"
+    "const float oldMaxY = 0.75;\n"
+    "const float oldRange = oldMaxY - oldMinY;\n"
+    "const float oldMinX = 0.05;\n"
+    "const float oldMaxX = oldMinX + oldRange;\n"
+    "const float newRange = newMax - newMin;\n"
     "float newValueX;\n"
     "float newValueY;\n"
     "uniform mat4 model;\n"
@@ -87,14 +87,14 @@ const char *vertexShaderSource150 =
     "attribute vec3 aPos;\n"
     "attribute vec2 aTexCoord;\n"
     "varying vec2 TexCoord;\n"
-    "float newMin = 0.;\n"
-    "float newMax = 1.;\n"
-    "float oldMinY = 0.3;\n"
-    "float oldMaxY = 0.7;\n"
-    "float oldMinX = 0.05;\n"
-    "float oldMaxX = 0.45;\n"
-    "float oldRange = oldMaxY - oldMinY;\n"
-    "float newRange = newMax- newMin;\n"
+    "const float newMin = 0.;\n"
+    "const float newMax = 1.;\n"
+    "const float oldMinY = 0.3;\n"
+    "const float oldMaxY = 0.7;\n"
+    "const float oldRange = oldMaxY - oldMinY;\n"
+    "const float oldMinX = 0.05;\n"
+    "const float oldMaxX = oldMinX + oldRange;\n"
+    "const float newRange = newMax- newMin;\n"
     "float newValueX;\n"
     "float newValueY;\n"
     "uniform mat4 model;\n"
@@ -169,9 +169,9 @@ int main(int argc, char **argv){
     GLchar infoLog[BUFSIZE];
 
     if(argc > 1){
-        if (!strcmp(argv[1], "MRSS")){
+        if (!strcasecmp(argv[1], "MRSS")){
             glShaderSource(vertexShader, 1, &vertexShaderSource180, NULL);
-        } else if (!strcmp(argv[1], "DSS")){
+        } else if (!strcasecmp(argv[1], "DSS")){
             glShaderSource(vertexShader, 1, &vertexShaderSource150, NULL);
         } else {
             glShaderSource(vertexShader, 1, &vertexShaderSource360, NULL);
@@ -259,9 +259,9 @@ int main(int argc, char **argv){
     int width, height, nrChannels;
     unsigned char *data;
     if(argc > 1){
-        if (!strcmp(argv[1], "MRSS")){
+        if (!strcasecmp(argv[1], "mrss")){
             data = stbi_load("../data/MRSS.png", &width, &height, &nrChannels, 0); 
-        } else if (!strcmp(argv[1], "DSS")){
+        } else if (!strcasecmp(argv[1], "dss")){
             data = stbi_load("../data/DSS.png", &width, &height, &nrChannels, 0); 
         }
     }else {
@@ -309,7 +309,7 @@ int main(int argc, char **argv){
         // send MVP matrices to vertex shader
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]); 
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]); 
-        glUniformMatrix4fv(projLoc, 1, GL_FALSE, &proj[0][0]); 
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, &proj[0][0]);  
         
         /*
         // get video frame -> generate texture
