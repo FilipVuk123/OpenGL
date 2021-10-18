@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 
 #define BUFSIZE     1024
 #define ORQA_IN
@@ -48,6 +47,68 @@ const GLchar *vertexShaderSource =
     "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
     "   TexCoord = vec2(1. - aTexCoord.x, aTexCoord.y);\n" // mirror textures for inside sphere
     "}\n\0";
+// MRSS shader
+const GLchar *vertexShaderSource180 = 
+    "attribute vec3 aPos;\n"
+    "attribute vec2 aTexCoord;\n"
+    "varying vec2 TexCoord;\n"
+    "const float newMin = 0.;\n"
+    "const float newMax = 1.;\n"
+    "const float oldMinY = 0.25;\n"
+    "const float oldMaxY = 0.75;\n"
+    "const float oldMinX = 0.05;\n"
+    "const float oldMaxX = 0.55;\n"
+    "const float oldRange = oldMaxY - oldMinY;\n"
+    "const float newRange = newMax - newMin;\n"
+    "float newValueX;\n"
+    "float newValueY;\n"
+    "uniform mat4 model;\n"
+    "uniform mat4 view;\n"
+    "uniform mat4 proj;\n"
+    "void main()\n"
+    "{\n"
+    "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
+    "   if ((1. - aTexCoord.x) < oldMinX || (1. - aTexCoord.x) > oldMaxX || aTexCoord.y < oldMinY || aTexCoord.y > oldMaxY){\n"
+    "       newValueX = -1.;\n"
+    "       newValueY = -1.;\n"
+    "   }else{\n"
+    "       newValueX = ( ((1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
+    "       newValueY = ( (aTexCoord.y - oldMinY) * newRange / oldRange ) + newMin;\n"
+    "   }\n"
+    "   TexCoord = vec2(newValueX, newValueY);\n" // mirror textures for inside sphere
+    "}\n\0";
+// DSS shader
+const char *vertexShaderSource150 =
+    "attribute vec3 aPos;\n"
+    "attribute vec2 aTexCoord;\n"
+    "varying vec2 TexCoord;\n"
+    "const float newMin = 0.;\n"
+    "const float newMax = 1.;\n"
+    "const float oldMinY = 0.3;\n"
+    "const float oldMaxY = 0.7;\n"
+    "const float oldMinX = 0.05;\n"
+    "const float oldMaxX = 0.45;\n"
+    "const float oldRange = oldMaxY - oldMinY;\n"
+    "const float newRange = newMax- newMin;\n"
+    "float newValueX;\n"
+    "float newValueY;\n"
+    "uniform mat4 model;\n"
+    "uniform mat4 view;\n"
+    "uniform mat4 proj;\n"
+    "void main()\n"
+    "{\n"
+    "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
+    "   if ((1. - aTexCoord.x) < oldMinX || (1. - aTexCoord.x) > oldMaxX || aTexCoord.y < oldMinY || aTexCoord.y > oldMaxY){\n"
+    "       newValueX = -1.;\n"
+    "       newValueY = -1.;\n"
+    "   }else{\n"
+    "       newValueX = ( ((1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
+    "       newValueY = ( (aTexCoord.y - oldMinY) * newRange / oldRange ) + newMin;\n"
+    "   }\n"
+    "   TexCoord = vec2(newValueX, newValueY);\n" // mirror textures for inside sphere
+    "}\n\0";
+
+
 
 const GLchar *fragmentShaderSource = 
     "precision mediump float;\n"
@@ -70,10 +131,10 @@ static void* orqa_tcp_thread(ORQA_REF camera_t *c);
 
 
 
-int main(void) {
+int main(int argc, char **argv) {
     if (orqa_GLFW_init()) return OPENGL_INIT_ERROR;
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Full screen
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", NULL, NULL); // glfw window object creation
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", glfwGetPrimaryMonitor(), NULL); // glfw window object creation
     if (window == NULL){
         fprintf(stderr, "In file: %s, line: %d Failed to create GLFW window\n", __FILE__, __LINE__);
         glfwTerminate();
@@ -88,7 +149,7 @@ int main(void) {
     glfwSetScrollCallback(window, orqa_scroll_callback); // zoom in/out using mouse wheel
 
     orqa_sphere_t sph;
-    sph.radius = 1.0f; sph.sectors = 100; sph.stacks = 100;
+    sph.radius = 1.0f; sph.sectors = 300; sph.stacks = 300;
     orqa_gen_sphere(&sph);
     GLfloat vertices[sph.numVertices*5]; for(int i = 0; i < sph.numVertices*5; i++) vertices[i] = *(sph.Vs + i);
     GLuint indices[sph.numTriangles*3]; for(int i = 0; i < sph.numTriangles*3; i++) indices[i] = *(sph.Is + i);
@@ -101,7 +162,17 @@ int main(void) {
     GLint success;
     GLchar infoLog[BUFSIZE];
 
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    if(argc > 1){
+        if (!strcmp(argv[1], "MRSS")){
+            glShaderSource(vertexShader, 1, &vertexShaderSource180, NULL);
+        } else if (!strcmp(argv[1], "DSS")){
+            glShaderSource(vertexShader, 1, &vertexShaderSource150, NULL);
+        } else {
+            glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+        }
+    }else {
+        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    }
     glCompileShader(vertexShader);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
@@ -173,7 +244,7 @@ int main(void) {
 
     // TCP thread & mutex init
     pthread_t tcp_thread;
-    pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
+    // pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -336,7 +407,7 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
         bzero(jsonStr, BUFSIZE);
         int n = read(childfd, jsonStr, BUFSIZE);
         if (n < 0) { perror("ERROR reading from socket"); exit(1); }
-        printf("server received %d bytes: %s", n, jsonStr);
+        fprintf(stderr, "server received %d bytes: %s", n, jsonStr);
 
         // parse JSON
         JSONObject *json = parseJSON(jsonStr);

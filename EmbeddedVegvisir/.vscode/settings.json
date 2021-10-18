@@ -6,6 +6,7 @@
         "egl.h": "c",
         "gl2.h": "c",
         "glfw3.h": "c",
-        "gl3.h": "c"
+        "gl3.h": "c",
+        "gen_sphere.h": "c"
     }
 }
