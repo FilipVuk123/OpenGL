@@ -2,6 +2,7 @@
 #define GLFW_INCLUDE_ES31
 
 #define BUFSIZE     1024
+#define PORT        8000
 
 #define ORQA_IN
 #define ORQA_REF
@@ -13,10 +14,11 @@
 #include <GLFW/glfw3.h>
 #include <cglm/cglm.h>
 #include <pthread.h>
+#include <sys/types.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>	// inet_addr
-#include <unistd.h>
 #include <netinet/in.h>
+#include <netdb.h>
+#include <unistd.h>
 #include "gen_sphere.h"
 #include "json.h"
 
@@ -116,7 +118,9 @@ const GLchar *fragmentShaderSource =
     "uniform sampler2D texture1;\n" 
     "void main()\n"
     "{\n"
-    "   gl_FragColor = texture2D(texture1, TexCoord);\n" 
+    "   vec3 color = texture2D(texture1, TexCoord).xyz;\n"
+    "   gl_FragColor = vec4(color , 1.0);\n"
+    
     "}\n\0";
 
 pthread_mutex_t mutexLock;
@@ -228,10 +232,13 @@ int main(int argc, char **argv) {
     glfwSetWindowUserPointer(window, &cam);
 
     // loading image!
-    GLuint width, height, nrChannels;
-    unsigned char *data = stbi_load("./data/earth.jpg", &width, &height, &nrChannels, 0); 
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load("./data/MRSS.bmp", &width, &height, &nrChannels, 0); 
+    fprintf(stderr, "Image dimensions: W: %d, H: %d, #channels: %d\n", width, height, nrChannels);
+
     if (data){
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        if ((int) nrChannels == 3) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        else if ((int) nrChannels == 4) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         stbi_image_free(data);
     } else{
@@ -241,7 +248,7 @@ int main(int argc, char **argv) {
 
     // TCP thread & mutex init
     pthread_t tcp_thread;
-    // pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
+    pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -364,7 +371,6 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
     // "sudo wpa_supplicant -c /etc/wpa_supplicant.conf -i wlan0" na pločici
 
     fprintf(stderr, "In thread!\n");
-    struct sockaddr_in serveraddr, clientaddr; 
     int childfd;
     char jsonStr[BUFSIZE];
     float yaw, pitch, roll;
@@ -373,36 +379,37 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
     versor rollQuat, pitchQuat, yawQuat;
     glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
     int optval = 1;
-    int portno = 8000;
+
+    struct sockaddr_in serveraddr, clientaddr; 
 
     // create socket
     int parentfd = socket(AF_INET, SOCK_STREAM, 0);
     if (parentfd < 0) { perror("ERROR opening socket"); exit(1);}
     
     // socket attributes
-    setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));
+    if(setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int)) != 0) printf("ERROR in setsocketopt()\n");
     bzero((char *) &serveraddr, sizeof(serveraddr));
 
     serveraddr.sin_family = AF_INET;
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serveraddr.sin_port = htons((unsigned short) portno);
+    serveraddr.sin_port = htons((unsigned short) PORT);
 
     // binding
-    if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) { perror("ERROR on binding"); exit(1); }
+    if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) { perror("ERROR on binding\n"); exit(1); }
 
     // listening
-    if (listen(parentfd, 5) < 0) { perror("ERROR on listen"); exit(1);}
+    if (listen(parentfd, 5) < 0) { perror("ERROR on listen\n"); exit(1); }
     unsigned int clientlen = sizeof(clientaddr);
 
     while (1) {
         fprintf(stderr, "In while\n");
         childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen); // accepting
-        if (childfd < 0) { perror("ERROR on accept"); exit(1);}
+        if (childfd < 0) { perror("ERROR on accept\n"); exit(1); }
         fprintf(stderr, "Accepted!\n");
         // reading
         bzero(jsonStr, BUFSIZE);
         int n = read(childfd, jsonStr, BUFSIZE);
-        if (n < 0) { perror("ERROR reading from socket"); exit(1); }
+        if (n < 0) { perror("ERROR reading from socket\n"); exit(1); }
         fprintf(stderr, "server received %d bytes: %s", n, jsonStr);
 
         // parse JSON
