@@ -1,15 +1,15 @@
-#include <stdio.h>
+#define STB_IMAGE_IMPLEMENTATION
+#define GLFW_INCLUDE_ES31
 
 #define BUFSIZE     1024
+
 #define ORQA_IN
 #define ORQA_REF
 #define ORQA_OUT
 #define ORQA_NOARGS
 
-#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
-#define GLFW_INCLUDE_ES31
+#include <stdio.h>
 #include <GLFW/glfw3.h>
 #include <cglm/cglm.h>
 #include <pthread.h>
@@ -47,6 +47,7 @@ const GLchar *vertexShaderSource =
     "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
     "   TexCoord = vec2(1. - aTexCoord.x, aTexCoord.y);\n" // mirror textures for inside sphere
     "}\n\0";
+
 // MRSS shader
 const GLchar *vertexShaderSource180 = 
     "attribute vec3 aPos;\n"
@@ -72,11 +73,12 @@ const GLchar *vertexShaderSource180 =
     "       newValueX = -1.;\n"
     "       newValueY = -1.;\n"
     "   }else{\n"
-    "       newValueX = ( ((1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
+    "       newValueX = ( ( (1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
     "       newValueY = ( (aTexCoord.y - oldMinY) * newRange / oldRange ) + newMin;\n"
     "   }\n"
     "   TexCoord = vec2(newValueX, newValueY);\n" // mirror textures for inside sphere
     "}\n\0";
+
 // DSS shader
 const char *vertexShaderSource150 =
     "attribute vec3 aPos;\n"
@@ -102,13 +104,11 @@ const char *vertexShaderSource150 =
     "       newValueX = -1.;\n"
     "       newValueY = -1.;\n"
     "   }else{\n"
-    "       newValueX = ( ((1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
+    "       newValueX = ( ( (1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
     "       newValueY = ( (aTexCoord.y - oldMinY) * newRange / oldRange ) + newMin;\n"
     "   }\n"
     "   TexCoord = vec2(newValueX, newValueY);\n" // mirror textures for inside sphere
     "}\n\0";
-
-
 
 const GLchar *fragmentShaderSource = 
     "precision mediump float;\n"
@@ -121,15 +121,12 @@ const GLchar *fragmentShaderSource =
 
 pthread_mutex_t mutexLock;
 
-
 static int orqa_GLFW_init(ORQA_NOARGS void);
 static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
 static  GLfloat orqa_radians(ORQA_IN const GLfloat deg);
 static  void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const double xpos, ORQA_IN const double ypos);
 static void orqa_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN double xoffset,ORQA_IN double yoffset);
 static void* orqa_tcp_thread(ORQA_REF camera_t *c);
-
-
 
 int main(int argc, char **argv) {
     if (orqa_GLFW_init()) return OPENGL_INIT_ERROR;
@@ -262,7 +259,6 @@ int main(int argc, char **argv) {
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glUseProgram(shaderProgram);
 
-    
     const int numElements = sizeof(indices)/sizeof(indices[0]);
     while (1){ // render loop
         // render
@@ -308,7 +304,6 @@ int main(int argc, char **argv) {
     return OPENGL_OK;
 
 }
-
 
 /// This function initializes GLFW.
 /// Returns OPENGL_OK on success and OPENGL_INIT_ERROR on failure.
