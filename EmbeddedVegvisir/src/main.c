@@ -233,7 +233,16 @@ int main(int argc, char **argv) {
 
     // loading image!
     int width, height, nrChannels;
-    unsigned char *data = stbi_load("./data/MRSS.bmp", &width, &height, &nrChannels, 0); 
+    unsigned char *data;
+    if(argc > 1){
+        if (!strcasecmp(argv[1], "mrss")){
+            data = stbi_load("./data/MRSS.bmp", &width, &height, &nrChannels, 0); 
+        } else if (!strcasecmp(argv[1], "dss")){
+            data = stbi_load("./data/DSS.bmp", &width, &height, &nrChannels, 0); 
+        }
+    }else {
+        data = stbi_load("./data/earth.jpg", &width, &height, &nrChannels, 0); 
+    }
     fprintf(stderr, "Image dimensions: W: %d, H: %d, #channels: %d\n", width, height, nrChannels);
 
     if (data){
