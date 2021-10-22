@@ -239,8 +239,10 @@ int main(int argc, char **argv) {
             data = stbi_load("./data/MRSS.bmp", &width, &height, &nrChannels, 0); 
         } else if (!strcasecmp(argv[1], "dss")){
             data = stbi_load("./data/DSS.bmp", &width, &height, &nrChannels, 0); 
+        }else{
+            data = stbi_load("./data/DSS.bmp", &width, &height, &nrChannels, 0); 
         }
-    }else {
+    }else{
         data = stbi_load("./data/earth.jpg", &width, &height, &nrChannels, 0); 
     }
     fprintf(stderr, "Image dimensions: W: %d, H: %d, #channels: %d\n", width, height, nrChannels);
@@ -377,9 +379,11 @@ static void orqa_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN double xof
 
 /// This function connects to ORQA FPV.One goggles via TCP socket and performs motorless gimbal while goggles are in use.
 static void *orqa_tcp_thread(ORQA_REF camera_t *c){
-    // "sudo wpa_supplicant -c /etc/wpa_supplicant.conf -i wlan0" na pločici
+    // after configuring wpa_supplicant for goggles do:
+    // "sudo wpa_supplicant -B -c /etc/wpa_supplicant.conf -i wlan0" i "udhcpc -i wlan0" na pločici
 
     fprintf(stderr, "In thread!\n");
+    struct sockaddr_in serveraddr, clientaddr; 
     int childfd;
     char jsonStr[BUFSIZE];
     float yaw, pitch, roll;
@@ -389,14 +393,12 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
     glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
     int optval = 1;
 
-    struct sockaddr_in serveraddr, clientaddr; 
-
     // create socket
     int parentfd = socket(AF_INET, SOCK_STREAM, 0);
     if (parentfd < 0) { perror("ERROR opening socket"); exit(1);}
     
     // socket attributes
-    if(setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int)) != 0) printf("ERROR in setsocketopt()\n");
+    setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));
     bzero((char *) &serveraddr, sizeof(serveraddr));
 
     serveraddr.sin_family = AF_INET;
@@ -404,22 +406,23 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
     serveraddr.sin_port = htons((unsigned short) PORT);
 
     // binding
-    if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) { perror("ERROR on binding\n"); exit(1); }
+    if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) { perror("ERROR on binding"); exit(1); }
 
     // listening
-    if (listen(parentfd, 5) < 0) { perror("ERROR on listen\n"); exit(1); }
+    if (listen(parentfd, 5) < 0) { perror("ERROR on listen"); exit(1);}
     unsigned int clientlen = sizeof(clientaddr);
 
     while (1) {
-        fprintf(stderr, "In while\n");
+        printf("W8ing accept...\n");
         childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen); // accepting
-        if (childfd < 0) { perror("ERROR on accept\n"); exit(1); }
-        fprintf(stderr, "Accepted!\n");
+        if (childfd < 0) { perror("ERROR on accept"); exit(1);}
+        printf("Connection accepted!\n");
+
         // reading
         bzero(jsonStr, BUFSIZE);
         int n = read(childfd, jsonStr, BUFSIZE);
-        if (n < 0) { perror("ERROR reading from socket\n"); exit(1); }
-        fprintf(stderr, "server received %d bytes: %s", n, jsonStr);
+        if (n < 0) { perror("ERROR reading from socket"); exit(1); }
+        printf("Received %d bytes: %s", n, jsonStr);
 
         // parse JSON
         JSONObject *json = parseJSON(jsonStr);
@@ -444,4 +447,3 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
     }
     return 0;
 }
-
