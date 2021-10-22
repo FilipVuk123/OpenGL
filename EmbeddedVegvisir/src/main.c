@@ -1,7 +1,10 @@
+// "sudo screen /dev/ttyUSB0 115200"
+// "ssh root@10.220.27.243"
+
 #define STB_IMAGE_IMPLEMENTATION
 #define GLFW_INCLUDE_ES31
 
-#define BUFSIZE     1024
+#define BUFSIZE     ETH_FRAME_LEN
 #define PORT        8000
 
 #define ORQA_IN
@@ -9,6 +12,7 @@
 #define ORQA_OUT
 #define ORQA_NOARGS
 
+#include <linux/if_ether.h>
 #include "stb_image.h"
 #include <stdio.h>
 #include <GLFW/glfw3.h>
@@ -21,6 +25,7 @@
 #include <unistd.h>
 #include "gen_sphere.h"
 #include "json.h"
+#include "orqa_clock.h"
 
 typedef enum{
     OPENGL_OK           = 0,
@@ -130,7 +135,7 @@ static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN G
 static  GLfloat orqa_radians(ORQA_IN const GLfloat deg);
 static  void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const double xpos, ORQA_IN const double ypos);
 static void orqa_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN double xoffset,ORQA_IN double yoffset);
-static void* orqa_tcp_thread(ORQA_REF camera_t *c);
+static void* orqa_tcp_thread(ORQA_REF void *c);
 
 int main(int argc, char **argv) {
     if (orqa_GLFW_init()) return OPENGL_INIT_ERROR;
@@ -279,6 +284,7 @@ int main(int argc, char **argv) {
 
     const int numElements = sizeof(indices)/sizeof(indices[0]);
     while (1){ // render loop
+        orqa_clock_t clock = orqa_time_now();
         // render
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT); // | GL_DEPTH_BUFFER_BIT);
@@ -303,6 +309,7 @@ int main(int argc, char **argv) {
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
+        // printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now())); // 16.6
     }
     // deallocating stuff
     loadError:
@@ -338,11 +345,11 @@ static int orqa_GLFW_init(ORQA_NOARGS void){
 
     return OPENGL_OK;
 }
+
 /// This callback function keeps track of window size and updates it when needed.
 static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height){
     glViewport(0, 0, width, height); // size of the rendering window
 }
-
 
 /// This callback function performs motorless gimbal procedure on mouse movement.
 static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const double xpos, ORQA_IN const double ypos){
@@ -378,12 +385,11 @@ static void orqa_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN double xof
 }
 
 /// This function connects to ORQA FPV.One goggles via TCP socket and performs motorless gimbal while goggles are in use.
-static void *orqa_tcp_thread(ORQA_REF camera_t *c){
+static void *orqa_tcp_thread(ORQA_REF void *c_ptr){
     // after configuring wpa_supplicant for goggles do:
     // "sudo wpa_supplicant -B -c /etc/wpa_supplicant.conf -i wlan0" i "udhcpc -i wlan0" na pločici
-
+    camera_t *c = c_ptr;
     fprintf(stderr, "In thread!\n");
-    struct sockaddr_in serveraddr, clientaddr; 
     int childfd;
     char jsonStr[BUFSIZE];
     float yaw, pitch, roll;
@@ -391,6 +397,7 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
     glm_mat4_identity(rollMat);
     versor rollQuat, pitchQuat, yawQuat;
     glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
+    struct sockaddr_in serveraddr, clientaddr; 
     int optval = 1;
 
     // create socket
@@ -414,6 +421,7 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
 
     while (1) {
         printf("W8ing accept...\n");
+        orqa_clock_t clock = orqa_time_now();
         childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen); // accepting
         if (childfd < 0) { perror("ERROR on accept"); exit(1);}
         printf("Connection accepted!\n");
@@ -444,6 +452,7 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
         pthread_mutex_unlock(&mutexLock);
     
         close(childfd);
+        printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
     }
     return 0;
 }
