@@ -129,7 +129,7 @@ static  void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdo
 static void orqa_process_input(ORQA_REF GLFWwindow *window);
 static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
 static void orqa_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
-static void* orqa_tcp_thread(ORQA_REF camera_t *c);
+static void* orqa_tcp_thread(ORQA_REF void *c_ptr);
 
 int main(int argc, char **argv){
     if (orqa_GLFW_init()) return OPENGL_INIT_ERROR;
@@ -238,7 +238,7 @@ int main(int argc, char **argv){
 
     // TCP thread & mutex init
     pthread_t tcp_thread;
-    // pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
+    pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -270,7 +270,7 @@ int main(int argc, char **argv){
     
     if (data){
         if ((int) nrChannels == 3)  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        else if ((int) nrChannels == 4)glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        else if ((int) nrChannels == 4)glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         stbi_image_free(data);
     }else{
@@ -405,11 +405,9 @@ static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdou
 }
 
 /// This function connects to ORQA FPV.One goggles via TCP socket and performs motorless gimbal while goggles are in use.
-static void *orqa_tcp_thread(ORQA_REF camera_t *c){
+static void *orqa_tcp_thread(ORQA_REF void *c_ptr){
     // inits 
-    struct sockaddr_in serveraddr, clientaddr; 
-    int childfd;
-    char jsonStr[BUFSIZE];
+    camera_t *c = c_ptr;
     float yaw, pitch, roll;
     mat4 rollMat; 
     glm_mat4_identity(rollMat);
@@ -417,6 +415,9 @@ static void *orqa_tcp_thread(ORQA_REF camera_t *c){
     glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
     int optval = 1;
     int portno = 8000;
+    struct sockaddr_in serveraddr, clientaddr; 
+    int childfd;
+    char jsonStr[BUFSIZE];
 
     // create socket
     int parentfd = socket(AF_INET, SOCK_STREAM, 0);
