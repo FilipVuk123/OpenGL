@@ -5,7 +5,7 @@
 #include<sys/socket.h>
 
 #define BUFLEN 1024	//Max length of buffer
-#define PORT 8888	//The port on which to listen for incoming data
+#define PORT 8000	//The port on which to listen for incoming data
 
 void die(char *s)
 {
@@ -21,8 +21,8 @@ int main(void)
     int slen = sizeof(clientaddr);
 	
 	
-	//create a UDP socket
-	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1){
+	// create a UDP socket
+	if ((s=socket(AF_INET, SOCK_DGRAM, 0)) == -1){
 		die("socket");
 	}
 	
@@ -39,8 +39,9 @@ int main(void)
 	}
 	
 	//keep listening for data
+	fprintf(stderr, "Waiting for data...\n");
+	
 	while(1){
-		fprintf(stderr, "Waiting for data...");
         char buf[BUFLEN] = "\0";
 		
 		//try to receive some data, this is a blocking call
@@ -50,8 +51,7 @@ int main(void)
 		
 		//print details of the client/peer and the data received
 		printf("Received packet from %s:%d\n", inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port));
-		printf("Data: %s\n" , buf);
-		
+		printf("Data: %s\n" , buf);	
 	}
 
 	close(s);

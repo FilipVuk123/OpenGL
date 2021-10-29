@@ -19,8 +19,7 @@ int main(void){
 	struct sockaddr_in serveraddr;
 	int s, i, slen=sizeof(serveraddr);
 
-	if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-{
+	if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1){
 		die("socket");
 	}
 
