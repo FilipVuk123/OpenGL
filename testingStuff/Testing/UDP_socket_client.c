@@ -1,45 +1,45 @@
+
 #include<stdio.h>	//printf
 #include<string.h> //memset
 #include<stdlib.h> //exit(0);
 #include<arpa/inet.h>
 #include<sys/socket.h>
 
-#define SERVER "127.0.0.1"
-#define BUFLEN 1024	//Max length of buffer
-#define PORT 8888	//The port on which to send data
+#define SERVER "10.220.27.98"
+#define BUFLEN 512	
+#define PORT 8000	
 
-void die(char *s)
-{
+void die(char *s){
 	perror(s);
 	exit(1);
 }
 
 int main(void){
-    char message[BUFLEN];
-	struct sockaddr_in serveraddr;
-	int s, i, slen=sizeof(serveraddr);
+	struct sockaddr_in si_other;
+	int s, i, slen=sizeof(si_other);
 
-	if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1){
+	if ( (s=socket(AF_INET, SOCK_DGRAM, 0)) == -1){
 		die("socket");
 	}
 
-	memset((char *) &serveraddr, 0, sizeof(serveraddr));
-	serveraddr.sin_family = AF_INET;
-	serveraddr.sin_port = htons(PORT);
-    serveraddr.sin_addr.s_addr = INADDR_ANY;
+	memset((char *) &si_other, 0, sizeof(si_other));
+	si_other.sin_family = AF_INET;
+	si_other.sin_port = htons(PORT);
 	
-	if (inet_aton(SERVER , &serveraddr.sin_addr) == 0) {
+	if (inet_aton(SERVER , &si_other.sin_addr) == 0) {
 		fprintf(stderr, "inet_aton() failed\n");
 		exit(1);
 	}
 
 	while(1){
-        
+		char buf[BUFLEN]= "\0";
+		char message[BUFLEN]= "\0";
 		printf("Enter message : ");
-		gets(message);
+		fgets(message, sizeof(message), stdin);
 		
 		//send the message
-		if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &serveraddr, slen)==-1){
+
+		if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1){
 			die("sendto()");
 		}
 	}

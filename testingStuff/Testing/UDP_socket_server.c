@@ -1,57 +1,55 @@
+
 #include<stdio.h>	//printf
 #include<string.h> //memset
 #include<stdlib.h> //exit(0);
 #include<arpa/inet.h>
 #include<sys/socket.h>
 
-#define BUFLEN 1024	//Max length of buffer
-#define PORT 8000	//The port on which to listen for incoming data
+#define BUFLEN 512	//Max length of buffer
+#define PORT 8888	//The port on which to listen for incoming data
 
-void die(char *s)
-{
+void die(char *s){
 	perror(s);
 	exit(1);
 }
 
-int main(void)
-{
-	struct sockaddr_in serveraddr, clientaddr;
+int main(void){
+	struct sockaddr_in si_me, si_other;
 	
-	int s, i, recv_len;
-    int slen = sizeof(clientaddr);
+	int s, i, slen = sizeof(si_other) , recv_len;
 	
-	
-	// create a UDP socket
+	//create a UDP socket
 	if ((s=socket(AF_INET, SOCK_DGRAM, 0)) == -1){
 		die("socket");
 	}
 	
 	// zero out the structure
-	memset((char *) &serveraddr, 0, sizeof(serveraddr));
+	memset((char *) &si_me, 0, sizeof(si_me));
 	
-	serveraddr.sin_family = AF_INET;
-	serveraddr.sin_port = htons(PORT);
-	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	si_me.sin_family = AF_INET;
+	si_me.sin_port = htons(PORT);
+	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 	
 	//bind socket to port
-	if( bind(s , (struct sockaddr*)&serveraddr, sizeof(serveraddr) ) == -1){
+	if( bind(s , (struct sockaddr*)&si_me, sizeof(si_me) ) == -1){
 		die("bind");
 	}
 	
-	//keep listening for data
-	fprintf(stderr, "Waiting for data...\n");
-	
-	while(1){
-        char buf[BUFLEN] = "\0";
+	while(1)
+	{
+		char buf[BUFLEN] = "\0";
+		fprintf(stderr, "Waiting for data...");
 		
-		//try to receive some data, this is a blocking call
-		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &clientaddr, &slen)) == -1){
+		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1){
 			die("recvfrom()");
 		}
 		
-		//print details of the client/peer and the data received
-		printf("Received packet from %s:%d\n", inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port));
-		printf("Data: %s\n" , buf);	
+		printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
+		printf("Data: %s\n" , buf);
+		
+		if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == -1){
+			die("sendto()");
+		}
 	}
 
 	close(s);
