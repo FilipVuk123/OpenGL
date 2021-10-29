@@ -15,18 +15,18 @@ void die(char *s){
 }
 
 int main(void){
-	struct sockaddr_in si_other;
-	int s, i, slen=sizeof(si_other);
+	struct sockaddr_in serveraddr;
+	int s, i, slen=sizeof(serveraddr);
 
 	if ( (s=socket(AF_INET, SOCK_DGRAM, 0)) == -1){
 		die("socket");
 	}
 
-	memset((char *) &si_other, 0, sizeof(si_other));
-	si_other.sin_family = AF_INET;
-	si_other.sin_port = htons(PORT);
+	memset((char *) &serveraddr, 0, sizeof(serveraddr));
+	serveraddr.sin_family = AF_INET;
+	serveraddr.sin_port = htons(PORT);
 	
-	if (inet_aton(SERVER , &si_other.sin_addr) == 0) {
+	if (inet_aton(SERVER , &serveraddr.sin_addr) == 0) {
 		fprintf(stderr, "inet_aton() failed\n");
 		exit(1);
 	}
@@ -39,7 +39,7 @@ int main(void){
 		
 		//send the message
 
-		if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1){
+		if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &serveraddr, slen)==-1){
 			die("sendto()");
 		}
 	}
