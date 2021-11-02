@@ -1,5 +1,6 @@
 // "sudo screen /dev/ttyUSB0 115200"
 // "ssh root@10.220.27.243"
+// password= "root"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define GLFW_INCLUDE_ES31
@@ -62,8 +63,8 @@ const GLchar *vertexShaderSource180 =
     "varying vec2 TexCoord;\n"
     "const float newMin = 0.;\n"
     "const float newMax = 1.;\n"
-    "const float oldMinY = 0.25;\n"
-    "const float oldMaxY = 0.75;\n"
+    "const float oldMinY = 0.2;\n"
+    "const float oldMaxY = 0.8;\n"
     "const float oldRange = oldMaxY - oldMinY;\n"
     "const float oldMinX = 0.05;\n"
     "const float oldMaxX = oldMinX + oldRange;\n"
@@ -77,8 +78,8 @@ const GLchar *vertexShaderSource180 =
     "{\n"
     "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
     "   if ((1. - aTexCoord.x) < oldMinX || (1. - aTexCoord.x) > oldMaxX || aTexCoord.y < oldMinY || aTexCoord.y > oldMaxY){\n"
-    "       newValueX = -1.;\n"
-    "       newValueY = -1.;\n"
+    "       newValueX = -2.;\n"
+    "       newValueY = -2.;\n"
     "   }else{\n"
     "       newValueX = ( ( (1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
     "       newValueY = ( (aTexCoord.y - oldMinY) * newRange / oldRange ) + newMin;\n"
@@ -108,8 +109,8 @@ const char *vertexShaderSource150 =
     "{\n"
     "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
     "   if ((1. - aTexCoord.x) < oldMinX || (1. - aTexCoord.x) > oldMaxX || aTexCoord.y < oldMinY || aTexCoord.y > oldMaxY){\n"
-    "       newValueX = -1.;\n"
-    "       newValueY = -1.;\n"
+    "       newValueX = -2.;\n"
+    "       newValueY = -2.;\n"
     "   }else{\n"
     "       newValueX = ( ( (1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
     "       newValueY = ( (aTexCoord.y - oldMinY) * newRange / oldRange ) + newMin;\n"
@@ -123,9 +124,12 @@ const GLchar *fragmentShaderSource =
     "uniform sampler2D texture1;\n" 
     "void main()\n"
     "{\n"
-    "   vec3 color = texture2D(texture1, TexCoord).xyz;\n"
-    "   gl_FragColor = vec4(color , 1.0);\n"
-    
+    "   if (TexCoord.x < -1.0 && TexCoord.y < -1.0){\n"
+    "       gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);\n"
+    "   }else{\n"
+    "       vec3 color = texture2D(texture1, TexCoord).xyz;\n"
+    "       gl_FragColor = vec4(color , 1.0);\n"    
+    "   }\n"
     "}\n\0";
 
 pthread_mutex_t mutexLock;
@@ -241,16 +245,13 @@ int main(int argc, char **argv) {
     unsigned char *data;
     if(argc > 1){
         if (!strcasecmp(argv[1], "mrss")){
-            data = stbi_load("./data/MRSS.bmp", &width, &height, &nrChannels, 0); 
+            data = stbi_load("./data/360-Castle.jpg", &width, &height, &nrChannels, 0); 
         } else if (!strcasecmp(argv[1], "dss")){
             data = stbi_load("./data/DSS.bmp", &width, &height, &nrChannels, 0); 
         }else{
-            data = stbi_load("./data/DSS.bmp", &width, &height, &nrChannels, 0); 
+            data = stbi_load("./data/earth.jpg", &width, &height, &nrChannels, 0); 
         }
-    }else{
-        data = stbi_load("./data/earth.jpg", &width, &height, &nrChannels, 0); 
-    }
-    fprintf(stderr, "Image dimensions: W: %d, H: %d, #channels: %d\n", width, height, nrChannels);
+    }else data = stbi_load("./data/earth.jpg", &width, &height, &nrChannels, 0); 
 
     if (data){
         if ((int) nrChannels == 3) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -309,7 +310,7 @@ int main(int argc, char **argv) {
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
-        // printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now())); // 16.6
+        // printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now())); // 16.6 ms
     }
     // deallocating stuff
     loadError:
@@ -420,17 +421,14 @@ static void *orqa_tcp_thread(ORQA_REF void *c_ptr){
     unsigned int clientlen = sizeof(clientaddr);
 
     while (1) {
-        printf("W8ing accept...\n");
-        orqa_clock_t clock = orqa_time_now();
+        // orqa_clock_t clock = orqa_time_now();
         childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen); // accepting
         if (childfd < 0) { perror("ERROR on accept"); exit(1);}
-        printf("Connection accepted!\n");
-
+        // orqa_clock_t clock = orqa_time_now();
         // reading
         bzero(jsonStr, BUFSIZE);
         int n = read(childfd, jsonStr, BUFSIZE);
         if (n < 0) { perror("ERROR reading from socket"); exit(1); }
-        printf("Received %d bytes: %s", n, jsonStr);
 
         // parse JSON
         JSONObject *json = parseJSON(jsonStr);
@@ -450,9 +448,9 @@ static void *orqa_tcp_thread(ORQA_REF void *c_ptr){
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
         glm_quat_normalize(c->resultQuat);
         pthread_mutex_unlock(&mutexLock);
-    
+        // printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now())); // just math: 0.05ms - 0.4ms
         close(childfd);
-        printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
+        // printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now())); // 25mx - 200ms
     }
     return 0;
 }
