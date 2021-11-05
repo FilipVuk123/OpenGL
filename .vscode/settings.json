@@ -54,7 +54,8 @@
         "socket.h": "c",
         "gen_sphere.h": "c",
         "in.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "glfw3.h": "c"
     },
     "C_Cpp.errorSquiggles": "Enabled"
 }

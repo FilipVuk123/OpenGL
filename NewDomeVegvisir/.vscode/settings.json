@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "glad.h": "c",
+        "glfw3.h": "c",
+        "old_glad.h": "c",
+        "video_reader.h": "c",
+        "avformat.h": "c",
+        "socket.h": "c",
+        "inet.h": "c",
+        "avcodec.h": "c"
+    }
+}

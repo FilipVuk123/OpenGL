@@ -300,8 +300,6 @@ int main(int argc, char **argv){
     glUseProgram(shaderProgram);
 
     while (!glfwWindowShouldClose(window)){ // render loop
-        // time
-        orqa_clock_t clock = orqa_time_now();
 
         // input
         orqa_process_input(window);
@@ -337,7 +335,6 @@ int main(int argc, char **argv){
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
-        // printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
     }
     // deallocating stuff
     loadError:
@@ -460,7 +457,6 @@ static void *orqa_tcp_thread(ORQA_REF void *c_ptr){
         bzero(jsonStr, BUFSIZE);
         int n = read(childfd, jsonStr, BUFSIZE);
         if (n < 0) { perror("ERROR reading from socket"); exit(1); }
-        // printf("server received %d bytes: %s", n, jsonStr);
 
         // parse JSON
         JSONObject *json = parseJSON(jsonStr);

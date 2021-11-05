@@ -6,6 +6,7 @@
         "video_reader.h": "c",
         "avformat.h": "c",
         "socket.h": "c",
-        "inet.h": "c"
+        "inet.h": "c",
+        "avcodec.h": "c"
     }
 }
