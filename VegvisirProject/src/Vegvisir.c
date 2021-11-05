@@ -29,7 +29,7 @@ typedef enum{
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080; 
-
+ 
 // camera_t attributes
 typedef struct camera_t{
     vec3 cameraPos;
