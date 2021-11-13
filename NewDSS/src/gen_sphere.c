@@ -84,6 +84,10 @@ void orqa_gen_sphere(orqa_sphere_t *s){
     }
 }
 
+void orqa_gen_window(ORQA_REF orqa_sphere_t *sph, float x, float y, float z, int lenx, int leny){
+    
+}
+
 /// This function deallocates used memory.
 void orqa_sphere_free(orqa_sphere_t *sph){
     // deallocate stuff

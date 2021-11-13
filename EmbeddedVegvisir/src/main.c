@@ -133,6 +133,10 @@ const GLchar *fragmentShaderSource =
     "}\n\0";
 
 pthread_mutex_t mutexLock;
+static void ErrorCallback(int code, const char* err_str)
+{
+    printf("GLFW Error: %s\n",err_str);
+}
 
 static int orqa_GLFW_init(ORQA_NOARGS void);
 static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
@@ -143,6 +147,7 @@ static void* orqa_tcp_thread(ORQA_REF void *c);
 
 int main(int argc, char **argv) {
     if (orqa_GLFW_init()) return OPENGL_INIT_ERROR;
+    glfwSetErrorCallback(ErrorCallback);
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Full screen
     GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", glfwGetPrimaryMonitor(), NULL); // glfw window object creation
     if (window == NULL){
@@ -265,7 +270,7 @@ int main(int argc, char **argv) {
 
     // TCP thread & mutex init
     pthread_t tcp_thread;
-    pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
+    // pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -285,7 +290,7 @@ int main(int argc, char **argv) {
 
     const int numElements = sizeof(indices)/sizeof(indices[0]);
     while (1){ // render loop
-        orqa_clock_t clock = orqa_time_now();
+        // orqa_clock_t clock = orqa_time_now();
         // render
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT); // | GL_DEPTH_BUFFER_BIT);
@@ -333,7 +338,7 @@ int main(int argc, char **argv) {
 
 /// This function initializes GLFW.
 /// Returns OPENGL_OK on success and OPENGL_INIT_ERROR on failure.
-static int orqa_GLFW_init(ORQA_NOARGS void){ 
+static int orqa_GLFW_init(ORQA_NOARGS void){
     // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
     if(!glfwInit()){
         fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
