@@ -11,6 +11,8 @@ typedef enum{
 } OpenGLFlags;
 
 #define BUFSIZE 1024
+#define PORT    8000
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
@@ -166,7 +168,7 @@ static  void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdo
 static void orqa_process_input(ORQA_REF GLFWwindow *window);
 static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
 static void orqa_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
-static void* orqa_tcp_thread(ORQA_REF void *c_ptr);
+static void* orqa_udp_thread(ORQA_REF void *c_ptr);
 
 int main(){
     if (orqa_GLFW_init()) return OPENGL_INIT_ERROR;
@@ -292,7 +294,7 @@ int main(){
 
     // TCP thread & mutex init
     pthread_t tcp_thread;
-    pthread_create(&tcp_thread, NULL, orqa_tcp_thread, &cam);
+    pthread_create(&tcp_thread, NULL, orqa_udp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -479,72 +481,70 @@ static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdou
     glm_quat_mul(yawQuat, pitchQuat, cam->resultQuat); // get final quat
 }
 
-/// This function connects to ORQA FPV.One goggles via TCP socket and performs motorless gimbal while goggles are in use.
-static void *orqa_tcp_thread(ORQA_REF void *c_ptr){
+/// This function connects to ORQA FPV.One goggles via UDP socket and performs motorless gimbal while goggles are in use.
+static void *orqa_udp_thread(ORQA_REF void *c_ptr){
     // inits 
-    fprintf(stderr, "In thread");
+    fprintf(stderr, "In thread\n");
     camera_t *c = c_ptr;
+    char buf[BUFSIZE];
     float yaw, pitch, roll;
     mat4 rollMat; 
     glm_mat4_identity(rollMat);
     versor rollQuat, pitchQuat, yawQuat;
     glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
-    int optval = 1;
-    int portno = 8000;
-    struct sockaddr_in serveraddr, clientaddr; 
-    int childfd;
-    char jsonStr[BUFSIZE];
-
-    // create socket
-    int parentfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (parentfd < 0) { perror("ERROR opening socket"); exit(1);}
     
-    // socket attributes
-    setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));
-    bzero((char *) &serveraddr, sizeof(serveraddr));
-
-    serveraddr.sin_family = AF_INET;
-    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serveraddr.sin_port = htons((unsigned short)portno);
-
-    // binding
-    if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) { perror("ERROR on binding"); exit(1); }
-
-    // listening
-    if (listen(parentfd, 5) < 0) { perror("ERROR on listen"); exit(1);}
-    unsigned int clientlen = sizeof(clientaddr);
-
-    while (1) {
-        // orqa_clock_t clock = orqa_time_now();
-        childfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen); // accepting
-        if (childfd < 0) { perror("ERROR on accept"); exit(1);}
-
-        // reading
-        bzero(jsonStr, BUFSIZE);
-        int n = read(childfd, jsonStr, BUFSIZE);
-        if (n < 0) { perror("ERROR reading from socket"); exit(1); }
+    struct sockaddr_in serveraddr;
+	int s, recv_len;
+	
+	//create a UDP socket
+	if ((s=socket(AF_INET, SOCK_DGRAM, 0)) < -1){
+		printf("socket failed init\n");
+        return 1;
+	}
+	printf("Socket created!\n");
+	memset((char *) &serveraddr, 0, sizeof(serveraddr));
+	
+	serveraddr.sin_family = AF_INET;
+	serveraddr.sin_port = htons(PORT);
+	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	
+	//bind socket to port
+	if( bind(s , (struct sockaddr*)&serveraddr, sizeof(serveraddr) ) == -1){
+		printf("Binding error!\n");
+        goto exit;
+	}
+	printf("Bind done!\n");
+	while(1)
+	{
+        orqa_clock_t clock = orqa_time_now();
+		bzero(buf, BUFSIZE);
+		
+		if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0){
+			printf("Recieving error!\n");
+            break;
+		}
 
         // parse JSON
-        JSONObject *json = parseJSON(jsonStr);
+        JSONObject *json = parseJSON(buf);
         yaw = atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
         free(json);
-        // Using quaternions to calculate camera rotations
-        yaw = orqa_radians(yaw); pitch = orqa_radians(pitch); roll = orqa_radians(roll);
-
-        pthread_mutex_lock(&mutexLock);
-        glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f}); 
-        glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f});  
-        glm_quatv(rollQuat,roll, (vec3){0.0f, 0.0f, 1.0f}); 
         
+        // Using quaternions to calculate camera rotations
+        glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f}); 
+        glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});  
+        glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f}); 
+        
+        pthread_mutex_lock(&mutexLock);
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
         glm_quat_normalize(c->resultQuat);
         pthread_mutex_unlock(&mutexLock);
     
-        close(childfd);
-        // printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
+        printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
     }
-    return 0;
+    exit:
+    close(s);
+    return;
 }

@@ -414,24 +414,25 @@ static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdou
     glm_quat_mul(yawQuat, pitchQuat, cam->resultQuat); // get final quat
 }
 
-/// This function connects to ORQA FPV.One goggles via TCP socket and performs motorless gimbal while goggles are in use.
+/// This function connects to ORQA FPV.One goggles via UDP socket and performs motorless gimbal while goggles are in use.
 static void *orqa_udp_thread(ORQA_REF void *c_ptr){
     // inits 
     fprintf(stderr, "In thread\n");
     camera_t *c = c_ptr;
+    char buf[BUFSIZE];
     float yaw, pitch, roll;
     mat4 rollMat; 
     glm_mat4_identity(rollMat);
     versor rollQuat, pitchQuat, yawQuat;
     glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
     
-    struct sockaddr_in serveraddr, client;
+    struct sockaddr_in serveraddr;
 	int s, recv_len;
 	
 	//create a UDP socket
 	if ((s=socket(AF_INET, SOCK_DGRAM, 0)) < -1){
 		printf("socket failed init\n");
-        return;
+        return 1;
 	}
 	printf("Socket created!\n");
 	memset((char *) &serveraddr, 0, sizeof(serveraddr));
@@ -443,17 +444,17 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
 	//bind socket to port
 	if( bind(s , (struct sockaddr*)&serveraddr, sizeof(serveraddr) ) == -1){
 		printf("Binding error!\n");
-        return;
+        goto exit;
 	}
 	printf("Bind done!\n");
 	while(1)
 	{
         orqa_clock_t clock = orqa_time_now();
-		char buf[BUFSIZE] = "\0";
+		bzero(buf, BUFSIZE);
 		
 		if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0){
 			printf("Recieving error!\n");
-            return;
+            break;
 		}
 
         // parse JSON
@@ -462,14 +463,13 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
         free(json);
-        // Using quaternions to calculate camera rotations
-        yaw = orqa_radians(yaw); pitch = orqa_radians(pitch); roll = orqa_radians(roll);
-
-        pthread_mutex_lock(&mutexLock);
-        glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f}); 
-        glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f});  
-        glm_quatv(rollQuat,roll, (vec3){0.0f, 0.0f, 1.0f}); 
         
+        // Using quaternions to calculate camera rotations
+        glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f}); 
+        glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});  
+        glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f}); 
+        
+        pthread_mutex_lock(&mutexLock);
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
         glm_quat_normalize(c->resultQuat);
@@ -477,6 +477,7 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
     
         printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
     }
+    exit:
     close(s);
     return;
 }
