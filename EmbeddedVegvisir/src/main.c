@@ -392,6 +392,8 @@ static void orqa_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN double xof
 
 /// This function connects to ORQA FPV.One goggles via UDP socket and performs motorless gimbal while goggles are in use.
 static void *orqa_udp_thread(ORQA_REF void *c_ptr){
+    // after configuring wpa_supplicant for goggles do:
+    // "sudo wpa_supplicant -B -c /etc/wpa_supplicant.conf -i wlan0" & "udhcpc -i wlan0" to connect and get ip address
     // inits 
     fprintf(stderr, "In thread\n");
     camera_t *c = c_ptr;
@@ -408,7 +410,7 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
 	//create a UDP socket
 	if ((s=socket(AF_INET, SOCK_DGRAM, 0)) < -1){
 		printf("socket failed init\n");
-        return 1;
+        return NULL;
 	}
 	printf("Socket created!\n");
 	memset((char *) &serveraddr, 0, sizeof(serveraddr));
@@ -448,12 +450,11 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
         pthread_mutex_lock(&mutexLock);
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
-        glm_quat_normalize(c->resultQuat);
         pthread_mutex_unlock(&mutexLock);
     
         printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
     }
     exit:
     close(s);
-    return;
+    return NULL;
 }

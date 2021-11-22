@@ -65,6 +65,7 @@ const GLchar *fragmentShaderSource =
     "       gl_FragColor = vec4(color , 1.0);\n"    
     "}\n\0";
 
+/*
 const GLfloat verticesDSS[] = {
     -0.69352,   0.19509,    -0.69352,   0,      1,
     -0.81549,   0.19509,    -0.5449,    0.125,  1,
@@ -160,7 +161,7 @@ const GLuint indicesBV[] = {
     2,3,7,3,7,8,
     3,4,8,4,8,9
 };
-
+*/
 
 static int orqa_GLFW_init(ORQA_NOARGS void);
 static  GLfloat orqa_radians(ORQA_IN const GLfloat deg);
@@ -191,6 +192,43 @@ int main(){
         glfwTerminate();
         return OPENGL_INIT_ERROR;
     }    
+    
+    window_t lr;
+    lr.radius = 1.0f; lr.angleY = 20; lr.angleX = 30; lr.x = -0.5; lr.y = -0.4; lr.z = -0.5; 
+    orqa_gen_window(&lr);
+    GLfloat verticeslr[lr.numVertices]; 
+    for(int i = 0; i < lr.numVertices; i++) verticeslr[i] = *(lr.Vs + i);
+    GLuint indiceslr[lr.numTriangles]; for(int i = 0; i < lr.numTriangles; i++) indiceslr[i] = *(lr.Is + i);
+    orqa_window_free(&lr);
+    
+    window_t rr;
+    rr.radius= 1.0f; rr.angleY = 20; rr.angleX = 30; rr.x = 0.5; rr.y = -0.4; rr.z = -0.5; 
+    orqa_gen_window(&rr);
+    GLfloat verticesrr[rr.numVertices]; 
+    for(int i = 0; i < rr.numVertices; i++) verticesrr[i] = *(rr.Vs + i);
+    GLuint indicesrr[rr.numTriangles]; for(int i = 0; i < rr.numTriangles; i++) indicesrr[i] = *(rr.Is + i);
+    orqa_window_free(&rr);
+
+    window_t DSS;
+    DSS.radius = 1.0f; DSS.angleY = 20; DSS.angleX = 90; DSS.x = 0.0; DSS.y = 0.0; DSS.z = -1.0;
+    orqa_gen_window(&DSS);
+    GLfloat verticesDSS[DSS.numVertices]; for(int i = 0; i < DSS.numVertices; i++) verticesDSS[i] = *(DSS.Vs + i);
+    GLuint indicesDSS[DSS.numTriangles]; for(int i = 0; i < DSS.numTriangles; i++) indicesDSS[i] = *(DSS.Is + i);
+    orqa_window_free(&DSS);
+
+    window_t BW;
+    BW.radius = 1.0f; BW.angleY = 20; BW.angleX = 30; BW.x = 0.0; BW.y = 0.60; BW.z = -0.9;
+    orqa_gen_window(&BW);
+    GLfloat verticesBW[BW.numVertices]; for(int i = 0; i < BW.numVertices; i++) verticesBW[i] = *(BW.Vs + i);
+    GLuint indicesBW[BW.numTriangles]; for(int i = 0; i < BW.numTriangles; i++) indicesBW[i] = *(BW.Is + i);
+    orqa_window_free(&BW);
+
+    window_t MRSS;
+    MRSS.radius = 1.0f; MRSS.angleY = 20; MRSS.angleX = 30; MRSS.x = 0.0; MRSS.y = -0.28; MRSS.z = -0.5;
+    orqa_gen_window(&MRSS);
+    GLfloat verticesMRSS[MRSS.numVertices]; for(int i = 0; i < MRSS.numVertices; i++) verticesMRSS[i] = *(MRSS.Vs + i);
+    GLuint indicesMRSS[MRSS.numTriangles]; for(int i = 0; i < MRSS.numTriangles; i++) indicesMRSS[i] = *(MRSS.Is + i);
+    orqa_window_free(&MRSS);
 
     // shader init, compilation and linking
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
@@ -198,6 +236,8 @@ int main(){
     GLuint shaderProgram = glCreateProgram();
     GLint success;
     GLchar infoLog[BUFSIZE];
+
+    
 
     glShaderSource(vertexShader, 1, &vertexShaderSource360, NULL);
     glCompileShader(vertexShader);
@@ -228,7 +268,7 @@ int main(){
     // get indexes for shader variables
     GLuint posLoc = glGetAttribLocation(shaderProgram, "aPos");
     GLuint texLoc = glGetAttribLocation(shaderProgram, "aTexCoord");
-
+    
     // init & binding array & buffer objects
     GLuint VBOs[5], VAOs[5], EBOs[5];
     glGenVertexArrays(5, VAOs);
@@ -237,9 +277,9 @@ int main(){
 
     glBindVertexArray(VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[0]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesRR), verticesRR, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesrr), verticesrr, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesR), indicesR, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesrr), indicesrr, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -247,9 +287,9 @@ int main(){
     
     glBindVertexArray(VAOs[1]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[1]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesLR), verticesLR, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticeslr), verticeslr, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesR), indicesR, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indiceslr), indiceslr, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -257,9 +297,9 @@ int main(){
     
     glBindVertexArray(VAOs[2]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[2]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesMRSS), verticesMRSS, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS), verticesDSS, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[2]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesMRSS), indicesMRSS, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS), indicesDSS, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -267,9 +307,9 @@ int main(){
     
     glBindVertexArray(VAOs[3]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[3]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS), verticesDSS, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesBW), verticesBW, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[3]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS), indicesDSS, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesBW), indicesBW, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -277,9 +317,9 @@ int main(){
     
     glBindVertexArray(VAOs[4]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[4]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesBV), verticesBV, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesMRSS), verticesMRSS, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[4]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesBV), indicesBV, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesMRSS), indicesMRSS, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -294,7 +334,7 @@ int main(){
 
     // TCP thread & mutex init
     pthread_t tcp_thread;
-    pthread_create(&tcp_thread, NULL, orqa_udp_thread, &cam);
+    // pthread_create(&tcp_thread, NULL, orqa_udp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -354,9 +394,7 @@ int main(){
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glUseProgram(shaderProgram);
-    int c = 0;
     while (1){ // render loop
-        c++;
         // input
         orqa_process_input(window);
 
@@ -375,30 +413,28 @@ int main(){
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]); 
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &proj[0][0]);  
 
-        
-
         // build texture  
         glBindTexture(GL_TEXTURE_2D, textures[0]);
 
-        // draw stu
-        glBindVertexArray(VAOs[2]);
-        glDrawElements(GL_TRIANGLES, sizeof(indicesMRSS)/sizeof(indicesMRSS[0]), GL_UNSIGNED_INT, 0);
-
-        glBindTexture(GL_TEXTURE_2D, textures[2]);
-        glBindVertexArray(VAOs[0]);
-        glDrawElements(GL_TRIANGLES, sizeof(indicesR)/sizeof(indicesR[0]), GL_UNSIGNED_INT, 0);
+        // draw        
         
         glBindVertexArray(VAOs[1]);
-        glDrawElements(GL_TRIANGLES, sizeof(indicesR)/sizeof(indicesR[0]), GL_UNSIGNED_INT, 0);
-
+        glDrawElements(GL_TRIANGLES, sizeof(indiceslr)/sizeof(indiceslr[0]), GL_UNSIGNED_INT, 0);
         
-        glBindVertexArray(VAOs[4]); 
-        glDrawElements(GL_TRIANGLES, sizeof(indicesBV)/sizeof(indicesBV[0]), GL_UNSIGNED_INT, 0);
+        glBindVertexArray(VAOs[0]);
+        glDrawElements(GL_TRIANGLES, sizeof(indicesrr)/sizeof(indicesrr[0]), GL_UNSIGNED_INT, 0);
 
-        glBindTexture(GL_TEXTURE_2D, textures[1]);
+        glBindTexture(GL_TEXTURE_2D, textures[2]);
+        glBindVertexArray(VAOs[4]);
+        glDrawElements(GL_TRIANGLES, sizeof(indicesMRSS)/sizeof(indicesMRSS[0]), GL_UNSIGNED_INT, 0);
+        
         glBindVertexArray(VAOs[3]);
-        glDrawElements(GL_TRIANGLES, sizeof(indicesDSS)/sizeof(indicesDSS[0]), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, sizeof(indicesBW)/sizeof(indicesBW[0]), GL_UNSIGNED_INT, 0);
         
+        glBindTexture(GL_TEXTURE_2D, textures[1]);
+        glBindVertexArray(VAOs[2]);
+        glDrawElements(GL_TRIANGLES, sizeof(indicesDSS)/sizeof(indicesDSS[0]), GL_UNSIGNED_INT, 0);
+
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -499,7 +535,7 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
 	//create a UDP socket
 	if ((s=socket(AF_INET, SOCK_DGRAM, 0)) < -1){
 		printf("socket failed init\n");
-        return 1;
+        return NULL;
 	}
 	printf("Socket created!\n");
 	memset((char *) &serveraddr, 0, sizeof(serveraddr));
@@ -539,12 +575,11 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
         pthread_mutex_lock(&mutexLock);
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
-        glm_quat_normalize(c->resultQuat);
         pthread_mutex_unlock(&mutexLock);
     
         printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
     }
     exit:
     close(s);
-    return;
+    return NULL;
 }

@@ -151,7 +151,7 @@ int main(int argc, char **argv){
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, orqa_framebuffer_size_callback); // manipulate view port
-    glfwSetCursorPosCallback(window, orqa_mouse_callback); // move camera_t with cursor
+    // glfwSetCursorPosCallback(window, orqa_mouse_callback); // move camera_t with cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
     glfwSetScrollCallback(window, orqa_scroll_callback); // zoom in/out using mouse wheel
 
@@ -257,7 +257,7 @@ int main(int argc, char **argv){
     
     video_reader_t vr_state;
     
-    if(orqa_video_reader_open_file(&vr_state, "../data/CartoonRGB.mp4")){
+    if(orqa_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
         printf("Could not open file\n");
         goto loadError;
     }
@@ -427,14 +427,15 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
     glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
     
     struct sockaddr_in serveraddr;
-	int s, recv_len;
+	int s, recv_len, optval = 1;
 	
 	//create a UDP socket
 	if ((s=socket(AF_INET, SOCK_DGRAM, 0)) < -1){
 		printf("socket failed init\n");
-        return 1;
+        return NULL;
 	}
 	printf("Socket created!\n");
+    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));
 	memset((char *) &serveraddr, 0, sizeof(serveraddr));
 	
 	serveraddr.sin_family = AF_INET;
@@ -449,19 +450,22 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
 	printf("Bind done!\n");
 	while(1)
 	{
-        orqa_clock_t clock = orqa_time_now();
+        // orqa_clock_t clock = orqa_time_now();
 		bzero(buf, BUFSIZE);
 		
 		if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0){
 			printf("Recieving error!\n");
             break;
 		}
+        printf("%s\n", buf);
+        // printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
 
         // parse JSON
         JSONObject *json = parseJSON(buf);
         yaw = atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
+        // printf("%f, %f, %f\n", yaw, pitch, roll);
         free(json);
         
         // Using quaternions to calculate camera rotations
@@ -472,12 +476,9 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
         pthread_mutex_lock(&mutexLock);
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
-        glm_quat_normalize(c->resultQuat);
         pthread_mutex_unlock(&mutexLock);
-    
-        printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
     }
     exit:
     close(s);
-    return;
+    return NULL;
 }
