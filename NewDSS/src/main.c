@@ -65,103 +65,6 @@ const GLchar *fragmentShaderSource =
     "       gl_FragColor = vec4(color , 1.0);\n"    
     "}\n\0";
 
-/*
-const GLfloat verticesDSS[] = {
-    -0.69352,   0.19509,    -0.69352,   0,      1,
-    -0.81549,   0.19509,    -0.5449,    0.125,  1,
-    -0.90613,   0.19509,    -0.37533,   0.25,   1,
-    -0.96194,   0.19509,    -0.19134,   0.375,  1,
-    -0.98079,   0.19509,    0      ,    0.5,    1,
-    -0.96194,   0.19509,    0.19134,    0.625,  1,
-    -0.90613,   0.19509,    0.37533,    0.75,   1,
-    -0.81549,   0.19509,    0.5449,     0.825,  1,
-    -0.69352,   0.19509,    0.69352,    1,      1,
-
-    -0.69352,   -0.19509,   -0.69352,   0,      0,
-    -0.81549,   -0.19509,   -0.5449,    0.125,  0,
-    -0.90613,   -0.19509,   -0.37533,   0.25,   0,
-    -0.96194,   -0.19509,   -0.19134,   0.375,  0,
-    -0.98079,    -0.19509,  0       ,   0.5,    0,
-    -0.96194,   -0.19509,   0.19134,    0.625,  0,
-    -0.90613,   -0.19509,   0.37533,    0.75,   0,
-    -0.81549,   -0.19509,   0.5449,     0.875,  0,
-    -0.69352,   -0.19509,   0.69352,    1,      0
-};
-const GLuint indicesDSS[] = {
-    0,1,9, 1, 9, 10,
-    1,2,10,2,10,11,
-    2,3,11,3,11,12,
-    3,4,12,4,12,13,
-    4,5,13,5,13,14,
-    5,6,14,6,14,15,
-    6,7,15,7,15,16,
-    7,8,16,8,16,17
-};
-
-const GLfloat verticesLR[] = {
-    -0.39195, -0.55557, -0.73329, 0, 0,
-    -0.58794, -0.55557, -0.58794, 0.5, 0,
-    -0.73329, -0.55557, -0.39195, 1, 0,
-
-    -0.4511,  -0.29028, -0.84395, 0,1,
-    -0.67666, -0.29028, -0.67666, 0.5, 1,
-    -0.84395, -0.29028, -0.4511, 1, 1
-    
-};
-const GLfloat verticesRR[] = {
-    -0.39195, -0.55557, 0.73329, 0, 0,
-    -0.58794, -0.55557, 0.58794, 0.5, 0,
-    -0.73329, -0.55557, 0.39195, 1, 0,
-
-    -0.4511,  -0.29028, 0.84395, 0,1,
-    -0.67666, -0.29028, 0.67666, 0.5, 1,
-    -0.84395, -0.29028, 0.4511, 1, 1
-};
-const GLuint indicesR[] = {
-    0,1,3, 1,3,4,
-    1,2,4,2,4,5,
-};
-
-const GLfloat verticesMRSS[] = {
-    -0.76818, -0.55557, -0.31819,   0, 0,
-    -0.81549, -0.55557, -0.16221,   0.25, 0,
-    -0.83147, -0.55557, 0,          0.5, 0,
-    -0.81549, -0.55557, 0.16221,    0.75, 0,
-    -0.76818, -0.55557, 0.31819,    1, 0,
-
-    -0.8841,  -0.29028, -0.36621,     0, 1,
-    -0.93855, -0.29028, -0.18669,    0.25, 1,
-    -0.95694, -0.29028, 0,           0.5, 1,
-    -0.93855, -0.29028, 0.18669,    0.75, 1,
-    -0.8841,  -0.29028, 0.36621,     1, 1,
-};
-const GLuint indicesMRSS[] = {
-    0,1,5,1,5,6,
-    1,2,6,2,6,7,
-    2,3,7,3,7,8,
-    3,4,8,4,7,9
-};
-
-const GLfloat verticesBV [] = {
-    0.18024, 0.90613, -0.38268,   0, 1,
-    0.19134, 0.96194, -0.19509,   0.25, 1,
-    0.19509, 0.98078, 0,          0.5, 1,
-    0.19134, 0.96194, 0.19509,    0.75, 1,
-    0.18024, 0.90613, 0.38268,    1, 1,
-
-    -0.18024, 0.90613, -0.38268,  0, 0,
-    -0.19134, 0.96194, -0.19509,  0.25, 0,
-    -0.19509, 0.98078, 0,         0.5, 0,
-    -0.19134, 0.96194, 0.19509,   0.75, 0,
-    -0.18024, 0.90613, 0.38268,   1, 0
-};
-const GLuint indicesBV[] = {
-    0,1,5,1,5,6,
-    1,2,6,2,6,7,
-    2,3,7,3,7,8,
-    3,4,8,4,8,9
-};
-*/
 
 static int orqa_GLFW_init(ORQA_NOARGS void);
 static  GLfloat orqa_radians(ORQA_IN const GLfloat deg);
@@ -209,12 +112,26 @@ int main(){
     GLuint indicesrr[rr.numTriangles]; for(int i = 0; i < rr.numTriangles; i++) indicesrr[i] = *(rr.Is + i);
     orqa_window_free(&rr);
 
-    window_t DSS;
-    DSS.radius = 1.0f; DSS.angleY = 20; DSS.angleX = 90; DSS.x = 0.0; DSS.y = 0.0; DSS.z = -1.0;
-    orqa_gen_window(&DSS);
-    GLfloat verticesDSS[DSS.numVertices]; for(int i = 0; i < DSS.numVertices; i++) verticesDSS[i] = *(DSS.Vs + i);
-    GLuint indicesDSS[DSS.numTriangles]; for(int i = 0; i < DSS.numTriangles; i++) indicesDSS[i] = *(DSS.Is + i);
-    orqa_window_free(&DSS);
+    window_t DSS1;
+    DSS1.radius = 1.0f; DSS1.angleY = 20; DSS1.angleX = 30; DSS1.x = -0.509; DSS1.y = 0.0; DSS1.z = -0.9;
+    orqa_gen_window(&DSS1);
+    GLfloat verticesDSS1[DSS1.numVertices]; for(int i = 0; i < DSS1.numVertices; i++) verticesDSS1[i] = *(DSS1.Vs + i);
+    GLuint indicesDSS1[DSS1.numTriangles]; for(int i = 0; i < DSS1.numTriangles; i++) indicesDSS1[i] = *(DSS1.Is + i);
+    orqa_window_free(&DSS1);
+
+    window_t DSS2;
+    DSS2.radius = 1.0f; DSS2.angleY = 20; DSS2.angleX = 30; DSS2.x = 0.0; DSS2.y = 0.0; DSS2.z = -1.0;
+    orqa_gen_window(&DSS2);
+    GLfloat verticesDSS2[DSS2.numVertices]; for(int i = 0; i < DSS2.numVertices; i++) verticesDSS2[i] = *(DSS2.Vs + i);
+    GLuint indicesDSS2[DSS2.numTriangles]; for(int i = 0; i < DSS2.numTriangles; i++) indicesDSS2[i] = *(DSS2.Is + i);
+    orqa_window_free(&DSS2);
+
+    window_t DSS3;
+    DSS3.radius = 1.0f; DSS3.angleY = 20; DSS3.angleX = 30; DSS3.x = 0.509; DSS3.y = 0.0; DSS3.z = -0.9;
+    orqa_gen_window(&DSS3);
+    GLfloat verticesDSS3[DSS3.numVertices]; for(int i = 0; i < DSS3.numVertices; i++) verticesDSS3[i] = *(DSS3.Vs + i);
+    GLuint indicesDSS3[DSS3.numTriangles]; for(int i = 0; i < DSS3.numTriangles; i++) indicesDSS3[i] = *(DSS3.Is + i);
+    orqa_window_free(&DSS3);
 
     window_t BW;
     BW.radius = 1.0f; BW.angleY = 20; BW.angleX = 30; BW.x = 0.0; BW.y = 0.60; BW.z = -0.9;
@@ -238,7 +155,6 @@ int main(){
     GLchar infoLog[BUFSIZE];
 
     
-
     glShaderSource(vertexShader, 1, &vertexShaderSource360, NULL);
     glCompileShader(vertexShader);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
@@ -270,10 +186,10 @@ int main(){
     GLuint texLoc = glGetAttribLocation(shaderProgram, "aTexCoord");
     
     // init & binding array & buffer objects
-    GLuint VBOs[5], VAOs[5], EBOs[5];
-    glGenVertexArrays(5, VAOs);
-    glGenBuffers(5, VBOs); 
-    glGenBuffers(5, EBOs); 
+    GLuint VBOs[7], VAOs[7], EBOs[7];
+    glGenVertexArrays(7, VAOs);
+    glGenBuffers(7, VBOs); 
+    glGenBuffers(7, EBOs); 
 
     glBindVertexArray(VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[0]);
@@ -297,28 +213,50 @@ int main(){
     
     glBindVertexArray(VAOs[2]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[2]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS), verticesDSS, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS1), verticesDSS1, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[2]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS), indicesDSS, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS1), indicesDSS1, GL_STATIC_DRAW );
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(texLoc);
+
+    glBindVertexArray(VAOs[3]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[3]);
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS2), verticesDSS2, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[3]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS2), indicesDSS2, GL_STATIC_DRAW );
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(texLoc);
+
+    glBindVertexArray(VAOs[4]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[4]);
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS3), verticesDSS3, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[4]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS3), indicesDSS3, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(texLoc);
     
-    glBindVertexArray(VAOs[3]);
-    glBindBuffer(GL_ARRAY_BUFFER , VBOs[3]);
+    
+    
+    glBindVertexArray(VAOs[5]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[5]);
     glBufferData(GL_ARRAY_BUFFER , sizeof(verticesBW), verticesBW, GL_STATIC_DRAW );
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[3]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[5]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesBW), indicesBW, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(texLoc);
     
-    glBindVertexArray(VAOs[4]);
-    glBindBuffer(GL_ARRAY_BUFFER , VBOs[4]);
+    glBindVertexArray(VAOs[6]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[6]);
     glBufferData(GL_ARRAY_BUFFER , sizeof(verticesMRSS), verticesMRSS, GL_STATIC_DRAW );
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[4]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[6]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesMRSS), indicesMRSS, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
@@ -333,8 +271,8 @@ int main(){
     glfwSetWindowUserPointer(window, &cam); // sent camera object to callback functions
 
     // TCP thread & mutex init
-    pthread_t tcp_thread;
-    // pthread_create(&tcp_thread, NULL, orqa_udp_thread, &cam);
+    pthread_t udp_thread;
+    // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -413,11 +351,8 @@ int main(){
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]); 
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &proj[0][0]);  
 
-        // build texture  
+        // build texture && draw
         glBindTexture(GL_TEXTURE_2D, textures[0]);
-
-        // draw        
-        
         glBindVertexArray(VAOs[1]);
         glDrawElements(GL_TRIANGLES, sizeof(indiceslr)/sizeof(indiceslr[0]), GL_UNSIGNED_INT, 0);
         
@@ -425,15 +360,21 @@ int main(){
         glDrawElements(GL_TRIANGLES, sizeof(indicesrr)/sizeof(indicesrr[0]), GL_UNSIGNED_INT, 0);
 
         glBindTexture(GL_TEXTURE_2D, textures[2]);
-        glBindVertexArray(VAOs[4]);
+        glBindVertexArray(VAOs[6]);
         glDrawElements(GL_TRIANGLES, sizeof(indicesMRSS)/sizeof(indicesMRSS[0]), GL_UNSIGNED_INT, 0);
         
-        glBindVertexArray(VAOs[3]);
+        glBindVertexArray(VAOs[5]);
         glDrawElements(GL_TRIANGLES, sizeof(indicesBW)/sizeof(indicesBW[0]), GL_UNSIGNED_INT, 0);
         
         glBindTexture(GL_TEXTURE_2D, textures[1]);
         glBindVertexArray(VAOs[2]);
-        glDrawElements(GL_TRIANGLES, sizeof(indicesDSS)/sizeof(indicesDSS[0]), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, sizeof(indicesDSS1)/sizeof(indicesDSS1[0]), GL_UNSIGNED_INT, 0);
+
+        glBindVertexArray(VAOs[3]);
+        glDrawElements(GL_TRIANGLES, sizeof(indicesDSS2)/sizeof(indicesDSS2[0]), GL_UNSIGNED_INT, 0);
+
+        glBindVertexArray(VAOs[4]);
+        glDrawElements(GL_TRIANGLES, sizeof(indicesDSS3)/sizeof(indicesDSS3[0]), GL_UNSIGNED_INT, 0);
 
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
@@ -447,8 +388,6 @@ int main(){
     glDeleteBuffers(5, VBOs);
     glDeleteBuffers(5, EBOs);
     glDeleteTextures(3, textures);
-    
-    
     linkingError:
     glDeleteProgram(shaderProgram);
     shaderError:

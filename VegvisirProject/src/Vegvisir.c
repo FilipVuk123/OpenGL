@@ -38,6 +38,8 @@ typedef struct camera_t{
     versor resultQuat;
 }camera_t;
 
+int mode; // 0 => 360, 1 => MRSS, 2 => DSS
+
 pthread_mutex_t mutexLock;
 
 const GLchar *vertexShaderSource360 = 
@@ -52,68 +54,6 @@ const GLchar *vertexShaderSource360 =
     "{\n"
     "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
     "   TexCoord = vec2(1. - aTexCoord.x, aTexCoord.y);\n" // mirror textures for inside sphere
-    "}\n\0";
-
-// MRSS shader
-const GLchar *vertexShaderSource180 = 
-    "attribute vec3 aPos;\n"
-    "attribute vec2 aTexCoord;\n"
-    "varying vec2 TexCoord;\n"
-    "const float newMin = 0.;\n"
-    "const float newMax = 1.;\n"
-    "const float oldMinY = 0.25;\n"
-    "const float oldMaxY = 0.75;\n"
-    "const float oldRange = oldMaxY - oldMinY;\n"
-    "const float oldMinX = 0.05;\n"
-    "const float oldMaxX = oldMinX + oldRange;\n"
-    "const float newRange = newMax - newMin;\n"
-    "float newValueX;\n"
-    "float newValueY;\n"
-    "uniform mat4 model;\n"
-    "uniform mat4 view;\n"
-    "uniform mat4 proj;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
-    "   if ((1. - aTexCoord.x) < oldMinX || (1. - aTexCoord.x) > oldMaxX || aTexCoord.y < oldMinY || aTexCoord.y > oldMaxY){\n"
-    "       newValueX = -2.;\n"
-    "       newValueY = -2.;\n"
-    "   }else{\n"
-    "       newValueX = ( ((1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
-    "       newValueY = ( (aTexCoord.y - oldMinY) * newRange / oldRange ) + newMin;\n"
-    "   }\n"
-    "   TexCoord = vec2(newValueX, newValueY);\n" // mirror textures for inside sphere
-    "}\n\0";
-
-// DSS shader
-const char *vertexShaderSource150 =
-    "attribute vec3 aPos;\n"
-    "attribute vec2 aTexCoord;\n"
-    "varying vec2 TexCoord;\n"
-    "const float newMin = 0.;\n"
-    "const float newMax = 1.;\n"
-    "const float oldMinY = 0.3;\n"
-    "const float oldMaxY = 0.7;\n"
-    "const float oldRange = oldMaxY - oldMinY;\n"
-    "const float oldMinX = 0.05;\n"
-    "const float oldMaxX = oldMinX + oldRange;\n"
-    "const float newRange = newMax- newMin;\n"
-    "float newValueX;\n"
-    "float newValueY;\n"
-    "uniform mat4 model;\n"
-    "uniform mat4 view;\n"
-    "uniform mat4 proj;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.);\n" // local space to clip space
-    "   if ((1. - aTexCoord.x) < oldMinX || (1. - aTexCoord.x) > oldMaxX || aTexCoord.y < oldMinY || aTexCoord.y > oldMaxY){\n"
-    "       newValueX = -2.;\n"
-    "       newValueY = -2.;\n"
-    "   }else{\n"
-    "       newValueX = ( ((1. - aTexCoord.x) - oldMinX) * newRange / oldRange ) + newMin;\n"
-    "       newValueY = ( (aTexCoord.y - oldMinY) * newRange / oldRange ) + newMin;\n"
-    "   }\n"
-    "   TexCoord = vec2(newValueX, newValueY);\n" // mirror textures for inside sphere
     "}\n\0";
 
 const GLchar *fragmentShaderSource = 
@@ -151,7 +91,7 @@ int main(int argc, char **argv){
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, orqa_framebuffer_size_callback); // manipulate view port
-    // glfwSetCursorPosCallback(window, orqa_mouse_callback); // move camera_t with cursor
+    glfwSetCursorPosCallback(window, orqa_mouse_callback); // move camera_t with cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
     glfwSetScrollCallback(window, orqa_scroll_callback); // zoom in/out using mouse wheel
 
@@ -160,6 +100,65 @@ int main(int argc, char **argv){
         glfwTerminate();
         return OPENGL_INIT_ERROR;
     }    
+
+    window_t lr;
+    lr.radius = 1.0f; lr.angleY = 20; lr.angleX = 30; lr.x = -0.5; lr.y = -0.4; lr.z = -0.5; 
+    orqa_gen_window(&lr);
+    GLfloat verticeslr[lr.numVertices]; 
+    for(int i = 0; i < lr.numVertices; i++) verticeslr[i] = *(lr.Vs + i);
+    GLuint indiceslr[lr.numTriangles]; for(int i = 0; i < lr.numTriangles; i++) indiceslr[i] = *(lr.Is + i);
+    orqa_window_free(&lr);
+    
+    window_t rr;
+    rr.radius= 1.0f; rr.angleY = 20; rr.angleX = 30; rr.x = 0.5; rr.y = -0.4; rr.z = -0.5; 
+    orqa_gen_window(&rr);
+    GLfloat verticesrr[rr.numVertices]; 
+    for(int i = 0; i < rr.numVertices; i++) verticesrr[i] = *(rr.Vs + i);
+    GLuint indicesrr[rr.numTriangles]; for(int i = 0; i < rr.numTriangles; i++) indicesrr[i] = *(rr.Is + i);
+    orqa_window_free(&rr);
+
+    window_t DSS1;
+    DSS1.radius = 1.0f; DSS1.angleY = 20; DSS1.angleX = 30; DSS1.x = -0.509; DSS1.y = 0.0; DSS1.z = -0.9;
+    orqa_gen_window(&DSS1);
+    GLfloat verticesDSS1[DSS1.numVertices]; for(int i = 0; i < DSS1.numVertices; i++) verticesDSS1[i] = *(DSS1.Vs + i);
+    GLuint indicesDSS1[DSS1.numTriangles]; for(int i = 0; i < DSS1.numTriangles; i++) indicesDSS1[i] = *(DSS1.Is + i);
+    orqa_window_free(&DSS1);
+
+    window_t DSS2;
+    DSS2.radius = 1.0f; DSS2.angleY = 20; DSS2.angleX = 30; DSS2.x = 0.0; DSS2.y = 0.0; DSS2.z = -1.0;
+    orqa_gen_window(&DSS2);
+    GLfloat verticesDSS2[DSS2.numVertices]; for(int i = 0; i < DSS2.numVertices; i++) verticesDSS2[i] = *(DSS2.Vs + i);
+    GLuint indicesDSS2[DSS2.numTriangles]; for(int i = 0; i < DSS2.numTriangles; i++) indicesDSS2[i] = *(DSS2.Is + i);
+    orqa_window_free(&DSS2);
+
+    window_t DSS3;
+    DSS3.radius = 1.0f; DSS3.angleY = 20; DSS3.angleX = 30; DSS3.x = 0.509; DSS3.y = 0.0; DSS3.z = -0.9;
+    orqa_gen_window(&DSS3);
+    GLfloat verticesDSS3[DSS3.numVertices]; for(int i = 0; i < DSS3.numVertices; i++) verticesDSS3[i] = *(DSS3.Vs + i);
+    GLuint indicesDSS3[DSS3.numTriangles]; for(int i = 0; i < DSS3.numTriangles; i++) indicesDSS3[i] = *(DSS3.Is + i);
+    orqa_window_free(&DSS3);
+
+    window_t mr;
+    mr.radius = 1.0f; mr.angleY = 20; mr.angleX = 30; mr.x = 0.0; mr.y = -0.28; mr.z = -0.5;
+    orqa_gen_window(&mr);
+    GLfloat verticesmr[mr.numVertices]; for(int i = 0; i < mr.numVertices; i++) verticesmr[i] = *(mr.Vs + i);
+    GLuint indicesmr[mr.numTriangles]; for(int i = 0; i < mr.numTriangles; i++) indicesmr[i] = *(mr.Is + i);
+    orqa_window_free(&mr);
+
+    window_t BW;
+    BW.radius = 1.0f; BW.angleY = 20; BW.angleX = 30; BW.x = 0.0; BW.y = 0.60; BW.z = -0.9;
+    orqa_gen_window(&BW);
+    GLfloat verticesBW[BW.numVertices]; for(int i = 0; i < BW.numVertices; i++) verticesBW[i] = *(BW.Vs + i);
+    GLuint indicesBW[BW.numTriangles]; for(int i = 0; i < BW.numTriangles; i++) indicesBW[i] = *(BW.Is + i);
+    orqa_window_free(&BW);
+
+    window_t MRSS;
+    MRSS.radius = 1.0f; MRSS.angleY = 60; MRSS.angleX = 130; MRSS.x = 0.0; MRSS.y = 0.0; MRSS.z = -1;
+    orqa_gen_window(&MRSS);
+    GLfloat verticesMRSS[MRSS.numVertices]; for(int i = 0; i < MRSS.numVertices; i++) verticesMRSS[i] = *(MRSS.Vs + i);
+    GLuint indicesMRSS[MRSS.numTriangles]; for(int i = 0; i < MRSS.numTriangles; i++) indicesMRSS[i] = *(MRSS.Is + i);
+    orqa_window_free(&MRSS);
+
 
     // generating sphere
     orqa_sphere_t sph;
@@ -175,19 +174,8 @@ int main(int argc, char **argv){
     GLuint shaderProgram = glCreateProgram();
     GLint success;
     GLchar infoLog[BUFSIZE];
-
-    if(argc > 1){
-        if (!strcasecmp(argv[1], "MRSS")){
-            glShaderSource(vertexShader, 1, &vertexShaderSource180, NULL);
-        } else if (!strcasecmp(argv[1], "DSS")){
-            glShaderSource(vertexShader, 1, &vertexShaderSource150, NULL);
-        } else {
-            glShaderSource(vertexShader, 1, &vertexShaderSource360, NULL);
-        }
-    }else {
-        glShaderSource(vertexShader, 1, &vertexShaderSource360, NULL);
-    }
     
+    glShaderSource(vertexShader, 1, &vertexShaderSource360, NULL);
     glCompileShader(vertexShader);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
@@ -213,70 +201,116 @@ int main(int argc, char **argv){
         goto linkingError; 
     } 
 
-    // init & binding array & buffer objects
-    GLuint VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO); 
-    glGenBuffers(1, &EBO);
-    glBindVertexArray(VAO); 
-    glBindBuffer(GL_ARRAY_BUFFER , VBO);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(vertices), vertices, GL_STATIC_DRAW );
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indices), indices, GL_STATIC_DRAW );
-
     // get indexes for shader variables
     GLuint posLoc = glGetAttribLocation(shaderProgram, "aPos");
     GLuint texLoc = glGetAttribLocation(shaderProgram, "aTexCoord");
+
+    // init & binding array & buffer objects
+    GLuint VBOs[9], VAOs[9], EBOs[9];
+    glGenVertexArrays(9, VAOs);
+    glGenBuffers(9, VBOs); 
+    glGenBuffers(9, EBOs); 
+
+    glBindVertexArray(VAOs[0]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[0]);
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesrr), verticesrr, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[0]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesrr), indicesrr, GL_STATIC_DRAW );
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(texLoc);
+    
+    glBindVertexArray(VAOs[1]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[1]);
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticeslr), verticeslr, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indiceslr), indiceslr, GL_STATIC_DRAW );
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(texLoc);
+    
+    glBindVertexArray(VAOs[2]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[2]);
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS1), verticesDSS1, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[2]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS1), indicesDSS1, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(texLoc);
 
+    glBindVertexArray(VAOs[3]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[3]);
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS2), verticesDSS2, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[3]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS2), indicesDSS2, GL_STATIC_DRAW );
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(texLoc);
+
+    glBindVertexArray(VAOs[4]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[4]);
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS3), verticesDSS3, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[4]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS3), indicesDSS3, GL_STATIC_DRAW );
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(texLoc);
+    
+    glBindVertexArray(VAOs[5]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[5]);
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesBW), verticesBW, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[5]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesBW), indicesBW, GL_STATIC_DRAW );
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(texLoc);
+    
+    glBindVertexArray(VAOs[6]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[6]);
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesmr), verticesmr, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[6]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesmr), indicesmr, GL_STATIC_DRAW );
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(texLoc);
+
+    glBindVertexArray(VAOs[7]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[7]);
+    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesMRSS), verticesMRSS, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[7]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesMRSS), indicesMRSS, GL_STATIC_DRAW );
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(texLoc);
+
+    glBindVertexArray(VAOs[8]);
+    glBindBuffer(GL_ARRAY_BUFFER , VBOs[8]);
+    glBufferData(GL_ARRAY_BUFFER , sizeof(vertices), vertices, GL_STATIC_DRAW );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[8]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indices), indices, GL_STATIC_DRAW );
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(texLoc);
+
+
     // texture init
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    GLuint textures[4];
+    glGenTextures(4, textures);
 
-    // camera init
-    camera_t cam;
-    cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
-    cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
-    cam.fov = 5.2f;
-    glfwSetWindowUserPointer(window, &cam); // sent camera object to callback functions
-
-    // TCP thread & mutex init
-    pthread_t tcp_thread;
-    pthread_create(&tcp_thread, NULL, orqa_udp_thread, &cam);
-    if (pthread_mutex_init(&mutexLock, NULL) != 0) {
-        fprintf(stderr, "Mutex init has failed! \n");
-        goto threadError;
-    }
-
-    // loading video file!
-    // Before loading generate RGB: $ ffmpeg -y -i input.mp4 -c:v libx264rgb output.mp4
-    
-    video_reader_t vr_state;
-    
-    if(orqa_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
-        printf("Could not open file\n");
-        goto loadError;
-    }
-    const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
-    
-    /*
     // loading image!
     int width, height, nrChannels;
     unsigned char *data;
-    if(argc > 1){
-        if (!strcasecmp(argv[1], "mrss")){
-            data = stbi_load("../data/MRSS.png", &width, &height, &nrChannels, 0); 
-        } else if (!strcasecmp(argv[1], "dss")){
-            data = stbi_load("../data/DSS.png", &width, &height, &nrChannels, 0); 
-        }
-    }else {
-        data = stbi_load("../data/panorama1.bmp", &width, &height, &nrChannels, 0); 
-    }
-    
+    data = stbi_load("../data/MRSS.png", &width, &height, &nrChannels, 0); 
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
     if (data){
         if ((int) nrChannels == 3)  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         else if ((int) nrChannels == 4)glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
@@ -286,6 +320,67 @@ int main(int argc, char **argv){
         fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
         goto loadError;
     } 
+
+    data = stbi_load("../data/DSS.png", &width, &height, &nrChannels, 0); 
+    glBindTexture(GL_TEXTURE_2D, textures[1]);
+    if (data){
+        if ((int) nrChannels == 3)  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        else if ((int) nrChannels == 4)glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        stbi_image_free(data);
+    }else{
+        fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
+        goto loadError;
+    } 
+
+    data = stbi_load("../data/earth.jpg", &width, &height, &nrChannels, 0); 
+    glBindTexture(GL_TEXTURE_2D, textures[2]);
+    if (data){
+        if ((int) nrChannels == 3)  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        else if ((int) nrChannels == 4)glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        stbi_image_free(data);
+    }else{
+        fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
+        goto loadError;
+    } 
+
+    data = stbi_load("../data/panorama1.bmp", &width, &height, &nrChannels, 0); 
+    glBindTexture(GL_TEXTURE_2D, textures[3]);
+    if (data){
+        if ((int) nrChannels == 3)  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        else if ((int) nrChannels == 4)glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        stbi_image_free(data);
+    }else{
+        fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
+        goto loadError;
+    } 
+
+    // camera init
+    camera_t cam;
+    cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
+    cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
+    cam.fov = 5.2f;
+    glfwSetWindowUserPointer(window, &cam); // sent camera object to callback functions
+
+    // TCP thread & mutex init
+    pthread_t udp_thread;
+    // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
+    if (pthread_mutex_init(&mutexLock, NULL) != 0) {
+        fprintf(stderr, "Mutex init has failed! \n");
+        goto threadError;
+    }
+
+    // loading video file!
+    // Before loading generate RGB: $ ffmpeg -y -i input.mp4 -c:v libx264rgb output.mp4
+    video_reader_t vr_state;
+    /*
+    if(orqa_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
+        printf("Could not open file\n");
+        goto loadError;
+    }
+    const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
     */
 
     // MVP matrices init
@@ -300,8 +395,7 @@ int main(int argc, char **argv){
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
     glUseProgram(shaderProgram);
 
-    while (!glfwWindowShouldClose(window)){ // render loop
-
+    while (1){ // render loop
         // input
         orqa_process_input(window);
 
@@ -322,17 +416,46 @@ int main(int argc, char **argv){
         
         
         // get video frame -> generate texture
+        /*
         uint8_t *frame = orqa_video_reader_read_frame(&vr_state);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame); 
         glGenerateMipmap(GL_TEXTURE_2D);
-        free (frame);
+        free (frame);*/
 
-        // build texture  
-        glBindTexture(GL_TEXTURE_2D, texture);
+        // build texture && draw
+        if(mode == 0){
+            // 360 dome
+            glBindTexture(GL_TEXTURE_2D, textures[3]);
+            glBindVertexArray(VAOs[8]);
+            glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(indices[0]), GL_UNSIGNED_INT, 0);
+        }else if (mode == 1){
+            // DSS
+            glBindTexture(GL_TEXTURE_2D, textures[0]);
+            glBindVertexArray(VAOs[1]);
+            glDrawElements(GL_TRIANGLES, sizeof(indiceslr)/sizeof(indiceslr[0]), GL_UNSIGNED_INT, 0);
+            glBindVertexArray(VAOs[0]);
+            glDrawElements(GL_TRIANGLES, sizeof(indicesrr)/sizeof(indicesrr[0]), GL_UNSIGNED_INT, 0);
 
-        // draw
-        glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(indices[0]), GL_UNSIGNED_INT, 0);
+            glBindTexture(GL_TEXTURE_2D, textures[2]);
+            glBindVertexArray(VAOs[6]);
+            glDrawElements(GL_TRIANGLES, sizeof(indicesmr)/sizeof(indicesmr[0]), GL_UNSIGNED_INT, 0);
+            glBindVertexArray(VAOs[5]);
+            glDrawElements(GL_TRIANGLES, sizeof(indicesBW)/sizeof(indicesBW[0]), GL_UNSIGNED_INT, 0);
 
+            glBindTexture(GL_TEXTURE_2D, textures[1]);
+            glBindVertexArray(VAOs[2]);
+            glDrawElements(GL_TRIANGLES, sizeof(indicesDSS1)/sizeof(indicesDSS1[0]), GL_UNSIGNED_INT, 0);
+            glBindVertexArray(VAOs[3]);
+            glDrawElements(GL_TRIANGLES, sizeof(indicesDSS2)/sizeof(indicesDSS2[0]), GL_UNSIGNED_INT, 0);
+            glBindVertexArray(VAOs[4]);
+            glDrawElements(GL_TRIANGLES, sizeof(indicesDSS3)/sizeof(indicesDSS3[0]), GL_UNSIGNED_INT, 0);
+        }else if (mode == 2){
+            // MRSS
+            glBindTexture(GL_TEXTURE_2D, textures[0]);
+            glBindVertexArray(VAOs[7]);
+            glDrawElements(GL_TRIANGLES, sizeof(indicesMRSS)/sizeof(indicesMRSS[0]), GL_UNSIGNED_INT, 0);
+        }
+        
         // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -342,10 +465,10 @@ int main(int argc, char **argv){
     orqa_video_reader_free(&vr_state);
     threadError:
     pthread_exit(NULL);
-    glDeleteVertexArrays(1, &VAO); 
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    glDeleteTextures(1, &texture);
+    glDeleteVertexArrays(9, VAOs); 
+    glDeleteBuffers(9, VBOs);
+    glDeleteBuffers(9, EBOs);
+    glDeleteTextures(4, &textures);
     linkingError:
     glDeleteProgram(shaderProgram);
     shaderError:
@@ -383,6 +506,15 @@ static void orqa_process_input(ORQA_REF GLFWwindow *window){
     // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){ // closes window on ESC
         glfwSetWindowShouldClose(window, GL_TRUE);
+    }
+    if(glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS){
+        mode = 0;
+    }
+    if(glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS){
+        mode = 1;
+    }
+    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
+        mode = 2;
     }
 }
 
