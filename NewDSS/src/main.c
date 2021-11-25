@@ -272,7 +272,7 @@ int main(){
 
     // TCP thread & mutex init
     pthread_t udp_thread;
-    // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
+    pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -463,7 +463,9 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
     camera_t *c = c_ptr;
     char buf[BUFSIZE];
     float yaw, pitch, roll;
-    mat4 rollMat; 
+    float lastyaw = 0, lastpitch = 0, lastroll = 0;
+    
+    mat4 rollMat;
     glm_mat4_identity(rollMat);
     versor rollQuat, pitchQuat, yawQuat;
     glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
@@ -505,17 +507,27 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
         free(json);
-        
-        // Using quaternions to calculate camera rotations
-        glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f}); 
-        glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});  
-        glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f}); 
-        
-        pthread_mutex_lock(&mutexLock);
-        glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
-        glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
-        pthread_mutex_unlock(&mutexLock);
-    
+
+        float n = 100;
+        float rolldiff = abs(lastroll - roll)/(n+1);
+        float pitchdiff = abs(lastpitch - pitch)/(n+1);
+        float yawdiff =  abs(lastyaw - yaw)/(n+1);
+
+        for(unsigned int i = 1; i <= n+1; i++){
+            float tmppitch = lastpitch + i*pitchdiff;
+            float tmproll = lastroll + i*rolldiff;
+            float tmpyaw = lastyaw + i*yawdiff;
+
+            glm_quatv(pitchQuat, orqa_radians(tmppitch), (vec3){1.0f, 0.0f, 0.0f}); 
+            glm_quatv(yawQuat, orqa_radians(tmpyaw), (vec3){0.0f, 1.0f, 0.0f});  
+            glm_quatv(rollQuat, orqa_radians(tmproll), (vec3){0.0f, 0.0f, 1.0f}); 
+            
+            pthread_mutex_lock(&mutexLock);
+            glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
+            glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
+            pthread_mutex_unlock(&mutexLock);
+        }
+        lastpitch = pitch; lastroll = roll, lastyaw = yaw;
         printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
     }
     exit:
