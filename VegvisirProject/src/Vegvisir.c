@@ -38,6 +38,8 @@ typedef struct camera_t{
     versor resultQuat;
 }camera_t;
 
+
+// fix it!!!
 int mode; // 0 => 360, 1 => MRSS, 2 => DSS
 
 pthread_mutex_t mutexLock;
@@ -102,7 +104,7 @@ int main(int argc, char **argv){
     }    
 
     window_t lr;
-    lr.radius = 1.0f; lr.angleY = 20; lr.angleX = 30; lr.x = -0.5; lr.y = -0.4; lr.z = -0.5; 
+    lr.radius = 1.0f; lr.angleY = 20; lr.angleX = 40; lr.x = -0.55; lr.y = -0.45; lr.z = -0.5; 
     orqa_gen_window(&lr);
     GLfloat verticeslr[lr.numVertices]; 
     for(int i = 0; i < lr.numVertices; i++) verticeslr[i] = *(lr.Vs + i);
@@ -110,7 +112,7 @@ int main(int argc, char **argv){
     orqa_window_free(&lr);
     
     window_t rr;
-    rr.radius= 1.0f; rr.angleY = 20; rr.angleX = 30; rr.x = 0.5; rr.y = -0.4; rr.z = -0.5; 
+    rr.radius= 1.0f; rr.angleY = 20; rr.angleX = 40; rr.x = 0.55; rr.y = -0.45; rr.z = -0.5; 
     orqa_gen_window(&rr);
     GLfloat verticesrr[rr.numVertices]; 
     for(int i = 0; i < rr.numVertices; i++) verticesrr[i] = *(rr.Vs + i);
@@ -118,35 +120,35 @@ int main(int argc, char **argv){
     orqa_window_free(&rr);
 
     window_t DSS1;
-    DSS1.radius = 1.0f; DSS1.angleY = 20; DSS1.angleX = 30; DSS1.x = -0.509; DSS1.y = 0.0; DSS1.z = -0.9;
+    DSS1.radius = 1.0f; DSS1.angleY = 25; DSS1.angleX = 50; DSS1.x = -0.7; DSS1.y = 0.0; DSS1.z = -0.640;
     orqa_gen_window(&DSS1);
     GLfloat verticesDSS1[DSS1.numVertices]; for(int i = 0; i < DSS1.numVertices; i++) verticesDSS1[i] = *(DSS1.Vs + i);
     GLuint indicesDSS1[DSS1.numTriangles]; for(int i = 0; i < DSS1.numTriangles; i++) indicesDSS1[i] = *(DSS1.Is + i);
     orqa_window_free(&DSS1);
 
     window_t DSS2;
-    DSS2.radius = 1.0f; DSS2.angleY = 20; DSS2.angleX = 30; DSS2.x = 0.0; DSS2.y = 0.0; DSS2.z = -1.0;
+    DSS2.radius = 1.0f; DSS2.angleY = 25; DSS2.angleX = 50; DSS2.x = 0.0; DSS2.y = 0.0; DSS2.z = -1.0;
     orqa_gen_window(&DSS2);
     GLfloat verticesDSS2[DSS2.numVertices]; for(int i = 0; i < DSS2.numVertices; i++) verticesDSS2[i] = *(DSS2.Vs + i);
     GLuint indicesDSS2[DSS2.numTriangles]; for(int i = 0; i < DSS2.numTriangles; i++) indicesDSS2[i] = *(DSS2.Is + i);
     orqa_window_free(&DSS2);
 
     window_t DSS3;
-    DSS3.radius = 1.0f; DSS3.angleY = 20; DSS3.angleX = 30; DSS3.x = 0.509; DSS3.y = 0.0; DSS3.z = -0.9;
+    DSS3.radius = 1.0f; DSS3.angleY = 25; DSS3.angleX = 50; DSS3.x = 0.7; DSS3.y = 0.0; DSS3.z = -0.640;
     orqa_gen_window(&DSS3);
     GLfloat verticesDSS3[DSS3.numVertices]; for(int i = 0; i < DSS3.numVertices; i++) verticesDSS3[i] = *(DSS3.Vs + i);
     GLuint indicesDSS3[DSS3.numTriangles]; for(int i = 0; i < DSS3.numTriangles; i++) indicesDSS3[i] = *(DSS3.Is + i);
     orqa_window_free(&DSS3);
 
     window_t mr;
-    mr.radius = 1.0f; mr.angleY = 20; mr.angleX = 30; mr.x = 0.0; mr.y = -0.28; mr.z = -0.5;
+    mr.radius = 1.0f; mr.angleY = 20; mr.angleX = 35; mr.x = 0.0; mr.y = -0.32; mr.z = -0.5;
     orqa_gen_window(&mr);
     GLfloat verticesmr[mr.numVertices]; for(int i = 0; i < mr.numVertices; i++) verticesmr[i] = *(mr.Vs + i);
     GLuint indicesmr[mr.numTriangles]; for(int i = 0; i < mr.numTriangles; i++) indicesmr[i] = *(mr.Is + i);
     orqa_window_free(&mr);
 
     window_t BW;
-    BW.radius = 1.0f; BW.angleY = 20; BW.angleX = 30; BW.x = 0.0; BW.y = 0.60; BW.z = -0.9;
+    BW.radius = 1.0f; BW.angleY = 20; BW.angleX = 35; BW.x = 0.0; BW.y = 0.70; BW.z = -0.8;
     orqa_gen_window(&BW);
     GLfloat verticesBW[BW.numVertices]; for(int i = 0; i < BW.numVertices; i++) verticesBW[i] = *(BW.Vs + i);
     GLuint indicesBW[BW.numTriangles]; for(int i = 0; i < BW.numTriangles; i++) indicesBW[i] = *(BW.Is + i);
@@ -221,7 +223,7 @@ int main(int argc, char **argv){
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(texLoc);
     
-    glBindVertexArray(VAOs[1]);
+    glBindVertexArray(VAOs[1]); 
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[1]);
     glBufferData(GL_ARRAY_BUFFER , sizeof(verticeslr), verticeslr, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[1]);
@@ -303,8 +305,8 @@ int main(int argc, char **argv){
 
 
     // texture init
-    GLuint textures[4];
-    glGenTextures(4, textures);
+    GLuint textures[5];
+    glGenTextures(5, textures);
 
     // loading image!
     int width, height, nrChannels;
@@ -361,7 +363,7 @@ int main(int argc, char **argv){
     camera_t cam;
     cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
     cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
-    cam.fov = 5.2f;
+    cam.fov = 5.5f;
     glfwSetWindowUserPointer(window, &cam); // sent camera object to callback functions
 
     // TCP thread & mutex init
@@ -376,11 +378,11 @@ int main(int argc, char **argv){
     // Before loading generate RGB: $ ffmpeg -y -i input.mp4 -c:v libx264rgb output.mp4
     video_reader_t vr_state;
     /*
-    if(orqa_video_reader_open_file(&vr_state, "../data/360videoRGB.mp4")){
+    if(orqa_video_reader_open_file(&vr_state, "../data/CartoonRGB.mp4")){
         printf("Could not open file\n");
         goto loadError;
     }
-    const GLuint width = vr_state.width;  const GLuint height = vr_state.height;
+    width = vr_state.width;  height = vr_state.height;
     */
 
     // MVP matrices init
@@ -468,7 +470,7 @@ int main(int argc, char **argv){
     glDeleteVertexArrays(9, VAOs); 
     glDeleteBuffers(9, VBOs);
     glDeleteBuffers(9, EBOs);
-    glDeleteTextures(4, &textures);
+    glDeleteTextures(5, textures);
     linkingError:
     glDeleteProgram(shaderProgram);
     shaderError:
@@ -510,10 +512,10 @@ static void orqa_process_input(ORQA_REF GLFWwindow *window){
     if(glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS){
         mode = 0;
     }
-    if(glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS){
+    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
         mode = 1;
     }
-    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
+    if(glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS){
         mode = 2;
     }
 }
@@ -580,8 +582,8 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
         goto exit;
 	}
 	printf("Bind done!\n");
-	while(1)
-	{
+
+	while(1){
         // orqa_clock_t clock = orqa_time_now();
 		bzero(buf, BUFSIZE);
 		
@@ -589,7 +591,6 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
 			printf("Recieving error!\n");
             break;
 		}
-        printf("%s\n", buf);
         // printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
 
         // parse JSON
@@ -597,9 +598,8 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
         yaw = atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
-        // printf("%f, %f, %f\n", yaw, pitch, roll);
+
         free(json);
-        
         // Using quaternions to calculate camera rotations
         glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f}); 
         glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});  
