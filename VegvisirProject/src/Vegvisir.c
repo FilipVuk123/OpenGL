@@ -104,7 +104,7 @@ int main(int argc, char **argv){
     }    
 
     window_t lr;
-    lr.radius = 1.0f; lr.angleY = 20; lr.angleX = 40; lr.x = -0.55; lr.y = -0.45; lr.z = -0.5; 
+    lr.radius = 1.0f; lr.angleY = 20; lr.angleX = 40; lr.x = -0.7; lr.y = -0.5; lr.z = 0.55; 
     orqa_gen_window(&lr);
     GLfloat verticeslr[lr.numVertices]; 
     for(int i = 0; i < lr.numVertices; i++) verticeslr[i] = *(lr.Vs + i);
@@ -112,7 +112,7 @@ int main(int argc, char **argv){
     orqa_window_free(&lr);
     
     window_t rr;
-    rr.radius= 1.0f; rr.angleY = 20; rr.angleX = 40; rr.x = 0.55; rr.y = -0.45; rr.z = -0.5; 
+    rr.radius= 1.0f; rr.angleY = 20; rr.angleX = 40; rr.x = 0.7; rr.y = -0.5; rr.z = 0.55; 
     orqa_gen_window(&rr);
     GLfloat verticesrr[rr.numVertices]; 
     for(int i = 0; i < rr.numVertices; i++) verticesrr[i] = *(rr.Vs + i);
@@ -120,51 +120,50 @@ int main(int argc, char **argv){
     orqa_window_free(&rr);
 
     window_t DSS1;
-    DSS1.radius = 1.0f; DSS1.angleY = 25; DSS1.angleX = 50; DSS1.x = -0.7; DSS1.y = 0.0; DSS1.z = -0.640;
+    DSS1.radius = 1.0f; DSS1.angleY = 25; DSS1.angleX = 50; DSS1.x = -0.7; DSS1.y = 0.0; DSS1.z = 0.640;
     orqa_gen_window(&DSS1);
     GLfloat verticesDSS1[DSS1.numVertices]; for(int i = 0; i < DSS1.numVertices; i++) verticesDSS1[i] = *(DSS1.Vs + i);
     GLuint indicesDSS1[DSS1.numTriangles]; for(int i = 0; i < DSS1.numTriangles; i++) indicesDSS1[i] = *(DSS1.Is + i);
     orqa_window_free(&DSS1);
 
     window_t DSS2;
-    DSS2.radius = 1.0f; DSS2.angleY = 25; DSS2.angleX = 50; DSS2.x = 0.0; DSS2.y = 0.0; DSS2.z = -1.0;
+    DSS2.radius = 1.0f; DSS2.angleY = 25; DSS2.angleX = 50; DSS2.x = 0.0; DSS2.y = 0.0; DSS2.z = 1.0;
     orqa_gen_window(&DSS2);
     GLfloat verticesDSS2[DSS2.numVertices]; for(int i = 0; i < DSS2.numVertices; i++) verticesDSS2[i] = *(DSS2.Vs + i);
     GLuint indicesDSS2[DSS2.numTriangles]; for(int i = 0; i < DSS2.numTriangles; i++) indicesDSS2[i] = *(DSS2.Is + i);
     orqa_window_free(&DSS2);
 
     window_t DSS3;
-    DSS3.radius = 1.0f; DSS3.angleY = 25; DSS3.angleX = 50; DSS3.x = 0.7; DSS3.y = 0.0; DSS3.z = -0.640;
+    DSS3.radius = 1.0f; DSS3.angleY = 25; DSS3.angleX = 50; DSS3.x = 0.7; DSS3.y = 0.0; DSS3.z = 0.640;
     orqa_gen_window(&DSS3);
     GLfloat verticesDSS3[DSS3.numVertices]; for(int i = 0; i < DSS3.numVertices; i++) verticesDSS3[i] = *(DSS3.Vs + i);
     GLuint indicesDSS3[DSS3.numTriangles]; for(int i = 0; i < DSS3.numTriangles; i++) indicesDSS3[i] = *(DSS3.Is + i);
     orqa_window_free(&DSS3);
 
     window_t mr;
-    mr.radius = 1.0f; mr.angleY = 20; mr.angleX = 35; mr.x = 0.0; mr.y = -0.32; mr.z = -0.5;
+    mr.radius = 1.0f; mr.angleY = 20; mr.angleX = 35; mr.x = 0.0; mr.y = -0.32; mr.z = 0.5;
     orqa_gen_window(&mr);
     GLfloat verticesmr[mr.numVertices]; for(int i = 0; i < mr.numVertices; i++) verticesmr[i] = *(mr.Vs + i);
     GLuint indicesmr[mr.numTriangles]; for(int i = 0; i < mr.numTriangles; i++) indicesmr[i] = *(mr.Is + i);
     orqa_window_free(&mr);
 
     window_t BW;
-    BW.radius = 1.0f; BW.angleY = 20; BW.angleX = 35; BW.x = 0.0; BW.y = 0.70; BW.z = -0.8;
+    BW.radius = 1.0f; BW.angleY = 20; BW.angleX = 35; BW.x = 0.0; BW.y = 0.50; BW.z = 0.65;
     orqa_gen_window(&BW);
     GLfloat verticesBW[BW.numVertices]; for(int i = 0; i < BW.numVertices; i++) verticesBW[i] = *(BW.Vs + i);
     GLuint indicesBW[BW.numTriangles]; for(int i = 0; i < BW.numTriangles; i++) indicesBW[i] = *(BW.Is + i);
     orqa_window_free(&BW);
 
     window_t MRSS;
-    MRSS.radius = 1.0f; MRSS.angleY = 60; MRSS.angleX = 130; MRSS.x = 0.0; MRSS.y = 0.0; MRSS.z = -1;
+    MRSS.radius = 1.0f; MRSS.angleY = 60; MRSS.angleX = 130; MRSS.x = 0.0; MRSS.y = 0.0; MRSS.z = 1;
     orqa_gen_window(&MRSS);
     GLfloat verticesMRSS[MRSS.numVertices]; for(int i = 0; i < MRSS.numVertices; i++) verticesMRSS[i] = *(MRSS.Vs + i);
     GLuint indicesMRSS[MRSS.numTriangles]; for(int i = 0; i < MRSS.numTriangles; i++) indicesMRSS[i] = *(MRSS.Is + i);
     orqa_window_free(&MRSS);
 
-
     // generating sphere
     orqa_sphere_t sph;
-    sph.radius = 1.0f; sph.sectors = 300; sph.stacks = 300;
+    sph.radius = 1.0f; sph.sectors = 250; sph.stacks = 250;
     orqa_gen_sphere(&sph);
     GLfloat vertices[sph.numVertices*5]; for(int i = 0; i < sph.numVertices*5; i++) vertices[i] = *(sph.Vs + i);
     GLuint indices[sph.numTriangles*3]; for(int i = 0; i < sph.numTriangles*3; i++) indices[i] = *(sph.Is + i);
@@ -363,12 +362,12 @@ int main(int argc, char **argv){
     camera_t cam;
     cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
     cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
-    cam.fov = 5.5f;
+    cam.fov = 5.4f;
     glfwSetWindowUserPointer(window, &cam); // sent camera object to callback functions
 
     // TCP thread & mutex init
     pthread_t udp_thread;
-    // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
+    pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -415,7 +414,6 @@ int main(int argc, char **argv){
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]); 
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]); 
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, &proj[0][0]);  
-        
         
         // get video frame -> generate texture
         /*
@@ -559,12 +557,11 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
     glm_mat4_identity(rollMat);
     versor rollQuat, pitchQuat, yawQuat;
     glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
-    
     struct sockaddr_in serveraddr;
 	int s, recv_len, optval = 1;
 	
 	//create a UDP socket
-	if ((s=socket(AF_INET, SOCK_DGRAM, 0)) < -1){
+	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < -1){
 		printf("socket failed init\n");
         return NULL;
 	}
@@ -582,17 +579,18 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
         goto exit;
 	}
 	printf("Bind done!\n");
-
 	while(1){
-        // orqa_clock_t clock = orqa_time_now();
 		bzero(buf, BUFSIZE);
+        orqa_clock_t clock = orqa_time_now();
 		
-		if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0){
+        if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0){
 			printf("Recieving error!\n");
             break;
 		}
-        // printf("%.2lf\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
-
+        
+        const double timeit = orqa_get_time_diff_msec(clock, orqa_time_now());
+        fprintf(stderr, "%.4lf\n", timeit);
+        
         // parse JSON
         JSONObject *json = parseJSON(buf);
         yaw = atof(json->pairs[0].value->stringValue);
