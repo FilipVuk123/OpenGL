@@ -1,13 +1,11 @@
 #include "video_reader.h"
 
-const char* av_make_error(int errnum) {
+static const char* av_make_error(int errnum) {
     static char str[AV_ERROR_MAX_STRING_SIZE];
     memset(str, 0, sizeof(str));
     return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
 }
 
-/// This function opens video file then initializes and allocates all the necessary video frames and decoders.
-/// Returns VIDEO_FILE_OK on success and some VIDEO_FILE_ERROR on failure.
 int orqa_video_reader_open_file(video_reader_t *state, const char *filename){
     // Open the file using libavformat
     state->av_format_ctx = avformat_alloc_context();
@@ -74,8 +72,6 @@ int orqa_video_reader_open_file(video_reader_t *state, const char *filename){
     return VIDEO_FILE_OK;
 }
 
-/// This function decodes frames from opened video file and stores frame data.
-/// Returns unsinged char containing frame data on success and some VIDEO_FILE_ERROR on failure.
 uint8_t *orqa_video_reader_read_frame(video_reader_t *state){
     int response;
     // Decode one frame
@@ -111,7 +107,6 @@ uint8_t *orqa_video_reader_read_frame(video_reader_t *state){
     return data;
 }
 
-/// This function deallocates used memory.
 void orqa_video_reader_free(video_reader_t *state){
     // clean up
     avformat_close_input(&state->av_format_ctx);

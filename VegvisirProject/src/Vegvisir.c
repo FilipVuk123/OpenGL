@@ -65,12 +65,8 @@ const GLchar *fragmentShaderSource =
     "uniform sampler2D texture1;\n" 
     "void main()\n"
     "{\n"
-    "   if (TexCoord.x < -1.0 && TexCoord.y < -1.0){\n"
-    "       gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);\n"
-    "   }else{\n"
-    "       vec3 color = texture2D(texture1, TexCoord).xyz;\n"
-    "       gl_FragColor = vec4(color , 1.0);\n"    
-    "   }\n"
+    "   vec3 color = texture2D(texture1, TexCoord).xyz;\n"
+    "   gl_FragColor = vec4(color , 1.0);\n"    
     "}\n\0";
 
 static int orqa_GLFW_init(ORQA_NOARGS void);
@@ -106,68 +102,40 @@ int main(int argc, char **argv){
     window_t lr;
     lr.radius = 1.0f; lr.angleY = 20; lr.angleX = 40; lr.x = -0.7; lr.y = -0.5; lr.z = 0.55; 
     orqa_gen_window(&lr);
-    GLfloat verticeslr[lr.numVertices]; 
-    for(int i = 0; i < lr.numVertices; i++) verticeslr[i] = *(lr.Vs + i);
-    GLuint indiceslr[lr.numTriangles]; for(int i = 0; i < lr.numTriangles; i++) indiceslr[i] = *(lr.Is + i);
-    orqa_window_free(&lr);
+    
     
     window_t rr;
     rr.radius= 1.0f; rr.angleY = 20; rr.angleX = 40; rr.x = 0.7; rr.y = -0.5; rr.z = 0.55; 
     orqa_gen_window(&rr);
-    GLfloat verticesrr[rr.numVertices]; 
-    for(int i = 0; i < rr.numVertices; i++) verticesrr[i] = *(rr.Vs + i);
-    GLuint indicesrr[rr.numTriangles]; for(int i = 0; i < rr.numTriangles; i++) indicesrr[i] = *(rr.Is + i);
-    orqa_window_free(&rr);
 
     window_t DSS1;
     DSS1.radius = 1.0f; DSS1.angleY = 25; DSS1.angleX = 50; DSS1.x = -0.7; DSS1.y = 0.0; DSS1.z = 0.640;
     orqa_gen_window(&DSS1);
-    GLfloat verticesDSS1[DSS1.numVertices]; for(int i = 0; i < DSS1.numVertices; i++) verticesDSS1[i] = *(DSS1.Vs + i);
-    GLuint indicesDSS1[DSS1.numTriangles]; for(int i = 0; i < DSS1.numTriangles; i++) indicesDSS1[i] = *(DSS1.Is + i);
-    orqa_window_free(&DSS1);
 
     window_t DSS2;
     DSS2.radius = 1.0f; DSS2.angleY = 25; DSS2.angleX = 50; DSS2.x = 0.0; DSS2.y = 0.0; DSS2.z = 1.0;
     orqa_gen_window(&DSS2);
-    GLfloat verticesDSS2[DSS2.numVertices]; for(int i = 0; i < DSS2.numVertices; i++) verticesDSS2[i] = *(DSS2.Vs + i);
-    GLuint indicesDSS2[DSS2.numTriangles]; for(int i = 0; i < DSS2.numTriangles; i++) indicesDSS2[i] = *(DSS2.Is + i);
-    orqa_window_free(&DSS2);
 
     window_t DSS3;
     DSS3.radius = 1.0f; DSS3.angleY = 25; DSS3.angleX = 50; DSS3.x = 0.7; DSS3.y = 0.0; DSS3.z = 0.640;
     orqa_gen_window(&DSS3);
-    GLfloat verticesDSS3[DSS3.numVertices]; for(int i = 0; i < DSS3.numVertices; i++) verticesDSS3[i] = *(DSS3.Vs + i);
-    GLuint indicesDSS3[DSS3.numTriangles]; for(int i = 0; i < DSS3.numTriangles; i++) indicesDSS3[i] = *(DSS3.Is + i);
-    orqa_window_free(&DSS3);
 
     window_t mr;
     mr.radius = 1.0f; mr.angleY = 20; mr.angleX = 35; mr.x = 0.0; mr.y = -0.32; mr.z = 0.5;
     orqa_gen_window(&mr);
-    GLfloat verticesmr[mr.numVertices]; for(int i = 0; i < mr.numVertices; i++) verticesmr[i] = *(mr.Vs + i);
-    GLuint indicesmr[mr.numTriangles]; for(int i = 0; i < mr.numTriangles; i++) indicesmr[i] = *(mr.Is + i);
-    orqa_window_free(&mr);
 
     window_t BW;
     BW.radius = 1.0f; BW.angleY = 20; BW.angleX = 35; BW.x = 0.0; BW.y = 0.50; BW.z = 0.65;
     orqa_gen_window(&BW);
-    GLfloat verticesBW[BW.numVertices]; for(int i = 0; i < BW.numVertices; i++) verticesBW[i] = *(BW.Vs + i);
-    GLuint indicesBW[BW.numTriangles]; for(int i = 0; i < BW.numTriangles; i++) indicesBW[i] = *(BW.Is + i);
-    orqa_window_free(&BW);
-
+    
     window_t MRSS;
     MRSS.radius = 1.0f; MRSS.angleY = 60; MRSS.angleX = 130; MRSS.x = 0.0; MRSS.y = 0.0; MRSS.z = 1;
     orqa_gen_window(&MRSS);
-    GLfloat verticesMRSS[MRSS.numVertices]; for(int i = 0; i < MRSS.numVertices; i++) verticesMRSS[i] = *(MRSS.Vs + i);
-    GLuint indicesMRSS[MRSS.numTriangles]; for(int i = 0; i < MRSS.numTriangles; i++) indicesMRSS[i] = *(MRSS.Is + i);
-    orqa_window_free(&MRSS);
 
     // generating sphere
     orqa_sphere_t sph;
-    sph.radius = 1.0f; sph.sectors = 250; sph.stacks = 250;
+    sph.radius = 1.0f; sph.sectors = 150; sph.stacks = 150;
     orqa_gen_sphere(&sph);
-    GLfloat vertices[sph.numVertices*5]; for(int i = 0; i < sph.numVertices*5; i++) vertices[i] = *(sph.Vs + i);
-    GLuint indices[sph.numTriangles*3]; for(int i = 0; i < sph.numTriangles*3; i++) indices[i] = *(sph.Is + i);
-    orqa_sphere_free(&sph);
 
     // shader init, compilation and linking
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
@@ -214,9 +182,9 @@ int main(int argc, char **argv){
 
     glBindVertexArray(VAOs[0]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[0]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesrr), verticesrr, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , rr.numVertices*sizeof(float), rr.Vs, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesrr), indicesrr, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , rr.numTriangles*sizeof(int), rr.Is, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -224,9 +192,9 @@ int main(int argc, char **argv){
     
     glBindVertexArray(VAOs[1]); 
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[1]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticeslr), verticeslr, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , lr.numVertices*sizeof(float), lr.Vs, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indiceslr), indiceslr, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , lr.numTriangles*sizeof(int), lr.Is, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -234,9 +202,9 @@ int main(int argc, char **argv){
     
     glBindVertexArray(VAOs[2]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[2]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS1), verticesDSS1, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , DSS1.numVertices*sizeof(float), DSS1.Vs, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[2]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS1), indicesDSS1, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , DSS1.numTriangles*sizeof(int), DSS1.Is, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -244,9 +212,9 @@ int main(int argc, char **argv){
 
     glBindVertexArray(VAOs[3]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[3]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS2), verticesDSS2, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , DSS2.numVertices* sizeof(float), DSS2.Vs, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[3]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS2), indicesDSS2, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , DSS2.numTriangles* sizeof(int), DSS2.Is, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -254,9 +222,9 @@ int main(int argc, char **argv){
 
     glBindVertexArray(VAOs[4]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[4]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesDSS3), verticesDSS3, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , DSS3.numVertices* sizeof(float), DSS3.Vs, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[4]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesDSS3), indicesDSS3, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , DSS3.numTriangles* sizeof(int), DSS3.Is, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -264,9 +232,9 @@ int main(int argc, char **argv){
     
     glBindVertexArray(VAOs[5]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[5]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesBW), verticesBW, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , BW.numVertices*sizeof(float), BW.Vs, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[5]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesBW), indicesBW, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , BW.numTriangles*sizeof(int), BW.Is, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -274,9 +242,9 @@ int main(int argc, char **argv){
     
     glBindVertexArray(VAOs[6]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[6]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesmr), verticesmr, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , mr.numVertices*sizeof(float), mr.Vs, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[6]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesmr), indicesmr, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , mr.numTriangles*sizeof(int), mr.Is, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -284,9 +252,9 @@ int main(int argc, char **argv){
 
     glBindVertexArray(VAOs[7]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[7]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(verticesMRSS), verticesMRSS, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , MRSS.numVertices* sizeof(float), MRSS.Vs, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[7]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indicesMRSS), indicesMRSS, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , MRSS.numTriangles* sizeof(int), MRSS.Is, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
@@ -294,14 +262,13 @@ int main(int argc, char **argv){
 
     glBindVertexArray(VAOs[8]);
     glBindBuffer(GL_ARRAY_BUFFER , VBOs[8]);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(vertices), vertices, GL_STATIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER , sizeof(float) * sph.numVertices, sph.Vs, GL_STATIC_DRAW );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[8]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(indices), indices, GL_STATIC_DRAW );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER , sizeof(int) * sph.numTriangles, sph.Is, GL_STATIC_DRAW );
     glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (float*)0);
     glEnableVertexAttribArray(posLoc);
     glVertexAttribPointer(texLoc, 2, GL_FLOAT, GL_FALSE,  5 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(texLoc);
-
 
     // texture init
     GLuint textures[5];
@@ -367,7 +334,7 @@ int main(int argc, char **argv){
 
     // TCP thread & mutex init
     pthread_t udp_thread;
-    pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
+    // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -427,33 +394,33 @@ int main(int argc, char **argv){
             // 360 dome
             glBindTexture(GL_TEXTURE_2D, textures[3]);
             glBindVertexArray(VAOs[8]);
-            glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(indices[0]), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, sph.numTriangles, GL_UNSIGNED_INT, 0);
         }else if (mode == 1){
             // DSS
             glBindTexture(GL_TEXTURE_2D, textures[0]);
             glBindVertexArray(VAOs[1]);
-            glDrawElements(GL_TRIANGLES, sizeof(indiceslr)/sizeof(indiceslr[0]), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, lr.numTriangles, GL_UNSIGNED_INT, 0);
             glBindVertexArray(VAOs[0]);
-            glDrawElements(GL_TRIANGLES, sizeof(indicesrr)/sizeof(indicesrr[0]), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, rr.numTriangles, GL_UNSIGNED_INT, 0);
 
             glBindTexture(GL_TEXTURE_2D, textures[2]);
             glBindVertexArray(VAOs[6]);
-            glDrawElements(GL_TRIANGLES, sizeof(indicesmr)/sizeof(indicesmr[0]), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, mr.numTriangles, GL_UNSIGNED_INT, 0);
             glBindVertexArray(VAOs[5]);
-            glDrawElements(GL_TRIANGLES, sizeof(indicesBW)/sizeof(indicesBW[0]), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, BW.numTriangles, GL_UNSIGNED_INT, 0);
 
             glBindTexture(GL_TEXTURE_2D, textures[1]);
             glBindVertexArray(VAOs[2]);
-            glDrawElements(GL_TRIANGLES, sizeof(indicesDSS1)/sizeof(indicesDSS1[0]), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, DSS1.numTriangles, GL_UNSIGNED_INT, 0);
             glBindVertexArray(VAOs[3]);
-            glDrawElements(GL_TRIANGLES, sizeof(indicesDSS2)/sizeof(indicesDSS2[0]), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, DSS2.numTriangles, GL_UNSIGNED_INT, 0);
             glBindVertexArray(VAOs[4]);
-            glDrawElements(GL_TRIANGLES, sizeof(indicesDSS3)/sizeof(indicesDSS3[0]), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, DSS3.numTriangles, GL_UNSIGNED_INT, 0);
         }else if (mode == 2){
             // MRSS
             glBindTexture(GL_TEXTURE_2D, textures[0]);
             glBindVertexArray(VAOs[7]);
-            glDrawElements(GL_TRIANGLES, sizeof(indicesMRSS)/sizeof(indicesMRSS[0]), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, MRSS.numTriangles, GL_UNSIGNED_INT, 0);
         }
         
         // glfw: swap buffers and poll IO events
@@ -461,6 +428,15 @@ int main(int argc, char **argv){
         glfwPollEvents();
     }
     // deallocating stuff
+    orqa_window_free(&lr);
+    orqa_window_free(&rr);
+    orqa_window_free(&DSS1);
+    orqa_window_free(&DSS2);
+    orqa_window_free(&DSS3);
+    orqa_window_free(&mr);
+    orqa_window_free(&BW);
+    orqa_window_free(&MRSS);
+    orqa_sphere_free(&sph);
     loadError:
     orqa_video_reader_free(&vr_state);
     threadError:

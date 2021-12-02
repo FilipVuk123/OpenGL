@@ -1,6 +1,10 @@
 #include "gen_sphere.h"
 
-/// This function generates sphere vertices and indices.
+
+static float radians(const float angle){
+    return angle*M_PI /180;
+}
+
 void orqa_gen_sphere(orqa_sphere_t *s){
     unsigned int numLatitudeLines = s->stacks; unsigned int numLongitudeLines = s->sectors;
     s->numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; // 2 poles
@@ -46,7 +50,8 @@ void orqa_gen_sphere(orqa_sphere_t *s){
     free(verticesX); 
     free(verticesY); 
     free(verticesZ); 
-    free(textures1); free(textures2);
+    free(textures1); 
+    free(textures2);
 
     // indices
     s->numTriangles = numLatitudeLines * numLongitudeLines * 2;
@@ -82,10 +87,8 @@ void orqa_gen_sphere(orqa_sphere_t *s){
         *(s->Is + j++) = bottomRow + i;
         *(s->Is + j++) = bottomRow + i + 1;
     }
-}
-
-static float radians(const float angle){
-    return angle*M_PI /180;
+    s->numTriangles *=3;
+    s->numVertices *=5;
 }
 
 void orqa_gen_window(window_t *win){
@@ -169,9 +172,7 @@ void orqa_gen_window(window_t *win){
     free(textures2);
 }
 
-/// This function deallocates used memory.
 void orqa_sphere_free(orqa_sphere_t *sph){
-    // deallocate stuff
     free(sph->Vs); free(sph->Is);
 }
 
