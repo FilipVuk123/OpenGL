@@ -1,4 +1,4 @@
-#include "video_reader.h"
+#include "orqa_video_reader.h"
 
 static const char* av_make_error(int errnum) {
     static char str[AV_ERROR_MAX_STRING_SIZE];

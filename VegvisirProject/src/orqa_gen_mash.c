@@ -1,4 +1,4 @@
-#include "gen_sphere.h"
+#include "orqa_gen_mash.h"
 
 
 static float radians(const float angle){
@@ -91,7 +91,7 @@ void orqa_gen_sphere(orqa_sphere_t *s){
     s->numVertices *=5;
 }
 
-void orqa_gen_window(window_t *win){
+void orqa_gen_window(orqa_window_t *win){
     const float radius = win->radius;
     float x = win->x;
     float y = win->y;
@@ -176,6 +176,6 @@ void orqa_sphere_free(orqa_sphere_t *sph){
     free(sph->Vs); free(sph->Is);
 }
 
-void orqa_window_free(window_t *win){
+void orqa_window_free(orqa_window_t *win){
     free(win->Vs); free(win->Is);
 }
