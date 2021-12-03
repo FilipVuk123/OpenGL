@@ -5,7 +5,7 @@ static float radians(const float angle){
     return angle*M_PI /180;
 }
 
-void orqa_gen_sphere(orqa_sphere_t *s){
+static void orqa_gen_sphere(orqa_sphere_t *s){
     unsigned int numLatitudeLines = s->stacks; unsigned int numLongitudeLines = s->sectors;
     s->numVertices = numLatitudeLines * (numLongitudeLines + 1) + 2; // 2 poles
     float *verticesX = calloc(s->numVertices, sizeof(float));
@@ -91,7 +91,7 @@ void orqa_gen_sphere(orqa_sphere_t *s){
     s->numVertices *=5;
 }
 
-void orqa_gen_window(orqa_window_t *win){
+static void orqa_gen_window(orqa_window_t *win){
     const float radius = win->radius;
     float x = win->x;
     float y = win->y;

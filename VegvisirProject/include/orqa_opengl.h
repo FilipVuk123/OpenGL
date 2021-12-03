@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vendor/glad/glad.h>
-#include <vendor/GLFW/glfw3.h>
+
 #include "vendor/stb_image.h"
 
 typedef struct orqa_texture_t{
@@ -12,9 +12,8 @@ typedef struct orqa_texture_t{
     uint8_t* data;
 }orqa_texture_t;
 
-GLint orqa_init_glfw(
-    const int major_version, 
-    const int minor_verion);
+GLint orqa_load_glad(
+    GLADloadproc load);
 
 GLuint orqa_load_shader_from_file(
     const char *file_name, 
@@ -23,6 +22,7 @@ GLuint orqa_load_shader_from_file(
 GLuint orqa_create_shader(
     FILE *fp, 
     GLenum shader_type);
+
 void orqa_get_shader_status(
     const GLuint shader);
 
@@ -129,15 +129,13 @@ void orqa_bind_buffer_set_data(
     GLenum usage);
 
 
+void orqa_bind_vertex_object_and_draw_it(
+    GLuint vao, 
+    GLenum type, 
+    GLsizei count);
 
-
-
-
-
-
-
-
-
-
+void orqa_viewport(
+    GLint x, GLint y, 
+    GLsizei witdh, GLsizei height);
 
 #endif

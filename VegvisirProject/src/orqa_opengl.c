@@ -1,5 +1,9 @@
 #include "orqa_opengl.h"
 
+GLint orqa_load_glad(GLADloadproc load){
+	return gladLoadGLLoader(load);
+}
+
 GLuint orqa_load_shader_from_file(const char *filename, GLenum type){
     FILE *fp = 0;
 	fp = fopen(filename, "rb");
@@ -46,14 +50,14 @@ void orqa_get_shader_status(const GLuint shader){
 GLuint orqa_create_program(GLuint *shaders, unsigned int shader_num)
 {
 	GLuint program = glCreateProgram();
-	for (int i = 0; i < shader_num; i++)
+	for (unsigned int i = 0; i < shader_num; i++)
 	{
 		glAttachShader(program, shaders[i]);
 	}
 
 	glLinkProgram(program);
     orqa_get_program_status(program);
-	for (int i = 0; i < shader_num; i++)
+	for (unsigned int i = 0; i < shader_num; i++)
 		glDeleteShader(shaders[i]);
 
 	return program;
@@ -74,20 +78,6 @@ GLuint orqa_get_attrib_location(GLuint shader, char *name){
 GLuint orqa_get_uniform_location(GLuint shader, char *name){
     return glGetUniformLocation(shader, name);
 }   
-
-GLint orqa_init_glfw(const int major_version, const int minor_version){
-    // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
-    if(!glfwInit()){
-        fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
-        glfwTerminate();
-        return -1;
-    }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major_version); 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor_version); 
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // creating contex profile
-    
-    return 1;
-}
 
 void orqa_get_program_status(const GLuint program){
     GLint log_size = 0;
@@ -197,4 +187,14 @@ void orqa_clear_depth_buffer(GLclampd depth){
 void orqa_bind_buffer_set_data(GLenum type, GLuint buffer, GLsizeiptr size, const GLvoid *data, GLenum usage){
 	orqa_bind_buffer(type , buffer);
     orqa_set_buffer_data(type , size, data, usage );
+}
+
+void orqa_bind_vertex_object_and_draw_it(GLuint vao, GLenum type, GLsizei count){
+	orqa_bind_VAOs(vao);
+	orqa_draw_elements(type, count);
+}
+
+
+void orqa_viewport(GLint x, GLint y, GLsizei witdh, GLsizei height){
+    glViewport(x, y, witdh, height);
 }

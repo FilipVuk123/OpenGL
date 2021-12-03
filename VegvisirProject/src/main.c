@@ -12,10 +12,6 @@ typedef enum{
 
 #define BUFSIZE 1024
 #define PORT 8000
-#include <vendor/glad/glad.h>
-#include <vendor/GLFW/glfw3.h>
-#include <vendor/cglm/cglm.h> 
-#include "vendor/json.h"
 
 #include <stdio.h>
 #include <pthread.h>
@@ -23,70 +19,56 @@ typedef enum{
 #include <arpa/inet.h>	// inet_addr
 #include <unistd.h>
 #include <netinet/in.h>
-#include "orqa_video_reader.h" 
+
+#include <vendor/cglm/cglm.h> 
+#include "vendor/json.h"
 #include "orqa_gen_mash.h" 
 #include "orqa_clock.h"
 #include "orqa_opengl.h"
-
+#include "orqa_input.h"
+#include "orqa_window.h"
+ 
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
-const GLuint SCR_HEIGHT = 1080; 
- 
-// camera_t attributes
-typedef struct camera_t{
-    vec3 cameraPos;
-    GLfloat fov;
-    versor resultQuat;
-}camera_t;
+const GLuint SCR_HEIGHT = 1080;
 
-
-// fix it!!!
+// fix it!!! 
 int mode; // 0 => 360, 1 => MRSS, 2 => DSS
 
 pthread_mutex_t mutexLock;
-
-static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos);
-static void orqa_process_input(ORQA_REF GLFWwindow *window);
-static void orqa_scroll_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLdouble xoffset,ORQA_IN GLdouble yoffset);
-static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height);
-
+static float orqa_radians(const float deg);
 static void* orqa_udp_thread(ORQA_REF void *c_ptr);
-static GLfloat orqa_radians(ORQA_IN const GLfloat deg);
+static void orqa_process_input(ORQA_REF GLFWwindow *window); 
 
-int main(int argc, char **argv){
-
+int main(){
     if (!orqa_init_glfw(3,3)) return OPENGL_INIT_ERROR;
-    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Full screen
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", NULL, NULL); // glfw window object creation
-    if (window == NULL){
-        fprintf(stderr, "In file: %s, line: %d Failed to create GLFW window\n", __FILE__, __LINE__);
-        return OPENGL_INIT_ERROR;
-    }
-    glfwMakeContextCurrent(window);
+    orqa_GLFW_make_window_full_screen(); // Full screen
+    GLFWwindow *window = orqa_create_GLFW_window(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", NULL, NULL); // glfw window object creation
+    if (window == NULL) return OPENGL_INIT_ERROR;
+    orqa_make_window_current(window);
 
-    glfwSetFramebufferSizeCallback(window, orqa_framebuffer_size_callback); // manipulate view port
-    glfwSetCursorPosCallback(window, orqa_mouse_callback); // move camera_t with cursor
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
-    glfwSetScrollCallback(window, orqa_scroll_callback); // zoom in/out using mouse wheel
+    orqa_set_frame_buffer_cb(window, orqa_framebuffer_size_callback); // manipulate view port
+    orqa_set_cursor_position_cb(window, orqa_mouse_callback); // move camera_t with cursor
+    orqa_set_input_mode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
+    orqa_set_scroll_cb(window, orqa_scroll_callback); // zoom in/out using mouse wheel
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
+    if (!orqa_load_glad(orqa_get_proc_address)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
         glfwTerminate();
         return OPENGL_INIT_ERROR;
     }
 
+    // mash generation
     orqa_window_t lr = orqa_create_window(1.0, 20,40,-0.7, -0.5, 0.55);
-    printf("%d\n",lr.numVertices);
-    orqa_window_t rr = orqa_create_window(1.0, 20, 40, 0.7, -0.7, 0.55);
+    orqa_window_t rr = orqa_create_window(1.0, 20, 40, 0.7, -0.5, 0.55);
     orqa_window_t DSS1 = orqa_create_window(1.0, 25,50,-0.7, 0, 0.64);
     orqa_window_t DSS2 = orqa_create_window(1.0, 25,50, 0, 0, 1);
     orqa_window_t DSS3 = orqa_create_window(1.0, 25,50,0.7, 0, 0.64);
     orqa_window_t mr = orqa_create_window(1.0, 20, 35, 0, -0.32, 0.5);
     orqa_window_t BW = orqa_create_window(1, 20, 35, 0, 0.6, 0.65);    
     orqa_window_t MRSS = orqa_create_window(1, 60, 130, 0, 0, 1);
-
-    // generating sphere
     orqa_sphere_t sph = orqa_create_sphere(1, 150, 150);
+
     // shader init, compilation and linking
     GLuint *shaders;
     shaders = malloc(sizeof(GLuint) * 2);
@@ -179,11 +161,11 @@ int main(int argc, char **argv){
     orqa_load_texture_from_file("../data/panorama1.bmp");
 
     // camera init
-    camera_t cam;
+    orqa_camera_t cam;
     cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
     cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
     cam.fov = 5.4f;
-    glfwSetWindowUserPointer(window, &cam); // sent camera object to callback functions
+    orqa_set_window_user_pointer(window, &cam); // sent camera object to callback functions
 
     // TCP thread & mutex init
     pthread_t udp_thread;
@@ -205,7 +187,7 @@ int main(int argc, char **argv){
     while (1){ // render loop
         // input
         orqa_process_input(window);
-
+        
         // render
         orqa_clear_color_buffer(0.2f, 0.2f, 0.2f, 1.0f);
         orqa_clear_buffer(GL_COLOR_BUFFER_BIT); // | GL_DEPTH_BUFFER_BIT);
@@ -225,34 +207,26 @@ int main(int argc, char **argv){
         if(mode == 0){
             // 360 dome
             orqa_bind_texture(textures[3]);
-            orqa_bind_VAOs(VAOs[8]);
-            orqa_draw_elements(GL_TRIANGLES, sph.numTriangles);
+            orqa_bind_vertex_object_and_draw_it(VAOs[8], GL_TRIANGLES, sph.numTriangles);
         }else if (mode == 1){
             // DSS
             orqa_bind_texture(textures[0]); 
-            orqa_bind_VAOs(VAOs[1]);
-            orqa_draw_elements(GL_TRIANGLES, lr.numTriangles);
-            orqa_bind_VAOs(VAOs[0]);
-            orqa_draw_elements(GL_TRIANGLES, rr.numTriangles);
+            orqa_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, lr.numTriangles);
+            orqa_bind_vertex_object_and_draw_it(VAOs[0], GL_TRIANGLES, rr.numTriangles);
+            
 
             orqa_bind_texture(textures[2]);
-            orqa_bind_VAOs(VAOs[6]);
-            orqa_draw_elements(GL_TRIANGLES, mr.numTriangles);
-            orqa_bind_VAOs(VAOs[5]);
-            orqa_draw_elements(GL_TRIANGLES, BW.numTriangles);
-
+            orqa_bind_vertex_object_and_draw_it(VAOs[5], GL_TRIANGLES, BW.numTriangles);
+            orqa_bind_vertex_object_and_draw_it(VAOs[6], GL_TRIANGLES, mr.numTriangles);
+            
             orqa_bind_texture(textures[1]);
-            orqa_bind_VAOs(VAOs[2]);
-            orqa_draw_elements(GL_TRIANGLES, DSS1.numTriangles);
-            orqa_bind_VAOs(VAOs[3]);
-            orqa_draw_elements(GL_TRIANGLES, DSS2.numTriangles);
-            orqa_bind_VAOs(VAOs[4]);
-            orqa_draw_elements(GL_TRIANGLES, DSS3.numTriangles);
+            orqa_bind_vertex_object_and_draw_it(VAOs[2], GL_TRIANGLES, DSS1.numTriangles);
+            orqa_bind_vertex_object_and_draw_it(VAOs[3], GL_TRIANGLES, DSS2.numTriangles);
+            orqa_bind_vertex_object_and_draw_it(VAOs[4], GL_TRIANGLES, DSS3.numTriangles);
         }else if (mode == 2){
             // MRSS
             orqa_bind_texture(textures[0]);
-            orqa_bind_VAOs(VAOs[7]);
-            orqa_draw_elements(GL_TRIANGLES, MRSS.numTriangles);
+            orqa_bind_vertex_object_and_draw_it(VAOs[7], GL_TRIANGLES, MRSS.numTriangles);
         }
         
         // glfw: swap buffers and poll IO events
@@ -281,64 +255,29 @@ int main(int argc, char **argv){
     return OPENGL_OK;
 }
 
-/// This function converts radians from degrees.
-/// Returns radians in float.
-static GLfloat orqa_radians(ORQA_IN const GLfloat deg){ 
-    return (deg*M_PI/180.0f); // calculate radians
-}
-
 
 /// This function keeps track all the input code.
-/// Closes GLFW windows when Esc key is pressed.
-static void orqa_process_input(ORQA_REF GLFWwindow *window){ 
+/// Moves between DSS, MRSS and 360 modules using 'D', 'M' or '3' keys
+static void orqa_process_input(GLFWwindow *window){ 
     // keeps all the input code
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){ // closes window on ESC
-        glfwSetWindowShouldClose(window, GL_TRUE);
-    }
-    if(glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS){
+    if(orqa_get_key(window, GLFW_KEY_3) == GLFW_PRESS){
         mode = 0;
     }
-    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
+    if(orqa_get_key(window, GLFW_KEY_D) == GLFW_PRESS){
         mode = 1;
     }
-    if(glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS){
+    if(orqa_get_key(window, GLFW_KEY_M) == GLFW_PRESS){
         mode = 2;
     }
 }
 
-/// This callback function keeps track of window size and updates it when needed.
-static void orqa_framebuffer_size_callback(ORQA_REF GLFWwindow *window,ORQA_IN GLint width,ORQA_IN GLint height){
-    glViewport(0, 0, width, height); // size of the rendering window
-}
 
-/// This callback function updates FieldOfView when using mouse wheel.
-static void orqa_scroll_callback(ORQA_REF GLFWwindow *window, ORQA_IN GLdouble xoffset, ORQA_IN GLdouble yoffset){
-    camera_t *cam = glfwGetWindowUserPointer(window);	
-    cam->fov -= (GLfloat)yoffset/5; // update fov
-    if (cam->fov < 4.2f) cam->fov = 4.2f;
-    if (cam->fov > 6.2f) cam->fov = 6.2f;   
-}
-
-/// This callback function performs motorless gimbal procedure on mouse movement.
-static void orqa_mouse_callback(ORQA_REF GLFWwindow *window, ORQA_IN const GLdouble xpos, ORQA_IN const GLdouble ypos){
-    camera_t *cam = glfwGetWindowUserPointer(window);	
-    versor pitchQuat, yawQuat;
-    float yaw, pitch;
-
-    yaw = orqa_radians(xpos/10); pitch = orqa_radians(ypos/10); 
-
-    // calculate rotations using quaternions 
-    glm_quatv(pitchQuat, pitch, (vec3){1.0f, 0.0f, 0.0f});
-    glm_quatv(yawQuat, yaw, (vec3){0.0f, 1.0f, 0.0f}); 
-
-    glm_quat_mul(yawQuat, pitchQuat, cam->resultQuat); // get final quat
-}
 
 /// This function connects to ORQA FPV.One goggles via UDP socket and performs motorless gimbal while goggles are in use.
 static void *orqa_udp_thread(ORQA_REF void *c_ptr){
     // inits 
     fprintf(stderr, "In thread\n");
-    camera_t *c = c_ptr;
+    orqa_camera_t *c = c_ptr;
     char buf[BUFSIZE];
     float yaw, pitch, roll;
     mat4 rollMat; 
@@ -399,4 +338,10 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
     exit:
     close(s);
     return NULL;
+}
+
+/// This function converts radians from degrees.
+/// Returns radians in float.
+static float orqa_radians(const float deg){ 
+    return (deg*M_PI/180.0f); // calculate radians
 }

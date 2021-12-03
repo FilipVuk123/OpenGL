@@ -1,6 +1,6 @@
 CC=gcc
 
-CFLAGS   := -Iinclude  -pipe -Wall -pedantic -g 
+CFLAGS   := -Iinclude  -pipe -Wall -pedantic -g -Wextra
 LDFLAGS  := -ldl -lpthread -lavformat -lavcodec -lavutil 
 LDLIBS   := -lm -ldl -lglfw -lpthread -lavformat -lavcodec -lavutil 
 
