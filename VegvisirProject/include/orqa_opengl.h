@@ -12,7 +12,9 @@ typedef struct orqa_texture_t{
     uint8_t* data;
 }orqa_texture_t;
 
-GLint orqa_init_glfw(const int major_version, const int minor_verion);
+GLint orqa_init_glfw(
+    const int major_version, 
+    const int minor_verion);
 
 GLuint orqa_load_shader_from_file(
     const char *file_name, 
@@ -27,6 +29,9 @@ void orqa_get_shader_status(
 GLuint orqa_create_program(
     GLuint *shaders, 
     GLuint shader_num);
+
+void orqa_delete_program(
+    GLuint program);
 
 void orqa_get_program_status(
     const GLuint program);
@@ -45,7 +50,7 @@ void orqa_use_program(
     GLuint program);
 
 GLuint *orqa_create_textures(
-    const int number_of_textures);
+    GLsizei number_of_textures);
 
 void orqa_bind_texture(
     GLuint texture_id);
@@ -54,7 +59,7 @@ void orqa_load_texture_from_file(
     const char *filename);
 
 void orqa_delete_textures(
-    const int number_of_textures, 
+    GLsizei number_of_textures, 
     GLuint *textures);
 
 void orqa_enable_vertex_attrib_array(
@@ -65,11 +70,46 @@ void orqa_enable_vertex_attrib_array(
     const GLvoid *ptr);
 
 void orqa_bind_VAOs(
-    GLuint VAO[]);
+    GLuint VAO);
 
 void orqa_draw_elements(
     GLenum type, 
     GLsizei count);
 
+void orqa_bind_buffer(
+    GLenum type, 
+    GLuint buffer);
+
+void orqa_set_buffer_data(
+    GLenum	type,
+    GLsizeiptr	size,
+    const GLvoid *data,
+    GLenum	usage);
+
+
+GLuint *orqa_generate_VBOs(
+	GLsizei count);
+
+GLuint *orqa_generate_VAOs(
+	GLsizei count);
+
+GLuint *orqa_generate_EBOs(
+	GLsizei count);
+void orqa_generate_buffers(
+    GLsizei count, 
+    GLuint *buffers);
+void orqa_delete_buffers(
+    GLsizei n, 
+    const GLuint *buffer);
+
+void orqa_delete_VAOs(
+    GLsizei n, 
+    const GLuint *arrays);
+
+void orqa_send_shander_4x4_matrix(
+    GLint location,
+    GLsizei count,
+    GLfloat *matrix
+);
 
 #endif

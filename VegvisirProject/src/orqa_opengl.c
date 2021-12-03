@@ -59,6 +59,10 @@ GLuint orqa_create_program(GLuint *shaders, unsigned int shader_num)
 	return program;
 }
 
+void orqa_delete_program(GLuint program){
+	glDeleteProgram(program);
+}
+
 void orqa_use_program(GLuint program){
     glUseProgram(program);
 }
@@ -116,7 +120,7 @@ void orqa_load_texture_from_file(const char *filename){
 }
 
 GLuint *orqa_create_textures(const int number_of_textures){
-    GLuint textures[number_of_textures];
+    GLuint *textures = calloc(number_of_textures, sizeof(GLuint));;
     glGenTextures(number_of_textures, textures);
     return textures;
 }
@@ -125,16 +129,57 @@ void orqa_delete_textures(const int number_of_textures, GLuint *textures){
     glDeleteTextures(number_of_textures, textures);
 }
 
-
 void orqa_enable_vertex_attrib_array(GLuint location, GLuint size, GLenum type, GLsizei stride, const GLvoid *ptr){
     glVertexAttribPointer(location, size, type, GL_FALSE, stride, ptr);
     glEnableVertexAttribArray(location);
 }
 
-void orqa_bind_VAOs(GLuint VAO[]){
+void orqa_bind_VAOs(GLuint VAO){
     glBindVertexArray(VAO);
 }
 
 void orqa_draw_elements(GLenum type, GLsizei count){
     glDrawElements(type, count, GL_UNSIGNED_INT, 0);
+}
+
+void orqa_bind_buffer(GLenum type, GLuint buffer){
+    glBindBuffer(type, buffer);
+}
+
+void orqa_set_buffer_data(GLenum type,GLsizeiptr size,const GLvoid *data, GLenum usage){
+	glBufferData(type, size, data, usage);
+}
+
+void orqa_generate_buffers(const int count, GLuint *buffers){
+	glGenBuffers(count, buffers);
+}
+
+GLuint *orqa_generate_VBOs(GLsizei count){
+	GLuint * buffer = calloc(count, sizeof(GLuint));
+	orqa_generate_buffers(count, buffer);
+	return buffer;
+}
+
+GLuint *orqa_generate_VAOs(GLsizei count){
+	GLuint * arrays = calloc(count, sizeof(GLuint));
+	glGenVertexArrays(count, arrays);
+	return arrays;
+}
+
+GLuint *orqa_generate_EBOs(GLsizei count){
+	GLuint * buffer = calloc(count, sizeof(GLuint));
+	orqa_generate_buffers(count, buffer);
+	return buffer;
+}
+
+void orqa_delete_buffers(GLsizei n, const GLuint *buffer){
+	glDeleteBuffers(n, buffer);
+}
+
+void orqa_delete_VAOs(GLsizei n, const GLuint *arrays){
+	glDeleteVertexArrays(n, arrays);
+}
+
+void orqa_send_shander_4x4_matrix(GLint location,GLsizei count,GLfloat *matrix){
+	glUniformMatrix4fv(location, count, GL_FALSE, matrix);
 }
