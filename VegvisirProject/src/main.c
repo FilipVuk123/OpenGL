@@ -60,7 +60,6 @@ int main(int argc, char **argv){
     GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", NULL, NULL); // glfw window object creation
     if (window == NULL){
         fprintf(stderr, "In file: %s, line: %d Failed to create GLFW window\n", __FILE__, __LINE__);
-        glfwTerminate();
         return OPENGL_INIT_ERROR;
     }
     glfwMakeContextCurrent(window);
@@ -76,43 +75,18 @@ int main(int argc, char **argv){
         return OPENGL_INIT_ERROR;
     }
 
-    orqa_window_t lr;
-    lr.radius = 1.0f; lr.angleY = 20; lr.angleX = 40; lr.x = -0.7; lr.y = -0.5; lr.z = 0.55; 
-    orqa_gen_window(&lr);
-    
-    orqa_window_t rr;
-    rr.radius= 1.0f; rr.angleY = 20; rr.angleX = 40; rr.x = 0.7; rr.y = -0.5; rr.z = 0.55; 
-    orqa_gen_window(&rr);
-
-    orqa_window_t DSS1;
-    DSS1.radius = 1.0f; DSS1.angleY = 25; DSS1.angleX = 50; DSS1.x = -0.7; DSS1.y = 0.0; DSS1.z = 0.640;
-    orqa_gen_window(&DSS1);
-
-    orqa_window_t DSS2;
-    DSS2.radius = 1.0f; DSS2.angleY = 25; DSS2.angleX = 50; DSS2.x = 0.0; DSS2.y = 0.0; DSS2.z = 1.0;
-    orqa_gen_window(&DSS2);
-
-    orqa_window_t DSS3;
-    DSS3.radius = 1.0f; DSS3.angleY = 25; DSS3.angleX = 50; DSS3.x = 0.7; DSS3.y = 0.0; DSS3.z = 0.640;
-    orqa_gen_window(&DSS3);
-
-    orqa_window_t mr;
-    mr.radius = 1.0f; mr.angleY = 20; mr.angleX = 35; mr.x = 0.0; mr.y = -0.32; mr.z = 0.5;
-    orqa_gen_window(&mr);
-
-    orqa_window_t BW;
-    BW.radius = 1.0f; BW.angleY = 20; BW.angleX = 35; BW.x = 0.0; BW.y = 0.50; BW.z = 0.65;
-    orqa_gen_window(&BW);
-    
-    orqa_window_t MRSS;
-    MRSS.radius = 1.0f; MRSS.angleY = 60; MRSS.angleX = 130; MRSS.x = 0.0; MRSS.y = 0.0; MRSS.z = 1;
-    orqa_gen_window(&MRSS);
+    orqa_window_t lr = orqa_create_window(1.0, 20,40,-0.7, -0.5, 0.55);
+    printf("%d\n",lr.numVertices);
+    orqa_window_t rr = orqa_create_window(1.0, 20, 40, 0.7, -0.7, 0.55);
+    orqa_window_t DSS1 = orqa_create_window(1.0, 25,50,-0.7, 0, 0.64);
+    orqa_window_t DSS2 = orqa_create_window(1.0, 25,50, 0, 0, 1);
+    orqa_window_t DSS3 = orqa_create_window(1.0, 25,50,0.7, 0, 0.64);
+    orqa_window_t mr = orqa_create_window(1.0, 20, 35, 0, -0.32, 0.5);
+    orqa_window_t BW = orqa_create_window(1, 20, 35, 0, 0.6, 0.65);    
+    orqa_window_t MRSS = orqa_create_window(1, 60, 130, 0, 0, 1);
 
     // generating sphere
-    orqa_sphere_t sph;
-    sph.radius = 1.0f; sph.sectors = 150; sph.stacks = 150;
-    orqa_gen_sphere(&sph);
-
+    orqa_sphere_t sph = orqa_create_sphere(1, 150, 150);
     // shader init, compilation and linking
     GLuint *shaders;
     shaders = malloc(sizeof(GLuint) * 2);
@@ -131,81 +105,62 @@ int main(int argc, char **argv){
     GLuint *VBOs = orqa_generate_VBOs(9);
     GLuint *EBOs = orqa_generate_EBOs(9);
     
-
     orqa_bind_VAOs(VAOs[0]);
-    orqa_bind_buffer(GL_ARRAY_BUFFER , VBOs[0]);
-    orqa_set_buffer_data(GL_ARRAY_BUFFER , rr.numVertices*sizeof(float), rr.Vs, GL_STATIC_DRAW );
-    orqa_bind_buffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[0]);
-    orqa_set_buffer_data(GL_ELEMENT_ARRAY_BUFFER , rr.numTriangles*sizeof(int), rr.Is, GL_STATIC_DRAW );
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[0], rr.numVertices*sizeof(float), rr.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[0], rr.numTriangles*sizeof(int), rr.Is, GL_STATIC_DRAW);
     orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
     orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
     
     orqa_bind_VAOs(VAOs[1]); 
-    orqa_bind_buffer(GL_ARRAY_BUFFER , VBOs[1]);
-    orqa_set_buffer_data(GL_ARRAY_BUFFER , lr.numVertices*sizeof(float), lr.Vs, GL_STATIC_DRAW );
-    orqa_bind_buffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[1]);
-    orqa_set_buffer_data(GL_ELEMENT_ARRAY_BUFFER , lr.numTriangles*sizeof(int), lr.Is, GL_STATIC_DRAW );
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[1], lr.numVertices*sizeof(float), lr.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[1], lr.numTriangles*sizeof(int), lr.Is, GL_STATIC_DRAW);
     orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
     orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
     
     orqa_bind_VAOs(VAOs[2]);
-    orqa_bind_buffer(GL_ARRAY_BUFFER , VBOs[2]);
-    orqa_set_buffer_data(GL_ARRAY_BUFFER , DSS1.numVertices*sizeof(float), DSS1.Vs, GL_STATIC_DRAW );
-    orqa_bind_buffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[2]);
-    orqa_set_buffer_data(GL_ELEMENT_ARRAY_BUFFER , DSS1.numTriangles*sizeof(int), DSS1.Is, GL_STATIC_DRAW );
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[2], DSS1.numVertices*sizeof(float),DSS1.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[2], DSS1.numTriangles*sizeof(int), DSS1.Is, GL_STATIC_DRAW);
     orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
     orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
     
     orqa_bind_VAOs(VAOs[3]);
-    orqa_bind_buffer(GL_ARRAY_BUFFER , VBOs[3]);
-    orqa_set_buffer_data(GL_ARRAY_BUFFER , DSS2.numVertices* sizeof(float), DSS2.Vs, GL_STATIC_DRAW );
-    orqa_bind_buffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[3]);
-    orqa_set_buffer_data(GL_ELEMENT_ARRAY_BUFFER , DSS2.numTriangles* sizeof(int), DSS2.Is, GL_STATIC_DRAW );
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[3], DSS2.numVertices*sizeof(float), DSS2.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[3], DSS2.numTriangles*sizeof(int), DSS2.Is, GL_STATIC_DRAW);
     orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
     orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
     
 
     orqa_bind_VAOs(VAOs[4]);
-    orqa_bind_buffer(GL_ARRAY_BUFFER , VBOs[4]);
-    orqa_set_buffer_data(GL_ARRAY_BUFFER , DSS3.numVertices* sizeof(float), DSS3.Vs, GL_STATIC_DRAW );
-    orqa_bind_buffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[4]);
-    orqa_set_buffer_data(GL_ELEMENT_ARRAY_BUFFER , DSS3.numTriangles* sizeof(int), DSS3.Is, GL_STATIC_DRAW );
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[4], DSS3.numVertices*sizeof(float),DSS3.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[4], DSS3.numTriangles*sizeof(int), DSS3.Is, GL_STATIC_DRAW);
     orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
     orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
     
     
     orqa_bind_VAOs(VAOs[5]);
-    orqa_bind_buffer(GL_ARRAY_BUFFER , VBOs[5]);
-    orqa_set_buffer_data(GL_ARRAY_BUFFER , BW.numVertices*sizeof(float), BW.Vs, GL_STATIC_DRAW );
-    orqa_bind_buffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[5]);
-    orqa_set_buffer_data(GL_ELEMENT_ARRAY_BUFFER , BW.numTriangles*sizeof(int), BW.Is, GL_STATIC_DRAW );
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[5], BW.numVertices*sizeof(float),BW.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[5], BW.numTriangles*sizeof(int), BW.Is, GL_STATIC_DRAW);
     orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
     orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
     
     
     orqa_bind_VAOs(VAOs[6]);
-    orqa_bind_buffer(GL_ARRAY_BUFFER , VBOs[6]);
-    orqa_set_buffer_data(GL_ARRAY_BUFFER , mr.numVertices*sizeof(float), mr.Vs, GL_STATIC_DRAW );
-    orqa_bind_buffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[6]);
-    orqa_set_buffer_data(GL_ELEMENT_ARRAY_BUFFER , mr.numTriangles*sizeof(int), mr.Is, GL_STATIC_DRAW );
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[6], mr.numVertices*sizeof(float),mr.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[6], mr.numTriangles*sizeof(int), mr.Is, GL_STATIC_DRAW);
     orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
     orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
     
 
     orqa_bind_VAOs(VAOs[7]);
-    orqa_bind_buffer(GL_ARRAY_BUFFER , VBOs[7]);
-    orqa_set_buffer_data(GL_ARRAY_BUFFER , MRSS.numVertices* sizeof(float), MRSS.Vs, GL_STATIC_DRAW );
-    orqa_bind_buffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[7]);
-    orqa_set_buffer_data(GL_ELEMENT_ARRAY_BUFFER , MRSS.numTriangles* sizeof(int), MRSS.Is, GL_STATIC_DRAW );
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[7], MRSS.numVertices*sizeof(float), MRSS.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[7], MRSS.numTriangles*sizeof(int), MRSS.Is, GL_STATIC_DRAW);
     orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
     orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
     
 
     orqa_bind_VAOs(VAOs[8]);
-    orqa_bind_buffer(GL_ARRAY_BUFFER , VBOs[8]);
-    orqa_set_buffer_data(GL_ARRAY_BUFFER , sizeof(float) * sph.numVertices, sph.Vs, GL_STATIC_DRAW );
-    orqa_bind_buffer(GL_ELEMENT_ARRAY_BUFFER , EBOs[8]);
-    orqa_set_buffer_data(GL_ELEMENT_ARRAY_BUFFER , sizeof(int) * sph.numTriangles, sph.Is, GL_STATIC_DRAW );
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[8], sph.numVertices*sizeof(float), sph.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[8], sph.numTriangles*sizeof(int), sph.Is, GL_STATIC_DRAW);
     orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
     orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
     
@@ -214,13 +169,13 @@ int main(int argc, char **argv){
     GLuint *textures = orqa_create_textures(5);
     // loading image!
     
-    orqa_bind_texture(*(textures));
+    orqa_bind_texture(textures[0]);
     orqa_load_texture_from_file("../data/MRSS.png");
-    orqa_bind_texture(*(textures + 1));
+    orqa_bind_texture(textures[1]);
     orqa_load_texture_from_file("../data/DSS.png");
-    orqa_bind_texture(*(textures + 2));
+    orqa_bind_texture(textures[2]);
     orqa_load_texture_from_file("../data/earth.jpg");
-    orqa_bind_texture(*(textures + 3));
+    orqa_bind_texture(textures[3]);
     orqa_load_texture_from_file("../data/panorama1.bmp");
 
     // camera init
@@ -232,7 +187,7 @@ int main(int argc, char **argv){
 
     // TCP thread & mutex init
     pthread_t udp_thread;
-    // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
+    pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -246,16 +201,14 @@ int main(int argc, char **argv){
     GLuint modelLoc = orqa_get_uniform_location(shaderProgram, "model");
     GLuint viewLoc = orqa_get_uniform_location(shaderProgram, "view");
     GLuint projLoc = orqa_get_uniform_location(shaderProgram, "proj");
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0); 
-
-    while (!glfwWindowShouldClose(window)){ // render loop
+    
+    while (1){ // render loop
         // input
         orqa_process_input(window);
 
         // render
-        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT); // | GL_DEPTH_BUFFER_BIT);
+        orqa_clear_color_buffer(0.2f, 0.2f, 0.2f, 1.0f);
+        orqa_clear_buffer(GL_COLOR_BUFFER_BIT); // | GL_DEPTH_BUFFER_BIT);
 
         // generate projection matrix
         glm_perspective(cam.fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, proj); // zoom
@@ -306,6 +259,7 @@ int main(int argc, char **argv){
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+    
     // deallocating stuff
     orqa_window_free(&lr);
     orqa_window_free(&rr);
@@ -316,14 +270,13 @@ int main(int argc, char **argv){
     orqa_window_free(&BW);
     orqa_window_free(&MRSS);
     orqa_sphere_free(&sph);
-    threadError:
-    pthread_exit(NULL);
     orqa_delete_VAOs(9, VAOs);
     orqa_delete_buffers(9, VBOs);
     orqa_delete_buffers(9, EBOs);
     orqa_delete_textures(5, textures);
-    linkingError:
     orqa_delete_program(shaderProgram);
+    threadError:
+    pthread_exit(NULL);
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
     return OPENGL_OK;
 }
@@ -416,15 +369,15 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
 	printf("Bind done!\n");
 	while(1){
 		bzero(buf, BUFSIZE);
-        orqa_clock_t clock = orqa_time_now();
+        // orqa_clock_t clock = orqa_time_now();
 		
         if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0){
 			printf("Recieving error!\n");
             break;
 		}
         
-        const double timeit = orqa_get_time_diff_msec(clock, orqa_time_now());
-        fprintf(stderr, "%.4lf\n", timeit);
+        // const double timeit = orqa_get_time_diff_msec(clock, orqa_time_now());
+        // fprintf(stderr, "%.4lf\n", timeit);
         
         // parse JSON
         JSONObject *json = parseJSON(buf);

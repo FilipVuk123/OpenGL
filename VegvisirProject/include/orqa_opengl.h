@@ -112,4 +112,32 @@ void orqa_send_shander_4x4_matrix(
     GLfloat *matrix
 );
 
+void orqa_clear_color_buffer(
+    GLfloat r, GLfloat g, GLfloat b, GLfloat a);
+    
+void orqa_clear_buffer(
+    GLbitfield mask);
+
+void orqa_clear_depth_buffer(
+    GLclampd depth);
+
+void orqa_bind_buffer_set_data(
+    GLenum type, 
+    GLuint buffer, 
+    GLsizeiptr size, 
+    const GLvoid *data, 
+    GLenum usage);
+
+
+
+
+
+
+
+
+
+
+
+
+
 #endif

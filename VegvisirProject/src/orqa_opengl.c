@@ -183,3 +183,18 @@ void orqa_delete_VAOs(GLsizei n, const GLuint *arrays){
 void orqa_send_shander_4x4_matrix(GLint location,GLsizei count,GLfloat *matrix){
 	glUniformMatrix4fv(location, count, GL_FALSE, matrix);
 }
+
+void orqa_clear_color_buffer(GLfloat r, GLfloat g, GLfloat b, GLfloat a){
+	glClearColor(r,g,b,a);
+}
+void orqa_clear_buffer(GLbitfield mask){
+	glClear(mask);
+}
+void orqa_clear_depth_buffer(GLclampd depth){
+	glClearDepth(depth);
+}
+
+void orqa_bind_buffer_set_data(GLenum type, GLuint buffer, GLsizeiptr size, const GLvoid *data, GLenum usage){
+	orqa_bind_buffer(type , buffer);
+    orqa_set_buffer_data(type , size, data, usage );
+}

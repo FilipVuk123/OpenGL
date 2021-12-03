@@ -179,3 +179,17 @@ void orqa_sphere_free(orqa_sphere_t *sph){
 void orqa_window_free(orqa_window_t *win){
     free(win->Vs); free(win->Is);
 }
+
+orqa_window_t orqa_create_window(const float radius, float angleX, float angleY, float x, float y, float z){
+    orqa_window_t window;
+    window.radius = radius; window.angleY = angleX; window.angleX = angleY; window.x = x; window.y = y; window.z = z;
+    orqa_gen_window(&window);
+    return window;
+}
+
+orqa_sphere_t orqa_create_sphere(const float radius, float sectors, float stacks){
+    orqa_sphere_t sphere;
+    sphere.radius = radius; sphere.sectors = sectors; sphere.stacks = stacks;
+    orqa_gen_sphere(&sphere);
+    return sphere;
+}
