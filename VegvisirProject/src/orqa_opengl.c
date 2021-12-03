@@ -4,18 +4,7 @@ GLint orqa_load_glad(GLADloadproc load){
 	return gladLoadGLLoader(load);
 }
 
-GLuint orqa_load_shader_from_file(const char *filename, GLenum type){
-    FILE *fp = 0;
-	fp = fopen(filename, "rb");
-	if (!fp)
-	{
-		printf("Can not open shader \n");
-		return 0;
-	}
-	return orqa_create_shader(fp, type);
-}
-
-GLuint orqa_create_shader(FILE *fp, GLenum shader_type){
+static GLuint orqa_create_shader(FILE *fp, GLenum shader_type){
     fseek(fp, 0, SEEK_END);
 	long file_size = ftell(fp) + 1;
 	char *buffer;
@@ -32,6 +21,18 @@ GLuint orqa_create_shader(FILE *fp, GLenum shader_type){
     free(buffer);
     return shader;
 }
+
+GLuint orqa_load_shader_from_file(const char *filename, GLenum type){
+    FILE *fp = 0;
+	fp = fopen(filename, "rb");
+	if (!fp)
+	{
+		printf("Can not open shader \n");
+		return 0;
+	}
+	return orqa_create_shader(fp, type);
+}
+
 
 void orqa_get_shader_status(const GLuint shader){
     GLint log_size = 0;
@@ -128,8 +129,8 @@ void orqa_bind_VAOs(GLuint VAO){
     glBindVertexArray(VAO);
 }
 
-void orqa_draw_elements(GLenum type, GLsizei count){
-    glDrawElements(type, count, GL_UNSIGNED_INT, 0);
+void orqa_draw_elements(GLenum type, GLsizei  n){
+    glDrawElements(type,  n, GL_UNSIGNED_INT, 0);
 }
 
 void orqa_bind_buffer(GLenum type, GLuint buffer){
@@ -140,25 +141,25 @@ void orqa_set_buffer_data(GLenum type,GLsizeiptr size,const GLvoid *data, GLenum
 	glBufferData(type, size, data, usage);
 }
 
-void orqa_generate_buffers(const int count, GLuint *buffers){
-	glGenBuffers(count, buffers);
+void orqa_generate_buffers(const int  n, GLuint *buffers){
+	glGenBuffers(n, buffers);
 }
 
-GLuint *orqa_generate_VBOs(GLsizei count){
-	GLuint * buffer = calloc(count, sizeof(GLuint));
-	orqa_generate_buffers(count, buffer);
+GLuint *orqa_generate_VBOs(GLsizei  n){
+	GLuint * buffer = calloc(n, sizeof(GLuint));
+	orqa_generate_buffers(n, buffer);
 	return buffer;
 }
 
-GLuint *orqa_generate_VAOs(GLsizei count){
-	GLuint * arrays = calloc(count, sizeof(GLuint));
-	glGenVertexArrays(count, arrays);
+GLuint *orqa_generate_VAOs(GLsizei  n){
+	GLuint * arrays = calloc(n, sizeof(GLuint));
+	glGenVertexArrays(n, arrays);
 	return arrays;
 }
 
-GLuint *orqa_generate_EBOs(GLsizei count){
-	GLuint * buffer = calloc(count, sizeof(GLuint));
-	orqa_generate_buffers(count, buffer);
+GLuint *orqa_generate_EBOs(GLsizei  n){
+	GLuint * buffer = calloc(n, sizeof(GLuint));
+	orqa_generate_buffers(n, buffer);
 	return buffer;
 }
 
@@ -170,8 +171,8 @@ void orqa_delete_VAOs(GLsizei n, const GLuint *arrays){
 	glDeleteVertexArrays(n, arrays);
 }
 
-void orqa_send_shander_4x4_matrix(GLint location,GLsizei count,GLfloat *matrix){
-	glUniformMatrix4fv(location, count, GL_FALSE, matrix);
+void orqa_send_shander_4x4_matrix(GLint location,GLsizei  n,GLfloat *matrix){
+	glUniformMatrix4fv(location,  n, GL_FALSE, matrix);
 }
 
 void orqa_clear_color_buffer(GLfloat r, GLfloat g, GLfloat b, GLfloat a){
@@ -189,12 +190,12 @@ void orqa_bind_buffer_set_data(GLenum type, GLuint buffer, GLsizeiptr size, cons
     orqa_set_buffer_data(type , size, data, usage );
 }
 
-void orqa_bind_vertex_object_and_draw_it(GLuint vao, GLenum type, GLsizei count){
+void orqa_bind_vertex_object_and_draw_it(GLuint vao, GLenum type, GLsizei  n){
 	orqa_bind_VAOs(vao);
-	orqa_draw_elements(type, count);
+	orqa_draw_elements(type,  n);
 }
 
 
-void orqa_viewport(GLint x, GLint y, GLsizei witdh, GLsizei height){
+void orqa_set_viewport(GLint x, GLint y, GLsizei witdh, GLsizei height){
     glViewport(x, y, witdh, height);
 }

@@ -11,7 +11,7 @@ GLint orqa_init_glfw(const int major_version, const int minor_version){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor_version); 
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // creating contex profile
     
-    return 1;
+    return 0;
 }
 
 GLFWwindow *orqa_create_GLFW_window(int width, int height, const char *title, GLFWmonitor *monitor, GLFWwindow *share){

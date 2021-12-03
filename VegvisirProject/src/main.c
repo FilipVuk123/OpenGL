@@ -41,7 +41,7 @@ static void* orqa_udp_thread(ORQA_REF void *c_ptr);
 static void orqa_process_input(ORQA_REF GLFWwindow *window); 
 
 int main(){
-    if (!orqa_init_glfw(3,3)) return OPENGL_INIT_ERROR;
+    if (orqa_init_glfw(3,3)) return OPENGL_INIT_ERROR;
     orqa_GLFW_make_window_full_screen(); // Full screen
     GLFWwindow *window = orqa_create_GLFW_window(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", NULL, NULL); // glfw window object creation
     if (window == NULL) return OPENGL_INIT_ERROR;
@@ -58,7 +58,7 @@ int main(){
         return OPENGL_INIT_ERROR;
     }
 
-    // mash generation
+    // mash generation 
     orqa_window_t lr = orqa_create_window(1.0, 20,40,-0.7, -0.5, 0.55);
     orqa_window_t rr = orqa_create_window(1.0, 20, 40, 0.7, -0.5, 0.55);
     orqa_window_t DSS1 = orqa_create_window(1.0, 25,50,-0.7, 0, 0.64);

@@ -43,13 +43,11 @@ orqa_window_t orqa_create_window(
     float angleY, 
     float x, float y, float z);
 
-/// This function deallocates used memory when calling orqa_gen_sphere()
+/// This function deallocates used memory when calling orqa_create_sphere()
 void orqa_sphere_free(ORQA_REF orqa_sphere_t *sph);
 
-/// This function deallocates used memory when calling orqa_gen_window()
+/// This function deallocates used memory when calling orqa_create_window()
 void orqa_window_free(ORQA_REF orqa_window_t *w);
-
-
 
 
 #endif
