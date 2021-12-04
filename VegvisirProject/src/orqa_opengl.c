@@ -101,9 +101,8 @@ void orqa_load_texture_from_file(const char *filename){
     orqa_texture_t tex;
     tex.data = stbi_load(filename, &tex.width, &tex.height, &tex.nrChannels, 0);
     if (tex.data){
-        if ((int) tex.nrChannels == 3)  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex.width, tex.height, 0, GL_RGB, GL_UNSIGNED_BYTE, tex.data);
-        else if ((int) tex.nrChannels == 4) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex.width, tex.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex.data);
-        glGenerateMipmap(GL_TEXTURE_2D);
+        if ((int) tex.nrChannels == 3) orqa_generate_texture_from_buffer(GL_TEXTURE_2D, GL_RGB, tex.width, tex.height,  GL_RGB, GL_UNSIGNED_BYTE, tex.data);
+        else if ((int) tex.nrChannels == 4) orqa_generate_texture_from_buffer(GL_TEXTURE_2D, GL_RGBA, tex.width, tex.height,  GL_RGBA, GL_UNSIGNED_BYTE, tex.data);
         stbi_image_free(tex.data);
     }else{
         fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
@@ -198,4 +197,9 @@ void orqa_bind_vertex_object_and_draw_it(GLuint vao, GLenum type, GLsizei  n){
 
 void orqa_set_viewport(GLint x, GLint y, GLsizei witdh, GLsizei height){
     glViewport(x, y, witdh, height);
+}
+
+void orqa_generate_texture_from_buffer(GLenum target,GLint internal_format,GLsizei width,GLsizei height,GLenum format,GLenum type,const GLvoid * buffer){
+	glTexImage2D(target, 0, internal_format, width, height, 0, format, type, buffer);
+	glGenerateMipmap(target);
 }

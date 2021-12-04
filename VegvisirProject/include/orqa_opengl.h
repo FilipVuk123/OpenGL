@@ -12,7 +12,7 @@ typedef struct orqa_texture_t{
     uint8_t* data;
 }orqa_texture_t;
 
-// This function loads glad. Use orqa_get_proc_address as its argument.
+// This function loads glad. Use (GLADloadproc)orqa_get_proc_address as its argument.
 // Returns 0 on failure
 GLint orqa_load_glad(
     GLADloadproc load);
@@ -164,5 +164,16 @@ void orqa_bind_vertex_object_and_draw_it(
 void orqa_set_viewport(
     GLint x, GLint y, 
     GLsizei witdh, GLsizei height);
+
+
+/// This function generates 2D texture from buffer
+void orqa_generate_texture_from_buffer(
+    GLenum target,
+    GLint internal_format,
+    GLsizei width,
+    GLsizei height,
+    GLenum format,
+    GLenum type,
+    const GLvoid * buffer);
 
 #endif

@@ -6,6 +6,8 @@
 
 /// This function initializes GLFW and returns 0 on success.
 /// IMPORTANT: Use beafore initializing glad!!!
+/// @param major_version sets GL major version
+/// @param minor_version sets GL minor version
 int orqa_init_glfw(
     const int major_version, 
     const int minor_verion);

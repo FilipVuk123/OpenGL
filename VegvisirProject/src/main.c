@@ -27,7 +27,7 @@ typedef enum{
 #include "orqa_opengl.h"
 #include "orqa_input.h"
 #include "orqa_window.h"
- 
+
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
@@ -52,7 +52,7 @@ int main(){
     orqa_set_input_mode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
     orqa_set_scroll_cb(window, orqa_scroll_callback); // zoom in/out using mouse wheel
 
-    if (!orqa_load_glad(orqa_get_proc_address)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
+    if (!orqa_load_glad((GLADloadproc)orqa_get_proc_address)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
         glfwTerminate();
         return OPENGL_INIT_ERROR;

@@ -9,10 +9,12 @@ static GLfloat orqa_radians(const GLfloat deg){
 
 
 void orqa_framebuffer_size_callback(GLFWwindow *window, GLint width, GLint height){
+    (void)window;
     orqa_set_viewport(0, 0, width, height); // size of the rendering window
 }
 
 void orqa_scroll_callback(GLFWwindow *window, GLdouble xoffset, GLdouble yoffset){
+    (void)xoffset;
     orqa_camera_t *cam = orqa_get_window_user_pointer(window);	
     cam->fov -= (GLfloat)yoffset/5; // update fov
     if (cam->fov < 4.2f) cam->fov = 4.2f;

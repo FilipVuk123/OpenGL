@@ -25,22 +25,30 @@ typedef struct orqa_window_t{
     float sectors, stacks;
 } orqa_window_t;
 
-/// This function creates UV sphere by generating 2 dynamicaly allocated arrays that describe vertex and index array needed in mordern opengl. 
+/// This function creates UV sphere by generating 2 dynamicaly allocated arrays that describe vertex and index array needed for describing mashes in mordern opengl. 
 /// Returns orqa_sphere_t struct containing Vs and Is.
 /// The Vs array contains positions as well as texture coordinates
 /// The Is array contains vertex indexes that make triangles (use GL_TRIANGLES)
+/// @param radius sets sphere radius
+/// @param sectors sets # of horizontal lines
+/// @param stacks sets # of vertical lines
 orqa_sphere_t orqa_create_sphere(
     const float radius, 
-    float sectors, float stacks);
+    const float sectors, 
+    const float stacks);
 
-/// This function creates a spheric window by generating 2 dynamicaly allocated arrays that describe vertex and index array needed in mordern opengl.  
+/// This function creates a spheric window by generating 2 dynamicaly allocated arrays that describe vertex and index array needed for describing mashes in mordern opengl.  
 /// Returns orqa_window_t struct containing Vs and Is.
 /// The Vs array contains positions as well as texture coordinates
 /// The Is array contains vertex indexes that make triangles (use GL_TRIANGLES)
+/// @param radius sets spheric window radius
+/// @param angleX sets horizontal angle
+/// @param angleY sets vertical angle
+/// @param xyz set center coorinates
 orqa_window_t orqa_create_window(
     const float radius, 
-    float angleX, 
-    float angleY, 
+    const float angleX, 
+    const float angleY, 
     float x, float y, float z);
 
 /// This function deallocates used memory when calling orqa_create_sphere()

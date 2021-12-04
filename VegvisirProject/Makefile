@@ -6,7 +6,7 @@ LDLIBS   := -lm -ldl -lglfw -lpthread -lavformat -lavcodec -lavutil
 
 SRC_DIR:=src
 BIN_DIR:=bin
-OBJ_DIR:=lib
+OBJ_DIR:=bin/obj
 
 EXE:=$(BIN_DIR)/Vegvisir
 SRC:=$(wildcard $(SRC_DIR)/*.c)
