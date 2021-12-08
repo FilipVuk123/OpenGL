@@ -23,14 +23,16 @@ static GLuint orqa_create_shader(FILE *fp, GLenum shader_type){
 }
 
 GLuint orqa_load_shader_from_file(const char *filename, GLenum type){
-    FILE *fp = 0;
+    FILE *fp;
 	fp = fopen(filename, "rb");
 	if (!fp)
 	{
-		printf("Can not open shader \n");
+		printf("Can not open shader! \n");
 		return 0;
 	}
-	return orqa_create_shader(fp, type);
+	GLuint to_return = orqa_create_shader(fp, type);
+	fclose(fp);
+	return to_return;
 }
 
 

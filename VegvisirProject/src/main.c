@@ -73,15 +73,15 @@ int main(){
     GLuint *shaders;
     shaders = malloc(sizeof(GLuint) * 2);
 
-    shaders[0] = orqa_load_shader_from_file("../shaders/vertexShader", GL_VERTEX_SHADER);
-    shaders[1] = orqa_load_shader_from_file("../shaders/fragmentShader", GL_FRAGMENT_SHADER);
+    shaders[0] = orqa_load_shader_from_file("./shaders/vertexShader.vert", GL_VERTEX_SHADER);
+    shaders[1] = orqa_load_shader_from_file("./shaders/fragmentShader.frag", GL_FRAGMENT_SHADER);
     GLuint shaderProgram = orqa_create_program(shaders, 2);
     orqa_use_program(shaderProgram);
 
     // get indexes for shader variables
     GLuint posLoc = orqa_get_attrib_location(shaderProgram, "aPos");
     GLuint texLoc = orqa_get_attrib_location(shaderProgram, "aTexCoord");
-
+    
     // init & binding array & buffer objects
     GLuint *VAOs = orqa_generate_VAOs(9);
     GLuint *VBOs = orqa_generate_VBOs(9);
@@ -152,13 +152,13 @@ int main(){
     // loading image!
     
     orqa_bind_texture(textures[0]);
-    orqa_load_texture_from_file("../data/MRSS.png");
+    orqa_load_texture_from_file("./data/MRSS.png");
     orqa_bind_texture(textures[1]);
-    orqa_load_texture_from_file("../data/DSS.png");
+    orqa_load_texture_from_file("./data/DSS.png");
     orqa_bind_texture(textures[2]);
-    orqa_load_texture_from_file("../data/earth.jpg");
+    orqa_load_texture_from_file("./data/earth.jpg");
     orqa_bind_texture(textures[3]);
-    orqa_load_texture_from_file("../data/panorama1.bmp");
+    orqa_load_texture_from_file("./data/panorama1.bmp");
 
     // camera init
     orqa_camera_t cam;
@@ -169,7 +169,7 @@ int main(){
 
     // TCP thread & mutex init
     pthread_t udp_thread;
-    pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
+    // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
@@ -271,8 +271,6 @@ static void orqa_process_input(GLFWwindow *window){
     }
 }
 
-
-
 /// This function connects to ORQA FPV.One goggles via UDP socket and performs motorless gimbal while goggles are in use.
 static void *orqa_udp_thread(ORQA_REF void *c_ptr){
     // inits 
@@ -308,23 +306,19 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
 	printf("Bind done!\n");
 	while(1){
 		bzero(buf, BUFSIZE);
-        // orqa_clock_t clock = orqa_time_now();
-		
+
         if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0){
 			printf("Recieving error!\n");
             break;
 		}
-        
-        // const double timeit = orqa_get_time_diff_msec(clock, orqa_time_now());
-        // fprintf(stderr, "%.4lf\n", timeit);
         
         // parse JSON
         JSONObject *json = parseJSON(buf);
         yaw = atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
-
         free(json);
+
         // Using quaternions to calculate camera rotations
         glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f}); 
         glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});  
