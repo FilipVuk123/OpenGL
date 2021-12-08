@@ -156,7 +156,7 @@ int main(){
     orqa_bind_texture(textures[1]);
     orqa_load_texture_from_file("./data/DSS.png");
     orqa_bind_texture(textures[2]);
-    orqa_load_texture_from_file("./data/earth.jpg");
+    orqa_load_texture_from_file("./data/pic.bmp");
     orqa_bind_texture(textures[3]);
     orqa_load_texture_from_file("./data/panorama1.bmp");
 
@@ -230,8 +230,8 @@ int main(){
         }
         
         // glfw: swap buffers and poll IO events
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        orqa_swap_buffers(window);
+        orqa_pool_events();
     }
     
     // deallocating stuff

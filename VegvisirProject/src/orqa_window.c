@@ -59,3 +59,11 @@ GLFWglproc orqa_get_proc_address(const char *procname){
 void *orqa_get_window_user_pointer(GLFWwindow *window){
     return glfwGetWindowUserPointer(window);
 }
+
+void orqa_pool_events(){
+    glfwPollEvents();
+}
+
+void orqa_swap_buffers(GLFWwindow *window){
+    glfwSwapBuffers(window);
+}

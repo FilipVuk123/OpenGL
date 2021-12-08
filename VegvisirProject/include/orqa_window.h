@@ -61,4 +61,10 @@ void orqa_set_window_user_pointer(
 void *orqa_get_window_user_pointer(
     GLFWwindow *window);
 
+void orqa_pool_events();
+
+void orqa_swap_buffers(
+    GLFWwindow *window
+);
+
 #endif
