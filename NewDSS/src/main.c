@@ -27,6 +27,7 @@ typedef enum{
 #include "gen_sphere.h" 
 #include "orqa_clock.h"
 
+
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080; 

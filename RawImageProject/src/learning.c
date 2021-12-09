@@ -36,7 +36,7 @@ const  GLchar *vertexShaderSource = "#version 460 core\n"
     "{\n"
     "   gl_Position = vec4(aPos, 1.0);\n"
     "   ourColor = aColor;\n"
-    "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
+    "   TexCoord = vec2(aTexCoord.x, 1 - aTexCoord.y);\n"
     "}\0";
 
 const  GLchar *fragmentShaderSource = "#version 460 core\n"
@@ -177,7 +177,7 @@ int main(){
 
     // loading image
     GLint width, height, nrChannels;
-    unsigned  char *data = stbi_load("../data/image", &width, &height, &nrChannels, 0);
+    unsigned  char *data = stbi_load("./data/orqa-output.jpg", &width, &height, &nrChannels, 0);
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data); // genereting texture
         glGenerateMipmap(GL_TEXTURE_2D); // generate mipmaps for a specified texture object
