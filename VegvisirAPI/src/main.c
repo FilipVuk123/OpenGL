@@ -32,14 +32,6 @@ typedef enum{
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
 
-// fix it!!! 
-int mode; // 0 => 360, 1 => MRSS, 2 => DSS
-
-pthread_mutex_t mutexLock;
-static float orqa_radians(const float deg);
-static void* orqa_udp_thread(ORQA_REF void *c_ptr);
-static void orqa_process_input(ORQA_REF GLFWwindow *window); 
-
 int main(){
     if (orqa_init_glfw(3,3)) return OPENGL_INIT_ERROR;
     orqa_GLFW_make_window_full_screen(); // Full screen
