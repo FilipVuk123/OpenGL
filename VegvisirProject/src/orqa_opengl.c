@@ -105,6 +105,7 @@ void orqa_load_texture_from_file(const char *filename){
     if (tex.data){
         if ((int) tex.nrChannels == 3) orqa_generate_texture_from_buffer(GL_TEXTURE_2D, GL_RGB, tex.width, tex.height,  GL_RGB, GL_UNSIGNED_BYTE, tex.data);
         else if ((int) tex.nrChannels == 4) orqa_generate_texture_from_buffer(GL_TEXTURE_2D, GL_RGBA, tex.width, tex.height,  GL_RGBA, GL_UNSIGNED_BYTE, tex.data);
+		glGenerateMipmap(GL_TEXTURE_2D);
         stbi_image_free(tex.data);
     }else{
         fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);

@@ -70,8 +70,7 @@ int main(){
     orqa_sphere_t sph = orqa_create_sphere(1, 150, 150);
 
     // shader init, compilation and linking
-    GLuint *shaders;
-    shaders = malloc(sizeof(GLuint) * 2);
+    GLuint *shaders = malloc(sizeof(GLuint) * 2);
 
     shaders[0] = orqa_load_shader_from_file("./shaders/vertexShader.vert", GL_VERTEX_SHADER);
     shaders[1] = orqa_load_shader_from_file("./shaders/fragmentShader.frag", GL_FRAGMENT_SHADER);
@@ -83,9 +82,10 @@ int main(){
     GLuint texLoc = orqa_get_attrib_location(shaderProgram, "aTexCoord");
     
     // init & binding array & buffer objects
-    GLuint *VAOs = orqa_generate_VAOs(9);
-    GLuint *VBOs = orqa_generate_VBOs(9);
-    GLuint *EBOs = orqa_generate_EBOs(9);
+    GLuint *VAOs = orqa_generate_VAOs(10);
+    GLuint *VBOs = orqa_generate_VBOs(10);
+    GLuint *EBOs = orqa_generate_EBOs(10);
+
     
     orqa_bind_VAOs(VAOs[0]);
     orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[0], rr.numVertices*sizeof(float), rr.Vs, GL_STATIC_DRAW);
@@ -138,14 +138,14 @@ int main(){
     orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[7], MRSS.numTriangles*sizeof(int), MRSS.Is, GL_STATIC_DRAW);
     orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
     orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
-    
+
 
     orqa_bind_VAOs(VAOs[8]);
     orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[8], sph.numVertices*sizeof(float), sph.Vs, GL_STATIC_DRAW);
     orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[8], sph.numTriangles*sizeof(int), sph.Is, GL_STATIC_DRAW);
     orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
     orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
-    
+
 
     // texture init
     GLuint *textures = orqa_create_textures(5);
@@ -159,6 +159,7 @@ int main(){
     orqa_load_texture_from_file("./data/pic.bmp");
     orqa_bind_texture(textures[3]);
     orqa_load_texture_from_file("./data/panorama1.bmp");
+    
 
     // camera init
     orqa_camera_t cam;
@@ -208,12 +209,13 @@ int main(){
             // 360 dome
             orqa_bind_texture(textures[3]);
             orqa_bind_vertex_object_and_draw_it(VAOs[8], GL_TRIANGLES, sph.numTriangles);
+            
         }else if (mode == 1){
             // DSS
-            orqa_bind_texture(textures[0]); 
-            orqa_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, lr.numTriangles);
-            orqa_bind_vertex_object_and_draw_it(VAOs[0], GL_TRIANGLES, rr.numTriangles);
             
+            orqa_bind_texture(textures[0]); 
+            orqa_bind_vertex_object_and_draw_it(VAOs[0], GL_TRIANGLES, rr.numTriangles);
+            orqa_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, lr.numTriangles);
 
             orqa_bind_texture(textures[2]);
             orqa_bind_vertex_object_and_draw_it(VAOs[5], GL_TRIANGLES, BW.numTriangles);
@@ -223,10 +225,13 @@ int main(){
             orqa_bind_vertex_object_and_draw_it(VAOs[2], GL_TRIANGLES, DSS1.numTriangles);
             orqa_bind_vertex_object_and_draw_it(VAOs[3], GL_TRIANGLES, DSS2.numTriangles);
             orqa_bind_vertex_object_and_draw_it(VAOs[4], GL_TRIANGLES, DSS3.numTriangles);
+            
         }else if (mode == 2){
             // MRSS
+            
             orqa_bind_texture(textures[0]);
             orqa_bind_vertex_object_and_draw_it(VAOs[7], GL_TRIANGLES, MRSS.numTriangles);
+            
         }
         
         // glfw: swap buffers and poll IO events
@@ -244,9 +249,9 @@ int main(){
     orqa_window_free(&BW);
     orqa_window_free(&MRSS);
     orqa_sphere_free(&sph);
-    orqa_delete_VAOs(9, VAOs);
-    orqa_delete_buffers(9, VBOs);
-    orqa_delete_buffers(9, EBOs);
+    orqa_delete_VAOs(10, VAOs);
+    orqa_delete_buffers(10, VBOs);
+    orqa_delete_buffers(10, EBOs);
     orqa_delete_textures(5, textures);
     orqa_delete_program(shaderProgram);
     threadError:
