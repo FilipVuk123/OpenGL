@@ -167,7 +167,7 @@ int main(){
     cam.fov = 5.4f;
     orqa_set_window_user_pointer(window, &cam); // sent camera object to callback functions
 
-    // TCP thread & mutex init
+    // UDP thread & mutex init
     pthread_t udp_thread;
     // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {

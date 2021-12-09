@@ -14,11 +14,6 @@ typedef enum{
 #define PORT 8000
 
 #include <stdio.h>
-#include <pthread.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>	// inet_addr
-#include <unistd.h>
-#include <netinet/in.h>
 
 #include <vendor/cglm/cglm.h> 
 #include "vendor/json.h"

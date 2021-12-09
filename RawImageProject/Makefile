@@ -26,3 +26,8 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 
 $(BIN_DIR) $(OBJ_DIR):
 	mkdir -p $@
+
+.PHONY: clean
+
+clean:
+	rm -r $(OBJ_DIR)
