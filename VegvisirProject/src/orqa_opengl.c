@@ -56,12 +56,11 @@ GLuint orqa_create_program(GLuint *shaders, unsigned int shader_num)
 	for (unsigned int i = 0; i < shader_num; i++)
 	{
 		glAttachShader(program, shaders[i]);
+		glDeleteShader(shaders[i]);
 	}
 
 	glLinkProgram(program);
     orqa_get_program_status(program);
-	for (unsigned int i = 0; i < shader_num; i++)
-		glDeleteShader(shaders[i]);
 
 	return program;
 }

@@ -61,8 +61,11 @@ void orqa_set_window_user_pointer(
 void *orqa_get_window_user_pointer(
     GLFWwindow *window);
 
+// This function processes only those events that are already in the event queue and then returns immediately. 
+// Processing events will cause the window and input callbacks associated with those events to be called.
 void orqa_pool_events();
 
+// This function swaps the front and back buffers of the specified window when rendering
 void orqa_swap_buffers(
     GLFWwindow *window
 );

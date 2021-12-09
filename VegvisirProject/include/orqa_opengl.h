@@ -27,6 +27,7 @@ void orqa_get_shader_status(
     const GLuint shader);
 
 // This function attaches a shader object to a program object and combines all provided shader programs into one.
+// Then deletes shaders
 GLuint orqa_create_program(
     GLuint *shaders, 
     GLuint shader_num);

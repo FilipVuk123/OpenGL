@@ -85,7 +85,6 @@ int main(){
     GLuint *VAOs = orqa_generate_VAOs(10);
     GLuint *VBOs = orqa_generate_VBOs(10);
     GLuint *EBOs = orqa_generate_EBOs(10);
-
     
     orqa_bind_VAOs(VAOs[0]);
     orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[0], rr.numVertices*sizeof(float), rr.Vs, GL_STATIC_DRAW);
