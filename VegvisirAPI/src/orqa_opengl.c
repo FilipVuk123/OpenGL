@@ -12,6 +12,7 @@ static GLuint orqa_create_shader(FILE *fp, GLenum shader_type){
 	buffer = (char *)malloc(file_size * sizeof(char));
 	fseek(fp, 0, SEEK_SET);
 	fread(buffer, file_size, sizeof(char), fp);
+	buffer[file_size-1] = '\0';
 	shader = glCreateShader(shader_type);
 	const char *shaders_src = buffer;
 	glShaderSource(shader, 1, &shaders_src, NULL);
