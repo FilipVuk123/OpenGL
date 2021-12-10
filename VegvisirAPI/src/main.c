@@ -47,7 +47,7 @@ int main(){
     }
 
     // mash generation 
-    orqa_window_t myWin = orqa_create_window(1.0, 25,50, 0, 0, 1);
+    orqa_window_t myWin = orqa_create_window(1.0, 50,25, 0, 0, 1);
     
 
     // shader init, compilation and linking

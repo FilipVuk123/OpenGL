@@ -182,7 +182,7 @@ void orqa_window_free(orqa_window_t *win){
 
 orqa_window_t orqa_create_window(const float radius, const float angleX, const float angleY, float x, float y, float z){
     orqa_window_t window;
-    window.radius = radius; window.angleY = angleX; window.angleX = angleY; window.x = x; window.y = y; window.z = z;
+    window.radius = radius; window.angleY = angleY; window.angleX = angleX; window.x = x; window.y = y; window.z = z;
     orqa_gen_window(&window);
     return window;
 }

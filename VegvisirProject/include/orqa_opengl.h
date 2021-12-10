@@ -177,4 +177,9 @@ void orqa_generate_texture_from_buffer(
     GLenum type,
     const GLvoid * buffer);
 
+GLuint orqa_create_shader_from_source(
+    GLenum type,
+    GLsizei size, 
+    const GLchar **source);
+
 #endif

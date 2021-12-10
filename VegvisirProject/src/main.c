@@ -59,15 +59,15 @@ int main(){
     }
 
     // mash generation 
-    orqa_window_t lr = orqa_create_window(1.0, 20,40,-0.7, -0.5, 0.55);
-    orqa_window_t rr = orqa_create_window(1.0, 20, 40, 0.7, -0.5, 0.55);
-    orqa_window_t DSS1 = orqa_create_window(1.0, 25,50,-0.7, 0, 0.64);
-    orqa_window_t DSS2 = orqa_create_window(1.0, 25,50, 0, 0, 1);
-    orqa_window_t DSS3 = orqa_create_window(1.0, 25,50,0.7, 0, 0.64);
-    orqa_window_t mr = orqa_create_window(1.0, 20, 35, 0, -0.32, 0.5);
-    orqa_window_t BW = orqa_create_window(1, 20, 35, 0, 0.6, 0.65);    
-    orqa_window_t MRSS = orqa_create_window(1, 60, 130, 0, 0, 1);
-    orqa_sphere_t sph = orqa_create_sphere(1, 150, 150);
+    orqa_window_t lr    = orqa_create_window(1.0,  40, 20, -0.7, -0.5, 0.55);
+    orqa_window_t rr    = orqa_create_window(1.0,  40, 20, 0.7, -0.5, 0.55);
+    orqa_window_t DSS1  = orqa_create_window(1.0,  50, 25, -0.7, 0, 0.64);
+    orqa_window_t DSS2  = orqa_create_window(1.0,  50, 25, 0, 0, 1);
+    orqa_window_t DSS3  = orqa_create_window(1.0,  50, 25, 0.7, 0, 0.64);
+    orqa_window_t mr    = orqa_create_window(1.0,  35, 20, 0, -0.32, 0.5);
+    orqa_window_t BW    = orqa_create_window(1.0,  35, 20, 0, 0.6, 0.65);    
+    orqa_window_t MRSS  = orqa_create_window(1.0, 130, 60, 0, 0, 1);
+    orqa_sphere_t sph   = orqa_create_sphere(1.0, 150, 150);
 
     // shader init, compilation and linking
     GLuint *shaders = malloc(sizeof(GLuint) * 2);
