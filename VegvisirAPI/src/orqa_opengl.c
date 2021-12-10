@@ -6,7 +6,7 @@ GLint orqa_load_glad(GLADloadproc load){
 
 static GLuint orqa_create_shader(FILE *fp, GLenum shader_type){
     fseek(fp, 0, SEEK_END);
-	long file_size = ftell(fp) + 1;
+	long file_size = ftell(fp) + 2;
 	char *buffer;
 	GLuint shader;
 	buffer = (char *)malloc(file_size * sizeof(char));

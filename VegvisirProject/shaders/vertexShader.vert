@@ -5,8 +5,8 @@ out vec2 TexCoord;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 proj;
-void main()
-{
+void main(){
    gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.0);
    TexCoord = vec2(1.0 - aTexCoord.x, aTexCoord.y);
-};
+}
+
