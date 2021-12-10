@@ -23,6 +23,33 @@ typedef enum{
 #include "orqa_input.h"
 #include "orqa_window.h"
 
+const  GLchar *vertexShaderSource = 
+    "#version 330 core\n"
+    "layout (location = 0) in vec3 aPos;\n" // the position variable has attribute position 0
+    "layout (location = 1) in vec2 aTexCoord;\n" // the texture coord variable has attribute position 2
+    "out vec2 TexCoord;\n" // specify a texture coord output to the fragment shader
+    "uniform mat4 model;\n"
+    "uniform mat4 view;\n"
+    "uniform mat4 proj;\n"
+    "void main()\n"
+    "{\n"
+    "   gl_Position = proj*view*model*vec4(aPos.x, aPos.y, aPos.z , 1.0);\n"
+    
+    "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
+    "}\0";
+
+const  GLchar *fragmentShaderSource = 
+    "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "in vec2 TexCoord;\n" // the aTexCoord variable from the vertex shader
+    "uniform sampler2D texture1;\n" // in order to pass the texture object we need built-in data-type "sample" so we can later assign our texture
+    "void main()\n"
+    "{\n"
+    "   vec3 color = texture2D(texture1, TexCoord).syz;\n"
+    "   FragColor = vec4(color, 1);\n"
+    "}\n\0";
+
+
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
@@ -52,8 +79,12 @@ int main(){
     // shader init, compilation and linking
     GLuint *shaders = malloc(sizeof(GLuint) * 2);
 
-    shaders[0] = orqa_load_shader_from_file("./shaders/vertexShader.vert", GL_VERTEX_SHADER);
-    shaders[1] = orqa_load_shader_from_file("./shaders/fragmentShader.frag", GL_FRAGMENT_SHADER);
+    // shaders[0] = orqa_load_shader_from_file("./shaders/vertexShader.vert", GL_VERTEX_SHADER);
+    // shaders[1] = orqa_load_shader_from_file("./shaders/fragmentShader.frag", GL_FRAGMENT_SHADER);
+
+    shaders[0] = orqa_create_shader_from_source(GL_FRAGMENT_SHADER, 1, &fragmentShaderSource);
+    shaders[1] = orqa_create_shader_from_source(GL_VERTEX_SHADER, 1, &vertexShaderSource);
+
     GLuint shaderProgram = orqa_create_program(shaders, 2);
     orqa_use_program(shaderProgram);
 
