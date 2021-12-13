@@ -40,7 +40,10 @@ static float orqa_radians(const float deg);
 static void* orqa_udp_thread(ORQA_REF void *c_ptr);
 static void orqa_process_input(ORQA_REF GLFWwindow *window); 
 
+
 int main(){
+    orqa_set_error_cb(orqa_error_cb);
+
     if (orqa_init_glfw(3,3)) return OPENGL_INIT_ERROR;
     orqa_GLFW_make_window_full_screen(); // Full screen
     GLFWwindow *window = orqa_create_GLFW_window(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", NULL, NULL); // glfw window object creation

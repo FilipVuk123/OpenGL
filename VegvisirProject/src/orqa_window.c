@@ -27,6 +27,14 @@ void orqa_make_window_current(GLFWwindow *window){
     glfwMakeContextCurrent(window);
 }
 
+void orqa_set_error_cb(GLFWerrorfun cb){
+    glfwSetErrorCallback(cb);
+}
+
+void orqa_error_cb(int n, const char *errmsg){
+    (void) n;
+    printf("GLFW Error: %s\n", errmsg);
+}
 
 void orqa_GLFW_make_window_full_screen(){
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);

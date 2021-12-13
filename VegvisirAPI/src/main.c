@@ -29,6 +29,8 @@ const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
 
 int main(){
+    orqa_set_error_cb(orqa_error_cb);
+
     if (orqa_init_glfw(3,3)) return OPENGL_INIT_ERROR;
     orqa_GLFW_make_window_full_screen(); // Full screen
     GLFWwindow *window = orqa_create_GLFW_window(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", NULL, NULL); // glfw window object creation
@@ -42,7 +44,7 @@ int main(){
 
     if (!orqa_load_glad((GLADloadproc)orqa_get_proc_address)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
-        glfwTerminate();
+        orqa_terminate();
         return OPENGL_INIT_ERROR;
     }
 
@@ -130,6 +132,6 @@ int main(){
     orqa_delete_buffers(1, EBOs);
     orqa_delete_textures(1, textures);
     orqa_delete_program(shaderProgram);
-    glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
+    orqa_terminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
     return OPENGL_OK;
 }

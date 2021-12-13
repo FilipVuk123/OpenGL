@@ -12,6 +12,13 @@ int orqa_init_glfw(
     const int major_version, 
     const int minor_verion);
 
+// This function sets eroor callback.
+// use it with orqa_error_cb as its param
+void orqa_set_error_cb(
+    GLFWerrorfun cb);
+
+void orqa_error_cb(int n, const char *errmsg);
+
 // This function returns glproc need for initializing glad loader.
 GLFWglproc orqa_get_proc_address(
     const char *procname);

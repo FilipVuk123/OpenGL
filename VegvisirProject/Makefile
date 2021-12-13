@@ -30,3 +30,9 @@ $(BIN_DIR) $(OBJ_DIR):
 
 clean:
 	rm -r $(OBJ_DIR)
+
+
+.PHONY: start
+
+start:
+	./$(EXE)
