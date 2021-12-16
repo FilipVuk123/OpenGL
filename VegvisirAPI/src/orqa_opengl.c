@@ -213,3 +213,8 @@ void orqa_generate_texture_from_buffer(GLenum target,GLint internal_format,GLsiz
 	glTexImage2D(target, 0, internal_format, width, height, 0, format, type, buffer);
 	glGenerateMipmap(target);
 }
+
+void orqa_update_texture_from_buffer(GLenum target,GLuint xoffset, GLuint yoffset, GLsizei width,GLsizei height,GLenum format,GLenum type,const GLvoid * buffer){
+	glTexSubImage2D(target, 0, xoffset, yoffset, width, height, format, type, buffer);
+	glGenerateMipmap(target);
+}

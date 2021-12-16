@@ -182,4 +182,14 @@ GLuint orqa_create_shader_from_source(
     GLsizei size, 
     const GLchar **source);
 
+void orqa_update_texture_from_buffer(
+    GLenum target,
+    GLuint xoffset,
+    GLuint yoffset,
+    GLsizei width,
+    GLsizei height,
+    GLenum format,
+    GLenum type,
+    const GLvoid * buffer);
+
 #endif

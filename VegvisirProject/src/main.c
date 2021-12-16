@@ -172,7 +172,7 @@ int main(){
 
     // UDP thread & mutex init
     pthread_t udp_thread;
-    // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
+    pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
