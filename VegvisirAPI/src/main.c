@@ -99,7 +99,7 @@ int main(){
     GLuint viewLoc = orqa_get_uniform_location(shaderProgram, "view");
     GLuint projLoc = orqa_get_uniform_location(shaderProgram, "proj");
     
-    while (1){ // render loop
+    while (!glfwWindowShouldClose(window)){ // render loop
         
         // render
         orqa_clear_color_buffer(0.2f, 0.2f, 0.2f, 1.0f);

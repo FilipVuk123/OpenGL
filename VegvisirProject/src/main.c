@@ -187,7 +187,7 @@ int main(){
     GLuint viewLoc = orqa_get_uniform_location(shaderProgram, "view");
     GLuint projLoc = orqa_get_uniform_location(shaderProgram, "proj");
     
-    while (1){ // render loop
+    while (!glfwWindowShouldClose(window)){ // render loop
         // input
         orqa_process_input(window);
         
@@ -257,7 +257,6 @@ int main(){
     orqa_delete_textures(5, textures);
     orqa_delete_program(shaderProgram);
     threadError:
-    pthread_exit(NULL);
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
     return OPENGL_OK;
 }
