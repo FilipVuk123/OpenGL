@@ -143,10 +143,10 @@ int main(){
 
     glBindBuffer(GL_ARRAY_BUFFER_ARB, VBO); // bind the newly created buffer to the GL_ARRAY_BUFFER_ARB target (extension)
     // copies the previously defined vertex data into the buffer's memory, GL_STATIC_DRAW means that the data is set only once and used many times
-    glBufferData(GL_ARRAY_BUFFER_ARB, sizeof(vertices), vertices, GL_STATIC_DRAW); 
+    glBufferData(GL_ARRAY_BUFFER_ARB, sizeof(vertices), vertices, GL_STATIC_DRAW_ARB); 
     // Similar to the VBO we bind the EBO and copy the indices into the buffer, this time we specify GL_ELEMENT_ARRAY_BUFFER_ARB as the buffer type.
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER_ARB, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER_ARB, sizeof(indices), indices, GL_STATIC_DRAW_ARB);
 
     // getting attrib locations
     GLint positionLocation = glGetAttribLocation(shaderProgram, "aPos");

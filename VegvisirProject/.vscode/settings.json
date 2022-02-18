@@ -8,6 +8,8 @@
         "socket.h": "c",
         "inet.h": "c",
         "avcodec.h": "c",
-        "orqa_input.h": "c"
+        "orqa_input.h": "c",
+        "orqa_opengl.h": "c",
+        "glext.h": "c"
     }
 }
