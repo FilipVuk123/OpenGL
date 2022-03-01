@@ -1,15 +1,14 @@
 #define STB_IMAGE_IMPLEMENTATION
-#define ORQA_IN
-#define ORQA_REF
-#define ORQA_OUT
-#define ORQA_NOARGS
+#define _IN
+#define _REF
+#define _OUT
+#define _NOARGS
 
 #include <stdio.h> // fprintf
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "stb_image.h" // image-loading library, used funcktions: stbi_load, stbi_image_free
 #include "glext.h" // extensions for gpu optimization
-#include "orqa_clock.h"
 
 const GLuint SCR_WIDTH = 800;
 const GLuint SCR_HEIGHT = 600;
@@ -52,7 +51,7 @@ const  GLchar *fragmentShaderSource = "#version 460 core\n"
     "   FragColor = texture(texture1, TexCoord);\n"
     "}\n\0";
 
-int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
+int _initGLFW(_NOARGS void){ // glfw: we first initialize GLFW with glfwInit, after which we can configure GLFW using glfwWindowHint
     if(!glfwInit()){
         fprintf(stderr, "In file: %s, line: %d Failed to initialize GLFW\n", __FILE__, __LINE__);
         glfwTerminate();
@@ -65,18 +64,18 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
     return 0;
 }
 
-void ORQA_processInput(ORQA_REF GLFWwindow *window){ // keeps all the input code
+void _processInput(_REF GLFWwindow *window){ // keeps all the input code
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) // closes window on ESC
         glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
 // whenever the window size changed this callback function executes!
-void ORQA_framebuffer_size_callback(ORQA_REF GLFWwindow* window,ORQA_IN GLint width,ORQA_IN GLint height){
+void _framebuffer_size_callback(_REF GLFWwindow* window,_IN GLint width,_IN GLint height){
     glViewport(0, 0, width, height); // size of the rendering window
 }
 
 int main(){
-    if (ORQA_initGLFW() == -1) return 0;
+    if (_initGLFW() == -1) return 0;
     
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Learning OpenGL", NULL, NULL); // "window" object holds all the windowing data
     if (window == NULL){
@@ -85,7 +84,7 @@ int main(){
         return -1;
     }
     glfwMakeContextCurrent(window); // making the context of our window the main context on the current thread
-    glfwSetFramebufferSizeCallback(window, ORQA_framebuffer_size_callback); // sets the framebuffer resize callback for the specified window.
+    glfwSetFramebufferSizeCallback(window, _framebuffer_size_callback); // sets the framebuffer resize callback for the specified window.
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){ // glad: load all OpenGL (OS specific) function pointers 
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
@@ -177,50 +176,40 @@ int main(){
 
     // loading image
     GLint width, height, nrChannels;
-    unsigned  char *data = stbi_load("./data/orqa-output.jpg", &width, &height, &nrChannels, 0);
+    unsigned  char *data = stbi_load("./data/image", &width, &height, &nrChannels, 0);
 
     GLuint pbo;
     glGenBuffers(1, &pbo);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
     glBufferData(GL_PIXEL_UNPACK_BUFFER, width*height*nrChannels, NULL, GL_STREAM_DRAW);
 
-    void* mappedBuffer = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, width*height*nrChannels, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-    // void *mappedBuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+    // void* mappedBuffer = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, width*height*nrChannels, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+    void *mappedBuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
 
-
-    orqa_clock_t clock = orqa_time_now();
     /*
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data); // genereting texture
         glGenerateMipmap(GL_TEXTURE_2D); // generate mipmaps for a specified texture object
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
     */
-    
-    memcpy(mappedBuffer, data, width*height*nrChannels);
 
+    memcpy(mappedBuffer, data, width*height*nrChannels);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-    // glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+    glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, (void *)0);
     glGenerateMipmap(GL_TEXTURE_2D); 
-    
-
-    printf("Time = %f\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
 
     stbi_image_free(data); // free the image memory
     glUseProgram(shaderProgram); // sets the given program object as the current active shader
 
     while (!glfwWindowShouldClose(window)){ // render loop
         // inputs
-        ORQA_processInput(window); // check for specific key presses and react accordingly every frame
+        _processInput(window); // check for specific key presses and react accordingly every frame
 
         // rendering
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // sets the color value that OpenGL uses to reset the color buffer (background color)
         glClear(GL_COLOR_BUFFER_BIT); // clears the entire buffer. That color buffer will be filled with the color as configured by glClearColor()
 
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-        // glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, (void *)0);
-        glGenerateMipmap(GL_TEXTURE_2D); 
         // drawing
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); // renders the triangles from EBO
 
