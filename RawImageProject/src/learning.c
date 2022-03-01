@@ -9,6 +9,7 @@
 #include <GLFW/glfw3.h>
 #include "stb_image.h" // image-loading library, used funcktions: stbi_load, stbi_image_free
 #include "glext.h" // extensions for gpu optimization
+#include "orqa_clock.h"
 
 const GLuint SCR_WIDTH = 800;
 const GLuint SCR_HEIGHT = 600;
@@ -57,8 +58,8 @@ int ORQA_initGLFW(ORQA_NOARGS void){ // glfw: we first initialize GLFW with glfw
         glfwTerminate();
         return -1;
     }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Specify API version 3.3
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // Specify API version 3.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // Specify API version 3.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6); // Specify API version 3.3
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // creating contex profile
     
     return 0;
@@ -162,7 +163,6 @@ int main(){
     glEnableVertexAttribArray(colorLocation);
     glEnableVertexAttribArray(texCoordLocation);
 
-
     // load and create a texture 
     GLuint texture;
     glGenTextures(1, &texture); // setting referenced IDs that are later genereted into textures using glTexImage2D
@@ -178,12 +178,35 @@ int main(){
     // loading image
     GLint width, height, nrChannels;
     unsigned  char *data = stbi_load("./data/orqa-output.jpg", &width, &height, &nrChannels, 0);
+
+    GLuint pbo;
+    glGenBuffers(1, &pbo);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, width*height*nrChannels, NULL, GL_STREAM_DRAW);
+
+    void* mappedBuffer = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, width*height*nrChannels, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+    // void *mappedBuffer = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+
+
+    orqa_clock_t clock = orqa_time_now();
+    /*
     if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data); // genereting texture
         glGenerateMipmap(GL_TEXTURE_2D); // generate mipmaps for a specified texture object
     } else fprintf(stderr, "In file: %s, line: %d Failed to load texture\n", __FILE__, __LINE__);
-    stbi_image_free(data); // free the image memory
+    */
+    
+    memcpy(mappedBuffer, data, width*height*nrChannels);
 
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+    // glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, (void *)0);
+    glGenerateMipmap(GL_TEXTURE_2D); 
+    
+
+    printf("Time = %f\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
+
+    stbi_image_free(data); // free the image memory
     glUseProgram(shaderProgram); // sets the given program object as the current active shader
 
     while (!glfwWindowShouldClose(window)){ // render loop
@@ -194,6 +217,10 @@ int main(){
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // sets the color value that OpenGL uses to reset the color buffer (background color)
         glClear(GL_COLOR_BUFFER_BIT); // clears the entire buffer. That color buffer will be filled with the color as configured by glClearColor()
 
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+        // glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, (void *)0);
+        glGenerateMipmap(GL_TEXTURE_2D); 
         // drawing
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); // renders the triangles from EBO
 
