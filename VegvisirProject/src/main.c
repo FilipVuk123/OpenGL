@@ -5,9 +5,10 @@
 #define ORQA_OUT
 #define ORQA_NOARGS
 
-typedef enum{
-    OPENGL_OK           = 0,
-    OPENGL_INIT_ERROR   = -1
+typedef enum
+{
+    OPENGL_OK = 0,
+    OPENGL_INIT_ERROR = -1
 } OpenGLFlags;
 
 #define BUFSIZE 1024
@@ -16,7 +17,7 @@ typedef enum{
 #include <stdio.h>
 #include <pthread.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>	// inet_addr
+#include <arpa/inet.h> // inet_addr
 #include <unistd.h>
 #include <netinet/in.h>
 
@@ -25,9 +26,9 @@ typedef enum{
 #include <termios.h> // Contains POSIX terminal control definitions
 #include <unistd.h>  // write(), read(), close()
 
-#include <vendor/cglm/cglm.h> 
+#include <vendor/cglm/cglm.h>
 #include "vendor/json.h"
-#include "orqa_gen_mash.h" 
+#include "orqa_gen_mash.h"
 #include "orqa_clock.h"
 #include "orqa_opengl.h"
 #include "orqa_input.h"
@@ -37,45 +38,49 @@ typedef enum{
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
 
-// fix it!!! 
+// fix it!!!
 int mode; // 0 => 360, 1 => MRSS, 2 => DSS
 
 pthread_mutex_t mutexLock;
 static float orqa_radians(const float deg);
-static void* orqa_udp_thread(ORQA_REF void *c_ptr);
-static void orqa_process_input(ORQA_REF GLFWwindow *window); 
+static void *orqa_udp_thread(ORQA_REF void *c_ptr);
+static void orqa_process_input(ORQA_REF GLFWwindow *window);
 
 static void *orqa_read_from_serial(ORQA_REF void *c_ptr);
-int main(){
+int main()
+{
     orqa_set_error_cb(orqa_error_cb);
 
-    if (orqa_init_glfw(3,3)) return OPENGL_INIT_ERROR;
-    orqa_GLFW_make_window_full_screen(); // Full screen
+    if (orqa_init_glfw(3, 3))
+        return OPENGL_INIT_ERROR;
+    orqa_GLFW_make_window_full_screen();                                                                 // Full screen
     GLFWwindow *window = orqa_create_GLFW_window(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", NULL, NULL); // glfw window object creation
-    if (window == NULL) return OPENGL_INIT_ERROR;
+    if (window == NULL)
+        return OPENGL_INIT_ERROR;
     orqa_make_window_current(window);
 
     orqa_set_frame_buffer_cb(window, orqa_framebuffer_size_callback); // manipulate view port
-    orqa_set_cursor_position_cb(window, orqa_mouse_callback); // move camera_t with cursor
-    orqa_set_input_mode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use cursor but do not display it
-    orqa_set_scroll_cb(window, orqa_scroll_callback); // zoom in/out using mouse wheel
+    orqa_set_cursor_position_cb(window, orqa_mouse_callback);         // move camera_t with cursor
+    orqa_set_input_mode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);   // use cursor but do not display it
+    orqa_set_scroll_cb(window, orqa_scroll_callback);                 // zoom in/out using mouse wheel
 
-    if (!orqa_load_glad((GLADloadproc)orqa_get_proc_address)){ // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
+    if (!orqa_load_glad((GLADloadproc)orqa_get_proc_address))
+    { // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
         glfwTerminate();
         return OPENGL_INIT_ERROR;
     }
 
-    // mash generation 
-    orqa_window_t lr    = orqa_create_window(1.0,  40, 20, -0.7, -0.5, 0.55);
-    orqa_window_t rr    = orqa_create_window(1.0,  40, 20, 0.7, -0.5, 0.55);
-    orqa_window_t DSS1  = orqa_create_window(1.0,  50, 25, -0.7, 0, 0.64);
-    orqa_window_t DSS2  = orqa_create_window(1.0,  50, 25, 0, 0, 1);
-    orqa_window_t DSS3  = orqa_create_window(1.0,  50, 25, 0.7, 0, 0.64);
-    orqa_window_t mr    = orqa_create_window(1.0,  35, 20, 0, -0.32, 0.5);
-    orqa_window_t BW    = orqa_create_window(1.0,  35, 20, 0, 0.6, 0.65);    
-    orqa_window_t MRSS  = orqa_create_window(1.0, 130, 60, 0, 0, 1);
-    orqa_sphere_t sph   = orqa_create_sphere(1.0, 150, 150);
+    // mash generation
+    orqa_window_t lr = orqa_create_window(1.0, 40, 20, -0.7, -0.5, 0.55);
+    orqa_window_t rr = orqa_create_window(1.0, 40, 20, 0.7, -0.5, 0.55);
+    orqa_window_t DSS1 = orqa_create_window(1.0, 50, 25, -0.7, 0, 0.64);
+    orqa_window_t DSS2 = orqa_create_window(1.0, 50, 25, 0, 0, 1);
+    orqa_window_t DSS3 = orqa_create_window(1.0, 50, 25, 0.7, 0, 0.64);
+    orqa_window_t mr = orqa_create_window(1.0, 35, 20, 0, -0.32, 0.5);
+    orqa_window_t BW = orqa_create_window(1.0, 35, 20, 0, 0.6, 0.65);
+    orqa_window_t MRSS = orqa_create_window(1.0, 130, 60, 0, 0, 1);
+    orqa_sphere_t sph = orqa_create_sphere(1.0, 150, 150);
 
     // shader init, compilation and linking
     GLuint shaders[2];
@@ -88,76 +93,70 @@ int main(){
     // get indexes for shader variables
     GLuint posLoc = orqa_get_attrib_location(shaderProgram, "aPos");
     GLuint texLoc = orqa_get_attrib_location(shaderProgram, "aTexCoord");
-    
+
     // init & binding array & buffer objects
     GLuint *VAOs = orqa_generate_VAOs(10);
     GLuint *VBOs = orqa_generate_VBOs(10);
     GLuint *EBOs = orqa_generate_EBOs(10);
-    
+
     orqa_bind_VAOs(VAOs[0]);
-    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[0], rr.numVertices*sizeof(float), rr.Vs, GL_STATIC_DRAW);
-    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[0], rr.numTriangles*sizeof(int), rr.Is, GL_STATIC_DRAW);
-    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
-    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
-    
-    orqa_bind_VAOs(VAOs[1]); 
-    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[1], lr.numVertices*sizeof(float), lr.Vs, GL_STATIC_DRAW);
-    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[1], lr.numTriangles*sizeof(int), lr.Is, GL_STATIC_DRAW);
-    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
-    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
-    
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[0], rr.numVertices * sizeof(float), rr.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[0], rr.numTriangles * sizeof(int), rr.Is, GL_STATIC_DRAW);
+    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
+    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+
+    orqa_bind_VAOs(VAOs[1]);
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[1], lr.numVertices * sizeof(float), lr.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[1], lr.numTriangles * sizeof(int), lr.Is, GL_STATIC_DRAW);
+    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
+    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+
     orqa_bind_VAOs(VAOs[2]);
-    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[2], DSS1.numVertices*sizeof(float),DSS1.Vs, GL_STATIC_DRAW);
-    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[2], DSS1.numTriangles*sizeof(int), DSS1.Is, GL_STATIC_DRAW);
-    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
-    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
-    
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[2], DSS1.numVertices * sizeof(float), DSS1.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[2], DSS1.numTriangles * sizeof(int), DSS1.Is, GL_STATIC_DRAW);
+    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
+    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+
     orqa_bind_VAOs(VAOs[3]);
-    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[3], DSS2.numVertices*sizeof(float), DSS2.Vs, GL_STATIC_DRAW);
-    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[3], DSS2.numTriangles*sizeof(int), DSS2.Is, GL_STATIC_DRAW);
-    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
-    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
-    
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[3], DSS2.numVertices * sizeof(float), DSS2.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[3], DSS2.numTriangles * sizeof(int), DSS2.Is, GL_STATIC_DRAW);
+    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
+    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 
     orqa_bind_VAOs(VAOs[4]);
-    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[4], DSS3.numVertices*sizeof(float),DSS3.Vs, GL_STATIC_DRAW);
-    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[4], DSS3.numTriangles*sizeof(int), DSS3.Is, GL_STATIC_DRAW);
-    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
-    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
-    
-    
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[4], DSS3.numVertices * sizeof(float), DSS3.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[4], DSS3.numTriangles * sizeof(int), DSS3.Is, GL_STATIC_DRAW);
+    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
+    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+
     orqa_bind_VAOs(VAOs[5]);
-    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[5], BW.numVertices*sizeof(float),BW.Vs, GL_STATIC_DRAW);
-    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[5], BW.numTriangles*sizeof(int), BW.Is, GL_STATIC_DRAW);
-    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
-    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
-    
-    
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[5], BW.numVertices * sizeof(float), BW.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[5], BW.numTriangles * sizeof(int), BW.Is, GL_STATIC_DRAW);
+    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
+    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+
     orqa_bind_VAOs(VAOs[6]);
-    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[6], mr.numVertices*sizeof(float),mr.Vs, GL_STATIC_DRAW);
-    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[6], mr.numTriangles*sizeof(int), mr.Is, GL_STATIC_DRAW);
-    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
-    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
-    
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[6], mr.numVertices * sizeof(float), mr.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[6], mr.numTriangles * sizeof(int), mr.Is, GL_STATIC_DRAW);
+    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
+    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 
     orqa_bind_VAOs(VAOs[7]);
-    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[7], MRSS.numVertices*sizeof(float), MRSS.Vs, GL_STATIC_DRAW);
-    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[7], MRSS.numTriangles*sizeof(int), MRSS.Is, GL_STATIC_DRAW);
-    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
-    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
-
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[7], MRSS.numVertices * sizeof(float), MRSS.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[7], MRSS.numTriangles * sizeof(int), MRSS.Is, GL_STATIC_DRAW);
+    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
+    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 
     orqa_bind_VAOs(VAOs[8]);
-    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[8], sph.numVertices*sizeof(float), sph.Vs, GL_STATIC_DRAW);
-    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[8], sph.numTriangles*sizeof(int), sph.Is, GL_STATIC_DRAW);
-    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float*)0);
-    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT,  5 * sizeof(float), (void*)(3* sizeof(float)));
-
+    orqa_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[8], sph.numVertices * sizeof(float), sph.Vs, GL_STATIC_DRAW);
+    orqa_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[8], sph.numTriangles * sizeof(int), sph.Is, GL_STATIC_DRAW);
+    orqa_enable_vertex_attrib_array(posLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
+    orqa_enable_vertex_attrib_array(texLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 
     // texture init
     GLuint *textures = orqa_create_textures(5);
     // loading image!
-    
+
     orqa_bind_texture(textures[0]);
     orqa_load_texture_from_file("./data/MRSS.png");
     orqa_bind_texture(textures[1]);
@@ -166,12 +165,16 @@ int main(){
     orqa_load_texture_from_file("./data/pic.bmp");
     orqa_bind_texture(textures[3]);
     orqa_load_texture_from_file("./data/panorama1.bmp");
-    
 
     // camera init
     orqa_camera_t cam;
-    cam.cameraPos[0] = 0.0f; cam.cameraPos[1] = 0.0f; cam.cameraPos[2] = 0.0f;
-    cam.resultQuat[0] = 0.0f; cam.resultQuat[1] = 0.0f; cam.resultQuat[2] = 0.0f; cam.resultQuat[3] = 1.0f;
+    cam.cameraPos[0] = 0.0f;
+    cam.cameraPos[1] = 0.0f;
+    cam.cameraPos[2] = 0.0f;
+    cam.resultQuat[0] = 0.0f;
+    cam.resultQuat[1] = 0.0f;
+    cam.resultQuat[2] = 0.0f;
+    cam.resultQuat[3] = 1.0f;
     cam.fov = 5.4f;
     orqa_set_window_user_pointer(window, &cam); // sent camera object to callback functions
 
@@ -179,24 +182,29 @@ int main(){
     pthread_t udp_thread;
     // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
     pthread_create(&udp_thread, NULL, orqa_read_from_serial, &cam);
-    if (pthread_mutex_init(&mutexLock, NULL) != 0) {
+    if (pthread_mutex_init(&mutexLock, NULL) != 0)
+    {
         fprintf(stderr, "Mutex init has failed! \n");
         goto threadError;
     }
 
     // MVP matrices init
     mat4 model, proj, view;
-    glm_mat4_identity(model); glm_mat4_identity(view); glm_mat4_identity(proj);
+    glm_mat4_identity(model);
+    glm_mat4_identity(view);
+    glm_mat4_identity(proj);
 
     // get MVP shader indexes
     GLuint modelLoc = orqa_get_uniform_location(shaderProgram, "model");
     GLuint viewLoc = orqa_get_uniform_location(shaderProgram, "view");
     GLuint projLoc = orqa_get_uniform_location(shaderProgram, "proj");
-    
-    while (!glfwWindowShouldClose(window)){ // render loop
+
+    while (!glfwWindowShouldClose(window))
+    { // render loop
         // input
+        orqa_clock_t clock = orqa_time_now();
         orqa_process_input(window);
-        
+
         // render
         orqa_clear_color_buffer(0.2f, 0.2f, 0.2f, 1.0f);
         orqa_clear_buffer(GL_COLOR_BUFFER_BIT); // | GL_DEPTH_BUFFER_BIT);
@@ -208,45 +216,49 @@ int main(){
         glm_quat_look(cam.cameraPos, cam.resultQuat, view);
 
         // send MVP matrices to vertex shader
-        orqa_send_shander_4x4_matrix(modelLoc, 1, &model[0][0]); 
-        orqa_send_shander_4x4_matrix(viewLoc, 1, &view[0][0]); 
-        orqa_send_shander_4x4_matrix(projLoc, 1, &proj[0][0]);  
-        
+        orqa_send_shander_4x4_matrix(modelLoc, 1, &model[0][0]);
+        orqa_send_shander_4x4_matrix(viewLoc, 1, &view[0][0]);
+        orqa_send_shander_4x4_matrix(projLoc, 1, &proj[0][0]);
+
         // build texture && draw
-        if(mode == 0){
+        if (mode == 0)
+        {
             // 360 dome
             orqa_bind_texture(textures[3]);
             orqa_bind_vertex_object_and_draw_it(VAOs[8], GL_TRIANGLES, sph.numTriangles);
-            
-        }else if (mode == 1){
+        }
+        else if (mode == 1)
+        {
             // DSS
-            
-            orqa_bind_texture(textures[0]); 
+
+            orqa_bind_texture(textures[0]);
             orqa_bind_vertex_object_and_draw_it(VAOs[0], GL_TRIANGLES, rr.numTriangles);
             orqa_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, lr.numTriangles);
 
             orqa_bind_texture(textures[2]);
             orqa_bind_vertex_object_and_draw_it(VAOs[5], GL_TRIANGLES, BW.numTriangles);
             orqa_bind_vertex_object_and_draw_it(VAOs[6], GL_TRIANGLES, mr.numTriangles);
-            
+
             orqa_bind_texture(textures[1]);
             orqa_bind_vertex_object_and_draw_it(VAOs[2], GL_TRIANGLES, DSS1.numTriangles);
             orqa_bind_vertex_object_and_draw_it(VAOs[3], GL_TRIANGLES, DSS2.numTriangles);
             orqa_bind_vertex_object_and_draw_it(VAOs[4], GL_TRIANGLES, DSS3.numTriangles);
-            
-        }else if (mode == 2){
+        }
+        else if (mode == 2)
+        {
             // MRSS
-            
+
             orqa_bind_texture(textures[0]);
             orqa_bind_vertex_object_and_draw_it(VAOs[7], GL_TRIANGLES, MRSS.numTriangles);
-            
         }
-        
+
+        // printf("\r Render FPS: %f", 1000/orqa_get_time_diff_msec(clock, orqa_time_now()));
+
         // glfw: swap buffers and poll IO events
         orqa_swap_buffers(window);
         orqa_pool_events();
     }
-    
+
     // deallocating stuff
     orqa_window_free(&lr);
     orqa_window_free(&rr);
@@ -262,71 +274,82 @@ int main(){
     orqa_delete_buffers(10, EBOs);
     orqa_delete_textures(5, textures);
     orqa_delete_program(shaderProgram);
-    threadError:
+threadError:
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
     return OPENGL_OK;
 }
 
-
 /// This function keeps track all the input code.
 /// Moves between DSS, MRSS and 360 modules using 'D', 'M' or '3' keys
-static void orqa_process_input(GLFWwindow *window){ 
+static void orqa_process_input(GLFWwindow *window)
+{
     // keeps all the input code
-    if(orqa_get_key(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
+    if (orqa_get_key(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
         glfwSetWindowShouldClose(window, TRUE);
     }
-    if(orqa_get_key(window, GLFW_KEY_3) == GLFW_PRESS){
+    if (orqa_get_key(window, GLFW_KEY_3) == GLFW_PRESS)
+    {
         mode = 0;
     }
-    if(orqa_get_key(window, GLFW_KEY_D) == GLFW_PRESS){
+    if (orqa_get_key(window, GLFW_KEY_D) == GLFW_PRESS)
+    {
         mode = 1;
     }
-    if(orqa_get_key(window, GLFW_KEY_M) == GLFW_PRESS){
+    if (orqa_get_key(window, GLFW_KEY_M) == GLFW_PRESS)
+    {
         mode = 2;
     }
 }
 
 /// This function connects to ORQA FPV.One goggles via UDP socket and performs motorless gimbal while goggles are in use.
-static void *orqa_udp_thread(ORQA_REF void *c_ptr){
-    // inits 
+static void *orqa_udp_thread(ORQA_REF void *c_ptr)
+{
+    // inits
     fprintf(stderr, "In thread\n");
     orqa_camera_t *c = c_ptr;
     char buf[BUFSIZE];
     float yaw, pitch, roll;
-    mat4 rollMat; 
+    mat4 rollMat;
     glm_mat4_identity(rollMat);
     versor rollQuat, pitchQuat, yawQuat;
-    glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);
+    glm_quat_identity(rollQuat);
+    glm_quat_identity(yawQuat);
+    glm_quat_identity(pitchQuat);
     struct sockaddr_in serveraddr;
-	int s, recv_len, optval = 1;
-	
-	//create a UDP socket
-	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < -1){
-		printf("socket failed init\n");
-        return NULL;
-	}
-	printf("Socket created!\n");
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));
-	memset((char *) &serveraddr, 0, sizeof(serveraddr));
-	
-	serveraddr.sin_family = AF_INET;
-	serveraddr.sin_port = htons(PORT);
-	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	
-	//bind socket to port
-	if( bind(s , (struct sockaddr*)&serveraddr, sizeof(serveraddr) ) == -1){
-		printf("Binding error!\n");
-        goto exit;
-	}
-	printf("Bind done!\n");
-	while(1){
-		bzero(buf, BUFSIZE);
+    int s, recv_len, optval = 1;
 
-        if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0){
-			printf("Recieving error!\n");
+    // create a UDP socket
+    if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < -1)
+    {
+        printf("socket failed init\n");
+        return NULL;
+    }
+    printf("Socket created!\n");
+    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
+    memset((char *)&serveraddr, 0, sizeof(serveraddr));
+
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_port = htons(PORT);
+    serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    // bind socket to port
+    if (bind(s, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) == -1)
+    {
+        printf("Binding error!\n");
+        goto exit;
+    }
+    printf("Bind done!\n");
+    while (1)
+    {
+        bzero(buf, BUFSIZE);
+
+        if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0)
+        {
+            printf("Recieving error!\n");
             break;
-		}
-        
+        }
+
         // parse JSON
         JSONObject *json = parseJSON(buf);
         yaw = atof(json->pairs[0].value->stringValue);
@@ -335,57 +358,62 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr){
         free(json);
 
         // Using quaternions to calculate camera rotations
-        glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f}); 
-        glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});  
-        glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f}); 
-        
+        glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f});
+        glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});
+        glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f});
+
         pthread_mutex_lock(&mutexLock);
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
         pthread_mutex_unlock(&mutexLock);
     }
-    exit:
+exit:
     close(s);
     return NULL;
 }
 
 /// This function converts radians from degrees.
 /// Returns radians in float.
-static float orqa_radians(const float deg){ 
-    return (deg*M_PI/180.0f); // calculate radians
+static float orqa_radians(const float deg)
+{
+    return (deg * M_PI / 180.0f); // calculate radians
 }
-static void *orqa_read_from_serial(ORQA_REF void *c_ptr){
+static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
+{
     orqa_camera_t *c = c_ptr;
-    float yaw, pitch, roll;
+    double yaw, pitch, roll;
     mat4 rollMat;
     glm_mat4_identity(rollMat);
     versor rollQuat, pitchQuat, yawQuat;
-    glm_quat_identity(rollQuat); glm_quat_identity(yawQuat); glm_quat_identity(pitchQuat);  
-    
+    glm_quat_identity(rollQuat);
+    glm_quat_identity(yawQuat);
+    glm_quat_identity(pitchQuat);
+
     // Open the serial port. Change device path as needed (currently set to an standard FTDI USB-UART cable type device)
-    int serial_port = open("/dev/ttyUSB0", O_RDWR);    // Create new termios struc, we call it 'tty' for convention
-    struct termios tty;    // Read in existing settings, and handle any error
+    int serial_port = open("/dev/ttyUSB0", O_RDWR); // Create new termios struc, we call it 'tty' for convention
+    struct termios tty;                             // Read in existing settings, and handle any error
     if (tcgetattr(serial_port, &tty) != 0)
     {
         printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
         goto exit;
     }
-    tty.c_cflag &= ~PARENB;        // Clear parity bit, disabling parity (most common)
-    tty.c_cflag &= ~CSTOPB;        // Clear stop field, only one stop bit used in communication (most common)
-    tty.c_cflag &= ~CSIZE;         // Clear all bits that set the data size
-    tty.c_cflag |= CS8;            // 8 bits per byte (most common)
-    tty.c_cflag &= ~CRTSCTS;       // Disable RTS/CTS hardware flow control (most common)
-    tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL = 1)    tty.c_lflag &= ~ICANON;
+    tty.c_cflag &= ~PARENB;                                                      // Clear parity bit, disabling parity (most common)
+    tty.c_cflag &= ~CSTOPB;                                                      // Clear stop field, only one stop bit used in communication (most common)
+    tty.c_cflag &= ~CSIZE;                                                       // Clear all bits that set the data size
+    tty.c_cflag |= CS8;                                                          // 8 bits per byte (most common)
+    tty.c_cflag &= ~CRTSCTS;                                                     // Disable RTS/CTS hardware flow control (most common)
+    tty.c_cflag |= CREAD | CLOCAL;                                               // Turn on READ & ignore ctrl lines (CLOCAL = 1)    tty.c_lflag &= ~ICANON;
     tty.c_lflag &= ~ECHO;                                                        // Disable echo
     tty.c_lflag &= ~ECHOE;                                                       // Disable erasure
     tty.c_lflag &= ~ECHONL;                                                      // Disable new-line echo
     tty.c_lflag &= ~ISIG;                                                        // Disable interpretation of INTR, QUIT and SUSP
     tty.c_iflag &= ~(IXON | IXOFF | IXANY);                                      // Turn off s/w flow ctrl
     tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL); // Disable any special handling of received bytes    tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
-    tty.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed    tty.c_cc[VTIME] = 1;
-    tty.c_cc[VMIN] = 0;    // Set in/out baud rate to be 115200
+    tty.c_oflag &= ~ONLCR;                                                       // Prevent conversion of newline to carriage return/line feed    tty.c_cc[VTIME] = 1;
+    tty.c_cc[VMIN] = 0;                                                          // Set in/out baud rate to be 115200
     cfsetispeed(&tty, B115200);
-    cfsetospeed(&tty, B115200);    // Save tty settings, also checking for error
+    cfsetospeed(&tty, B115200); // Save tty settings, also checking for error
+
     if (tcsetattr(serial_port, TCSANOW, &tty) != 0)
     {
         printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
@@ -393,42 +421,75 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr){
     }
     // Allocate memory for read buffer, set size according to your needs
     char ignored;
-    printf("Beafore first while!\n");    while(ignored != '}'){
+    printf("SERIAL = OK!\n");
+    while (ignored != '}')
+    {
         read(serial_port, &ignored, sizeof(ignored));
-    }    char line;
+    }
+    char ch;
+    int myCount = 0;
     while (1)
     {
-        // Normally you wouldn't do this memset() call, but since we will just receive
-        // ASCII data for this example, we'll set everything to 0 so we can
-        // call printf() easily.
-        char read_buf[256] = "\0";        // Read bytes. The behaviour of read() (e.g. does it block?,
-        // how long does it block for?) depends on the configuration
-        // settings above, specifically VMIN and VTIME
-        int b = 0;
-        while(1){
-            read(serial_port, &line, sizeof(line));
-            read_buf[b++] = line;
-            if (line == '}') break;
-        }        // Here we assume we received ASCII data, but you might be sending raw bytes (in that case, don't try and
-        // print it to the screen like this!)
-        printf("Received buffer: %s\n", read_buf);        // parse JSON
-        JSONObject *json = parseJSON(read_buf);
-        yaw = atof(json->pairs[0].value->stringValue);
-        pitch = -atof(json->pairs[1].value->stringValue);
-        roll = atof(json->pairs[2].value->stringValue);
+        myCount++;
+        orqa_clock_t timeit = orqa_time_now();
+        char jsonBuf[256] = "\0";
+        int c1 = 0, c2 = 0, c3 = 0, counter = 0, b = 0, first = 0; 
+        char yawBuf[16] = "\0";
+        char pitchBuf[16] = "\0";
+        char rollBuf[16] = "\0";
+        while (1)
+        {
+            read(serial_port, &ch, sizeof(ch));
 
-        printf("yaw: %f, pitch: %f, roll: %f\n", yaw, pitch, roll);
+            if (ch != '{' && first == 0){
+                first = 1;
+                continue;
+            }
+            jsonBuf[b++] = ch;
 
-        free(json);        // Using quaternions to calculate camera rotations
+            if (ch == '"'){
+                counter++;
+                continue;
+            }
+            if (counter == 3){
+                yawBuf[c1++] = ch;
+            } 
+
+            if (counter == 7){
+                pitchBuf[c2++] = ch;
+            } 
+
+            if (counter == 11){
+                rollBuf[c3++] = ch;
+            }
+
+            if (counter > 11)
+                break;
+            if (myCount++ %2 == 0) continue;
+        }
+        
+        printf("yawBuf: %s, pitchBuf: %s, rollBuf: %s\n", yawBuf, pitchBuf, rollBuf);
+        
+        printf("Buffer: %s\n", jsonBuf);
+        
+        // printf("Data FPS: %f\n", 1000/orqa_get_time_diff_msec(timeit, orqa_time_now()));
+
+        yaw = atof(yawBuf);
+        pitch = -atof(pitchBuf);
+        roll = atof(rollBuf);
+
+        printf("Working with this: yaw: %f, pitch: %f, roll: %f\n", yaw, pitch, roll);
+        // free(json); // Using quaternions to calculate camera rotations
         glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f});
         glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});
-        glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f});        
+        glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f});
+
         pthread_mutex_lock(&mutexLock);
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
         pthread_mutex_unlock(&mutexLock);
     }
-    exit:
+exit:
     close(serial_port);
     return NULL; // success
 }
