@@ -78,7 +78,7 @@ int main(){
     orqa_sphere_t sph   = orqa_create_sphere(1.0, 150, 150);
 
     // shader init, compilation and linking
-    GLuint *shaders = malloc(sizeof(GLuint) * 2);
+    GLuint shaders[2];
 
     shaders[0] = orqa_load_shader_from_file("./shaders/vertexShader.vert", GL_VERTEX_SHADER);
     shaders[1] = orqa_load_shader_from_file("./shaders/fragmentShader.frag", GL_FRAGMENT_SHADER);
@@ -177,6 +177,7 @@ int main(){
 
     // UDP thread & mutex init
     pthread_t udp_thread;
+    // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
     pthread_create(&udp_thread, NULL, orqa_read_from_serial, &cam);
     if (pthread_mutex_init(&mutexLock, NULL) != 0) {
         fprintf(stderr, "Mutex init has failed! \n");
@@ -271,6 +272,9 @@ int main(){
 /// Moves between DSS, MRSS and 360 modules using 'D', 'M' or '3' keys
 static void orqa_process_input(GLFWwindow *window){ 
     // keeps all the input code
+    if(orqa_get_key(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
+        glfwSetWindowShouldClose(window, TRUE);
+    }
     if(orqa_get_key(window, GLFW_KEY_3) == GLFW_PRESS){
         mode = 0;
     }
@@ -409,11 +413,11 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr){
         // print it to the screen like this!)
         printf("Received buffer: %s\n", read_buf);        // parse JSON
         JSONObject *json = parseJSON(read_buf);
-        yaw = atof(json->pairs[0].value->stringValue) + 180.0;
+        yaw = atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
-        roll = -atof(json->pairs[2].value->stringValue);
+        roll = atof(json->pairs[2].value->stringValue);
 
-
+        printf("yaw: %f, pitch: %f, roll: %f\n", yaw, pitch, roll);
 
         free(json);        // Using quaternions to calculate camera rotations
         glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f});
