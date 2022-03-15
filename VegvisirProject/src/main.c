@@ -445,6 +445,8 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
                 first = 1;
                 continue;
             }
+            if (counter > 11 || ch == '}')
+                break;
             jsonBuf[b++] = ch;
 
             if (ch == '"'){
@@ -463,8 +465,7 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
                 rollBuf[c3++] = ch;
             }
 
-            if (counter > 11)
-                break;
+            
             if (myCount++ %2 == 0) continue;
         }
         
