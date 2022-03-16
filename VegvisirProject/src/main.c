@@ -302,6 +302,13 @@ static void orqa_process_input(GLFWwindow *window)
     }
 }
 
+/// This function converts radians from degrees.
+/// Returns radians in float.
+static float orqa_radians(const float deg)
+{
+    return (deg * M_PI / 180.0f); // calculate radians
+}
+
 /// This function connects to ORQA FPV.One goggles via UDP socket and performs motorless gimbal while goggles are in use.
 static void *orqa_udp_thread(ORQA_REF void *c_ptr)
 {
@@ -339,7 +346,7 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr)
         printf("Binding error!\n");
         goto exit;
     }
-    printf("Bind done!\n");
+    printf("W8ing for packets!!!\n");
     while (1)
     {
         bzero(buf, BUFSIZE);
@@ -372,12 +379,6 @@ exit:
     return NULL;
 }
 
-/// This function converts radians from degrees.
-/// Returns radians in float.
-static float orqa_radians(const float deg)
-{
-    return (deg * M_PI / 180.0f); // calculate radians
-}
 static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
 {
     orqa_camera_t *c = c_ptr;
@@ -427,13 +428,11 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
         read(serial_port, &ignored, sizeof(ignored));
     }
     char ch;
-    int myCount = 0;
     while (1)
     {
-        myCount++;
         orqa_clock_t timeit = orqa_time_now();
         char jsonBuf[256] = "\0";
-        int c1 = 0, c2 = 0, c3 = 0, counter = 0, b = 0, first = 0; 
+        int c1 = 0, c2 = 0, c3 = 0, counter = 0, b = 0, first = 0;
         char yawBuf[16] = "\0";
         char pitchBuf[16] = "\0";
         char rollBuf[16] = "\0";
@@ -441,7 +440,8 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
         {
             read(serial_port, &ch, sizeof(ch));
 
-            if (ch != '{' && first == 0){
+            if (ch != '{' && first == 0)
+            {
                 first = 1;
                 continue;
             }
@@ -449,30 +449,30 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
                 break;
             jsonBuf[b++] = ch;
 
-            if (ch == '"'){
+            if (ch == '"')
+            {
                 counter++;
                 continue;
             }
-            if (counter == 3){
+            if (counter == 3)
+            {
                 yawBuf[c1++] = ch;
-            } 
+            }
 
-            if (counter == 7){
+            if (counter == 7)
+            {
                 pitchBuf[c2++] = ch;
-            } 
+            }
 
-            if (counter == 11){
+            if (counter == 11)
+            {
                 rollBuf[c3++] = ch;
             }
 
-            
-            if (myCount++ %2 == 0) continue;
         }
-        
+
         printf("yawBuf: %s, pitchBuf: %s, rollBuf: %s\n", yawBuf, pitchBuf, rollBuf);
-        
         printf("Buffer: %s\n", jsonBuf);
-        
         // printf("Data FPS: %f\n", 1000/orqa_get_time_diff_msec(timeit, orqa_time_now()));
 
         yaw = atof(yawBuf);
