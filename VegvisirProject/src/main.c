@@ -34,7 +34,7 @@ typedef enum
 #include "orqa_input.h"
 #include "orqa_window.h"
 
-
+float yaw, pitch, roll;
 
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
@@ -430,26 +430,38 @@ static void *orqa_read_from_serial()
     // Allocate memory for read buffer, set size according to your needs
     char ignored;
     printf("SERIAL = OK!\n");
-    while (ignored != '}')
+    do
     {
         read(serial_port, &ignored, sizeof(ignored));
-    }
+    }while ( (ignored != ';'));
     char ch;
     while (1)
     {
-        char jsonBuf[128] = "\0";
-        
+        char yawBuf[16] = "\0";
+        char pitchBuf[16] = "\0";
+        char rollBuf[16] = "\0";
         int b = 0;
+        int count = 0;
         while (1)
         {
             read(serial_port, &ch, sizeof(ch));
-            jsonBuf[b++] = ch;
-
-            if (ch == '}')
+            if (ch == ';')
                 break;
+
+            if (ch == ','){
+                b = 0;
+                count ++;
+                continue;
+            }
+            if (count == 0) yawBuf[b++] = ch;
+            else if (count == 1) pitchBuf[b++] = ch;
+            else rollBuf[b++] = ch;
+
             if(EXIT) goto exit;
-        }
-        memcpy(serialBuffer, jsonBuf, sizeof(jsonBuf));        
+        }     
+        yaw = atof(yawBuf);
+        pitch = -atof(pitchBuf);
+        roll = atof(rollBuf);
         FLAG = 1;
     }
 exit:
@@ -461,7 +473,7 @@ exit:
 static void *orqa_move_camera(ORQA_REF void *c_ptr){
     // parse JSON
     orqa_camera_t *c = c_ptr;
-    float yaw, pitch, roll;
+    // float yaw, pitch, roll;
     versor rollQuat, pitchQuat, yawQuat;
     glm_quat_identity(rollQuat);
     glm_quat_identity(yawQuat);
@@ -470,23 +482,15 @@ static void *orqa_move_camera(ORQA_REF void *c_ptr){
     while(1){
         if(EXIT) return NULL; 
         if (FLAG){
-            JSONObject *json = parseJSON(serialBuffer);
-            if(json){
-                yaw = atof(json->pairs[0].value->stringValue);
-                pitch = -atof(json->pairs[1].value->stringValue);
-                roll = atof(json->pairs[2].value->stringValue);
-                free(json);
-                
-                glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f});
-                glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});
-                glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f});
+            glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f});
+            glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});
+            glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f});
 
-                pthread_mutex_lock(&mutexLock);
-                glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
-                glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
-                pthread_mutex_unlock(&mutexLock);
+            pthread_mutex_lock(&mutexLock);
+            glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
+            glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
+            pthread_mutex_unlock(&mutexLock);
                 FLAG = 0;
-            }
         }
     }
     return NULL; // success
