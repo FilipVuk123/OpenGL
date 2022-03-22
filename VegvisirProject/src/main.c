@@ -35,6 +35,8 @@ typedef enum
 #include "orqa_input.h"
 #include "orqa_window.h"
 
+float yaw, pitch, roll;
+
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
@@ -390,59 +392,56 @@ exitUDP:
     printf("UDO socket closed!\n\n");
     return NULL;
 }
-
 static void *orqa_read_from_serial()
 {
     // Open the serial port. Change device path as needed (currently set to an standard FTDI USB-UART cable type device)
-    int serial_port = open("/dev/ttyUSB0", O_RDONLY); // Create new termios struc, we call it 'tty' for convention
+    int serial_port = open("/dev/ttyUSB0", O_RDWR); // Create new termios struc, we call it 'tty' for convention
     struct termios tty;                             // Read in existing settings, and handle any error
     if (tcgetattr(serial_port, &tty) != 0)
     {
         printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
         goto exitSerial;
     }
-    tty.c_cflag &= ~PARENB;        // Clear parity bit, disabling parity (most common)
-    tty.c_cflag &= ~CSTOPB;        // Clear stop field, only one stop bit used in communication (most common)
-    tty.c_cflag &= ~CSIZE;         // Clear all bits that set the data size
-    tty.c_cflag |= CS8;            // 8 bits per byte (most common)
-    tty.c_cflag &= ~CRTSCTS;       // Disable RTS/CTS hardware flow control (most common)
-    tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL = 1)
+    tty.c_cflag &= ~PARENB;                                                      // Clear parity bit, disabling parity (most common)
+    tty.c_cflag &= ~CSTOPB;                                                      // Clear stop field, only one stop bit used in communication (most common)
+    tty.c_cflag &= ~CSIZE;                                                       // Clear all bits that set the data size
+    tty.c_cflag |= CS8;                                                          // 8 bits per byte (most common)
+    tty.c_cflag &= ~CRTSCTS;                                                     // Disable RTS/CTS hardware flow control (most common)
+    tty.c_cflag |= CREAD | CLOCAL;                                               // Turn on READ & ignore ctrl lines (CLOCAL = 1)    
     tty.c_lflag &= ~ICANON;
     tty.c_lflag &= ~ECHO;                                                        // Disable echo
     tty.c_lflag &= ~ECHOE;                                                       // Disable erasure
     tty.c_lflag &= ~ECHONL;                                                      // Disable new-line echo
     tty.c_lflag &= ~ISIG;                                                        // Disable interpretation of INTR, QUIT and SUSP
     tty.c_iflag &= ~(IXON | IXOFF | IXANY);                                      // Turn off s/w flow ctrl
-    tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL); // Disable any special handling of received bytes
+    tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL); // Disable any special handling of received bytes    
     tty.c_oflag &= ~OPOST;                                                       // Prevent special interpretation of output bytes (e.g. newline chars)
-    tty.c_oflag &= ~ONLCR;                                                       // Prevent conversion of newline to carriage return/line feed
-
+    tty.c_oflag &= ~ONLCR;                                                       // Prevent conversion of newline to carriage return/line feed    
+    
     tty.c_cc[VTIME] = 1;
-    tty.c_cc[VMIN] = 0;
-
+    tty.c_cc[VMIN] = 0;                                                          
+    
     // Set in/out baud rate to be 115200
     cfsetispeed(&tty, B115200);
-    cfsetospeed(&tty, B115200);
-
+    cfsetospeed(&tty, B115200); 
+    
     // Save tty settings, also checking for errors
     if (tcsetattr(serial_port, TCSANOW, &tty) != 0)
     {
         printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
         goto exitSerial;
     }
+    printf("SERIAL OK!\n");
     // Allocate memory for read buffer, set size according to your needs
-    printf("SERIAL = OK!\n");
-
     char ch;
     do
     {
         read(serial_port, &ch, sizeof(ch));
     } while (ch != ';');
-    
     while (1)
     {
         if (EXIT)
-            goto exitSerial;
+                goto exitSerial;
         int index = 0;
         char headTrackingBuffer[40] = "\0";
         do
@@ -457,25 +456,21 @@ static void *orqa_read_from_serial()
     }
 exitSerial:
     close(serial_port);
-    printf("\nSerial port closed!\n");
+    printf("Serial port closed!\n\n");
     return NULL; // success
 }
 
-static void *orqa_move_camera(ORQA_REF void *c_ptr)
-{
+static void *orqa_move_camera(ORQA_REF void *c_ptr){
+    // parse JSON
     orqa_camera_t *c = c_ptr;
-    float yaw, pitch, roll;
+    // float yaw, pitch, roll;
     versor rollQuat, pitchQuat, yawQuat;
     glm_quat_identity(rollQuat);
     glm_quat_identity(yawQuat);
     glm_quat_identity(pitchQuat);
-
     printf("IN MOVE CAMERA THREAD!");
-
-    while (1)
-    {
-        if (EXIT)
-            goto exitThread;
+    while(1){
+        if(EXIT) return NULL; 
         if (FLAG)
         {
             int b = 0, count = 0;
@@ -502,7 +497,7 @@ static void *orqa_move_camera(ORQA_REF void *c_ptr)
                 else
                     rollBuf[b++] = ch;
                 if (EXIT)
-                    goto exitThread;
+                    return NULL;
             }
             yaw = atof(yawBuf);
             pitch = -atof(pitchBuf);
@@ -518,6 +513,5 @@ static void *orqa_move_camera(ORQA_REF void *c_ptr)
             FLAG = 0;
         }
     }
-exitThread:
     return NULL; // success
 }
