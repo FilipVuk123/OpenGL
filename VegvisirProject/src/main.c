@@ -34,9 +34,15 @@ typedef enum
 #include "orqa_input.h"
 #include "orqa_window.h"
 
+
+
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
+
+char serialBuffer[256] = "\0";
+int FLAG = 0;
+int EXIT = 0;
 
 // fix it!!!
 int mode; // 0 => 360, 1 => MRSS, 2 => DSS
@@ -45,8 +51,8 @@ pthread_mutex_t mutexLock;
 static float orqa_radians(const float deg);
 static void *orqa_udp_thread(ORQA_REF void *c_ptr);
 static void orqa_process_input(ORQA_REF GLFWwindow *window);
-
-static void *orqa_read_from_serial(ORQA_REF void *c_ptr);
+static void *orqa_move_camera(ORQA_REF void *c_ptr);
+static void *orqa_read_from_serial();
 int main()
 {
     orqa_set_error_cb(orqa_error_cb);
@@ -179,9 +185,11 @@ int main()
     orqa_set_window_user_pointer(window, &cam); // sent camera object to callback functions
 
     // UDP thread & mutex init
-    pthread_t udp_thread;
-    // pthread_create(&udp_thread, NULL, orqa_udp_thread, &cam);
-    pthread_create(&udp_thread, NULL, orqa_read_from_serial, &cam);
+    pthread_t readFromSerial, readFromUDP, moveCamera;
+    // pthread_create(&readFromUDP, NULL, orqa_udp_thread, &cam);
+    pthread_create(&readFromSerial, NULL, orqa_read_from_serial, NULL);
+    pthread_create(&moveCamera, NULL, orqa_move_camera, &cam);
+    
     if (pthread_mutex_init(&mutexLock, NULL) != 0)
     {
         fprintf(stderr, "Mutex init has failed! \n");
@@ -286,6 +294,8 @@ static void orqa_process_input(GLFWwindow *window)
     // keeps all the input code
     if (orqa_get_key(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
+        EXIT = 1;
+        orqa_sleep(ORQA_SLEEP_SEC, 1);
         glfwSetWindowShouldClose(window, TRUE);
     }
     if (orqa_get_key(window, GLFW_KEY_3) == GLFW_PRESS)
@@ -317,8 +327,6 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr)
     orqa_camera_t *c = c_ptr;
     char buf[BUFSIZE];
     float yaw, pitch, roll;
-    mat4 rollMat;
-    glm_mat4_identity(rollMat);
     versor rollQuat, pitchQuat, yawQuat;
     glm_quat_identity(rollQuat);
     glm_quat_identity(yawQuat);
@@ -356,7 +364,7 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr)
             printf("Recieving error!\n");
             break;
         }
-
+        if(EXIT) goto exit;
         // parse JSON
         JSONObject *json = parseJSON(buf);
         yaw = atof(json->pairs[0].value->stringValue);
@@ -376,20 +384,12 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr)
     }
 exit:
     close(s);
+    printf("UDO socket closed!\n\n");
     return NULL;
 }
 
-static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
+static void *orqa_read_from_serial()
 {
-    orqa_camera_t *c = c_ptr;
-    double yaw, pitch, roll;
-    mat4 rollMat;
-    glm_mat4_identity(rollMat);
-    versor rollQuat, pitchQuat, yawQuat;
-    glm_quat_identity(rollQuat);
-    glm_quat_identity(yawQuat);
-    glm_quat_identity(pitchQuat);
-
     // Open the serial port. Change device path as needed (currently set to an standard FTDI USB-UART cable type device)
     int serial_port = open("/dev/ttyUSB0", O_RDWR); // Create new termios struc, we call it 'tty' for convention
     struct termios tty;                             // Read in existing settings, and handle any error
@@ -403,18 +403,25 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
     tty.c_cflag &= ~CSIZE;                                                       // Clear all bits that set the data size
     tty.c_cflag |= CS8;                                                          // 8 bits per byte (most common)
     tty.c_cflag &= ~CRTSCTS;                                                     // Disable RTS/CTS hardware flow control (most common)
-    tty.c_cflag |= CREAD | CLOCAL;                                               // Turn on READ & ignore ctrl lines (CLOCAL = 1)    tty.c_lflag &= ~ICANON;
+    tty.c_cflag |= CREAD | CLOCAL;                                               // Turn on READ & ignore ctrl lines (CLOCAL = 1)    
+    tty.c_lflag &= ~ICANON;
     tty.c_lflag &= ~ECHO;                                                        // Disable echo
     tty.c_lflag &= ~ECHOE;                                                       // Disable erasure
     tty.c_lflag &= ~ECHONL;                                                      // Disable new-line echo
     tty.c_lflag &= ~ISIG;                                                        // Disable interpretation of INTR, QUIT and SUSP
     tty.c_iflag &= ~(IXON | IXOFF | IXANY);                                      // Turn off s/w flow ctrl
-    tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL); // Disable any special handling of received bytes    tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
-    tty.c_oflag &= ~ONLCR;                                                       // Prevent conversion of newline to carriage return/line feed    tty.c_cc[VTIME] = 1;
-    tty.c_cc[VMIN] = 0;                                                          // Set in/out baud rate to be 115200
+    tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL); // Disable any special handling of received bytes    
+    tty.c_oflag &= ~OPOST;                                                       // Prevent special interpretation of output bytes (e.g. newline chars)
+    tty.c_oflag &= ~ONLCR;                                                       // Prevent conversion of newline to carriage return/line feed    
+    
+    tty.c_cc[VTIME] = 1;
+    tty.c_cc[VMIN] = 0;                                                          
+    
+    // Set in/out baud rate to be 115200
     cfsetispeed(&tty, B115200);
-    cfsetospeed(&tty, B115200); // Save tty settings, also checking for error
-
+    cfsetospeed(&tty, B115200); 
+    
+    // Save tty settings, also checking for errors
     if (tcsetattr(serial_port, TCSANOW, &tty) != 0)
     {
         printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
@@ -430,67 +437,57 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
     char ch;
     while (1)
     {
-        orqa_clock_t timeit = orqa_time_now();
-        char jsonBuf[256] = "\0";
-        int c1 = 0, c2 = 0, c3 = 0, counter = 0, b = 0, first = 0;
-        char yawBuf[16] = "\0";
-        char pitchBuf[16] = "\0";
-        char rollBuf[16] = "\0";
+        char jsonBuf[128] = "\0";
+        
+        int b = 0;
         while (1)
         {
             read(serial_port, &ch, sizeof(ch));
-
-            if (ch != '{' && first == 0)
-            {
-                first = 1;
-                continue;
-            }
-            if (counter > 11 || ch == '}')
-                break;
             jsonBuf[b++] = ch;
 
-            if (ch == '"')
-            {
-                counter++;
-                continue;
-            }
-            if (counter == 3)
-            {
-                yawBuf[c1++] = ch;
-            }
-
-            if (counter == 7)
-            {
-                pitchBuf[c2++] = ch;
-            }
-
-            if (counter == 11)
-            {
-                rollBuf[c3++] = ch;
-            }
-
+            if (ch == '}')
+                break;
+            if(EXIT) goto exit;
         }
-
-        printf("yawBuf: %s, pitchBuf: %s, rollBuf: %s\n", yawBuf, pitchBuf, rollBuf);
-        printf("Buffer: %s\n", jsonBuf);
-        // printf("Data FPS: %f\n", 1000/orqa_get_time_diff_msec(timeit, orqa_time_now()));
-
-        yaw = atof(yawBuf);
-        pitch = -atof(pitchBuf);
-        roll = atof(rollBuf);
-
-        printf("Working with this: yaw: %f, pitch: %f, roll: %f\n", yaw, pitch, roll);
-        // free(json); // Using quaternions to calculate camera rotations
-        glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f});
-        glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});
-        glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f});
-
-        pthread_mutex_lock(&mutexLock);
-        glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
-        glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
-        pthread_mutex_unlock(&mutexLock);
+        memcpy(serialBuffer, jsonBuf, sizeof(jsonBuf));        
+        FLAG = 1;
     }
 exit:
     close(serial_port);
+    printf("Serial port closed!\n\n");
+    return NULL; // success
+}
+
+static void *orqa_move_camera(ORQA_REF void *c_ptr){
+    // parse JSON
+    orqa_camera_t *c = c_ptr;
+    float yaw, pitch, roll;
+    versor rollQuat, pitchQuat, yawQuat;
+    glm_quat_identity(rollQuat);
+    glm_quat_identity(yawQuat);
+    glm_quat_identity(pitchQuat);
+    printf("IN MOVE CAMERA THREAD!");
+    while(1){
+        if(EXIT) return NULL; 
+        if (FLAG){
+            JSONObject *json = parseJSON(serialBuffer);
+            if(json){
+                yaw = atof(json->pairs[0].value->stringValue);
+                pitch = -atof(json->pairs[1].value->stringValue);
+                roll = atof(json->pairs[2].value->stringValue);
+                free(json);
+                
+                glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f});
+                glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});
+                glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f});
+
+                pthread_mutex_lock(&mutexLock);
+                glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
+                glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
+                pthread_mutex_unlock(&mutexLock);
+                FLAG = 0;
+            }
+        }
+    }
     return NULL; // success
 }

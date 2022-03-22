@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "ioctl.h": "c",
-        "videodev2.h": "c",
-        "v4l2-controls.h": "c"
-    }
-}

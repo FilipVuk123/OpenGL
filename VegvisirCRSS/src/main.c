@@ -25,6 +25,7 @@ typedef enum
 #include <errno.h>   // Error integer and strerror() function
 #include <termios.h> // Contains POSIX terminal control definitions
 #include <unistd.h>  // write(), read(), close()
+#include <signal.h>
 
 #include <vendor/cglm/cglm.h>
 #include "vendor/json.h"
@@ -117,7 +118,7 @@ int main()
     orqa_set_window_user_pointer(window, &cam); // sent camera object to callback functions
 
 
-    // MVP matrices init
+    // MVP matrices inits
     mat4 model, proj, view;
     glm_mat4_identity(model);
     glm_mat4_identity(view);
