@@ -182,7 +182,7 @@ int main()
     orqa_set_window_user_pointer(window, &cam); // sent camera object to callback functions
 
     // UDP thread & mutex init
-    pthread_t readFromSerial, readFromUDP, moveCamera;
+    pthread_t readFromSerial, readFromUDP;
     // pthread_create(&readFromUDP, NULL, orqa_udp_thread, &cam);
     pthread_create(&readFromSerial, NULL, orqa_read_from_serial, &cam);
 
@@ -256,7 +256,7 @@ int main()
             orqa_bind_vertex_object_and_draw_it(VAOs[7], GL_TRIANGLES, MRSS.numTriangles);
         }
 
-        // printf("\r Render FPS: %f", 1000/orqa_get_time_diff_msec(clock, orqa_time_now()));
+        printf("\r Render FPS: %f", 1000/orqa_get_time_diff_msec(clock, orqa_time_now()));
 
         // glfw: swap buffers and poll IO events
         orqa_swap_buffers(window);
@@ -396,8 +396,6 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
     glm_quat_identity(yawQuat);
     glm_quat_identity(pitchQuat);
 
-    float yaw, pitch, roll;
-
     // Open the serial port. Change device path as needed (currently set to an standard FTDI USB-UART cable type device)
     int serial_port = open("/dev/ttyUSB0", O_RDWR); // Create new termios struc, we call it 'tty' for convention
     struct termios tty;                             // Read in existing settings, and handle any error
@@ -422,8 +420,9 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
     tty.c_oflag &= ~OPOST;                                                       // Prevent special interpretation of output bytes (e.g. newline chars)
     tty.c_oflag &= ~ONLCR;                                                       // Prevent conversion of newline to carriage return/line feed
 
-    tty.c_cc[VTIME] = 1;
-    tty.c_cc[VMIN] = 0;
+    // This is a blocking read of any number of chars with a maximum timeout (given by VTIME)
+    tty.c_cc[VTIME] = 1; // Wait for up to 1 deciseconds, returning as soon as any data is received
+    tty.c_cc[VMIN] = 0; // if > 0 -> will make read() always wait for bytes (exactly how many is determined by VMIN)
 
     // Set in/out baud rate to be 115200
     cfsetispeed(&tty, B115200);
@@ -477,6 +476,7 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
             if (EXIT)
                 return NULL;
         }
+        float yaw, pitch, roll;
         yaw = atof(yawBuf);
         pitch = -atof(pitchBuf);
         roll = atof(rollBuf);
