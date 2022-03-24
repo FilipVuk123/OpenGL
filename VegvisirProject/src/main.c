@@ -218,6 +218,7 @@ int main()
 
         // generate view matrix
         glm_quat_look(cam.cameraPos, cam.resultQuat, view);
+        // printf("%f, %f, %f, %f\n", cam.resultQuat[0], cam.resultQuat[1], cam.resultQuat[2], cam.resultQuat[3]);
 
         // send MVP matrices to vertex shader
         orqa_send_shander_4x4_matrix(modelLoc, 1, &model[0][0]);
@@ -377,10 +378,8 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr)
         glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});
         glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f});
 
-        pthread_mutex_lock(&mutexLock);
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
-        pthread_mutex_unlock(&mutexLock);
     }
 exitUDP:
     close(s);
@@ -449,9 +448,10 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
         if (EXIT)
             goto exitSerial;
         char headTrackingBuffer[32] = "\0";
-
+        // orqa_sleep(ORQA_SLEEP_MSEC,5);
         read(serial_port, &headTrackingBuffer, sizeof(headTrackingBuffer));
-
+        // printf("%s\n", headTrackingBuffer);
+        
         int b = 0, count = 0;
 
         for (int i = 0; i < HEADTRACKING_BUFFER_SIZE - 1; i++)
@@ -485,10 +485,8 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
         glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});
         glm_quatv(rollQuat, orqa_radians(roll), (vec3){0.0f, 0.0f, 1.0f});
 
-        pthread_mutex_lock(&mutexLock);
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
-        pthread_mutex_unlock(&mutexLock);
     }
 exitSerial:
     close(serial_port);
