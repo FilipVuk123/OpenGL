@@ -58,13 +58,13 @@ int main()
         return OPENGL_INIT_ERROR;
     orqa_GLFW_make_window_full_screen();                                                                 // Full screen
     GLFWwindow *window = orqa_create_GLFW_window(SCR_WIDTH, SCR_HEIGHT, "Vegvisir Project", NULL, NULL); // glfw window object creation
+    orqa_set_input_mode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);   // use cursor but do not display it
     if (window == NULL)
         return OPENGL_INIT_ERROR;
     orqa_make_window_current(window);
 
     orqa_set_frame_buffer_cb(window, orqa_framebuffer_size_callback); // manipulate view port
     orqa_set_cursor_position_cb(window, orqa_mouse_callback);         // move camera_t with cursor
-    orqa_set_input_mode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);   // use cursor but do not display it
     orqa_set_scroll_cb(window, orqa_scroll_callback);                 // zoom in/out using mouse wheel
 
     if (!orqa_load_glad((GLADloadproc)orqa_get_proc_address))
@@ -257,7 +257,7 @@ int main()
             orqa_bind_vertex_object_and_draw_it(VAOs[7], GL_TRIANGLES, MRSS.numTriangles);
         }
 
-        printf("\r Render FPS: %f", 1000/orqa_get_time_diff_msec(clock, orqa_time_now()));
+        // printf("\r Render FPS: %f", 1000/orqa_get_time_diff_msec(clock, orqa_time_now()));
 
         // glfw: swap buffers and poll IO events
         orqa_swap_buffers(window);
@@ -359,19 +359,20 @@ static void *orqa_udp_thread(ORQA_REF void *c_ptr)
 
         if (EXIT)
             goto exitUDP;
-
+        orqa_clock_t clock = orqa_time_now();
         if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0)
         {
             printf("Recieving error!\n");
             break;
         }
-
+        fprintf(stdout, "%f\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
         // parse JSON
         JSONObject *json = parseJSON(buf);
         yaw = atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
         free(json);
+        printf("Values: %f, %f, %f\n", yaw, pitch, roll);
 
         // Using quaternions to calculate camera rotations
         glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f});
@@ -448,9 +449,11 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
         if (EXIT)
             goto exitSerial;
         char headTrackingBuffer[32] = "\0";
-        // orqa_sleep(ORQA_SLEEP_MSEC,5);
+        orqa_clock_t clock1 = orqa_time_now();
+        orqa_sleep(ORQA_SLEEP_MSEC,5);
         read(serial_port, &headTrackingBuffer, sizeof(headTrackingBuffer));
-        // printf("%s\n", headTrackingBuffer);
+        printf("Buffer: %s\n", headTrackingBuffer);
+        printf("Time: %f\n", orqa_get_time_diff_msec(clock1, orqa_time_now()));
         
         int b = 0, count = 0;
 
@@ -480,6 +483,7 @@ static void *orqa_read_from_serial(ORQA_REF void *c_ptr)
         yaw = atof(yawBuf);
         pitch = -atof(pitchBuf);
         roll = atof(rollBuf);
+        if (yaw == 0.0 && pitch == 0.0 && roll == 0.0) continue;
 
         glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f});
         glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});
