@@ -10,6 +10,7 @@
         "avcodec.h": "c",
         "orqa_input.h": "c",
         "orqa_opengl.h": "c",
-        "glext.h": "c"
+        "glext.h": "c",
+        "orqa_vegvisir_common.h": "c"
     }
 }
