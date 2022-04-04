@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "glad.h": "c",
+        "glfw3.h": "c",
+        "old_glad.h": "c",
+        "video_reader.h": "c",
+        "avformat.h": "c",
+        "socket.h": "c",
+        "inet.h": "c",
+        "avcodec.h": "c",
+        "orqa_input.h": "c",
+        "orqa_opengl.h": "c",
+        "glext.h": "c",
+        "orqa_vegvisir_common.h": "c"
+    }
+}

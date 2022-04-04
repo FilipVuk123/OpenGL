@@ -23,10 +23,6 @@ typedef enum
 const GLuint SCR_WIDTH = 1920;
 const GLuint SCR_HEIGHT = 1080;
 
-int EXIT = 0;
-
-// fix it!!!
-int mode; // 0 => 360, 1 => MRSS, 2 => DSS
 
 int main()
 {
@@ -175,6 +171,8 @@ int main()
     GLuint modelLoc = orqa_get_uniform_location(shaderProgram, "model");
     GLuint viewLoc = orqa_get_uniform_location(shaderProgram, "view");
     GLuint projLoc = orqa_get_uniform_location(shaderProgram, "proj");
+
+    EXIT = 0;
 
     while (!glfwWindowShouldClose(window))
     { // render loop
