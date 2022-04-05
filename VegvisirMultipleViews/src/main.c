@@ -155,10 +155,9 @@ int main()
     cam.fov = 5.4f;
     orqa_set_window_user_pointer(window, &cam); // sent camera object to callback functions
 
-    // UDP thread & mutex init
-    // pthread_t readFromSerial, readFromUDP;
+    pthread_t readFromSerial, readFromUDP;
     // pthread_create(&readFromUDP, NULL, orqa_udp_thread, &cam);
-    // pthread_create(&readFromSerial, NULL, orqa_read_from_serial, &cam);
+    pthread_create(&readFromSerial, NULL, orqa_read_from_serial, &cam);
 
 
     // MVP matrices init
@@ -270,7 +269,7 @@ static void *orqa_second_view(){
     orqa_make_window_current(window);
 
     orqa_set_frame_buffer_cb(window, orqa_framebuffer_size_callback); // manipulate view port
-    // orqa_set_cursor_position_cb(window, orqa_mouse_callback);         // move camera_t with cursor
+    orqa_set_cursor_position_cb(window, orqa_mouse_callback);         // move camera_t with cursor
     orqa_set_scroll_cb(window, orqa_scroll_callback);                 // zoom in/out using mouse wheel
 
     if (!orqa_load_glad((GLADloadproc)orqa_get_proc_address))
@@ -387,9 +386,8 @@ static void *orqa_second_view(){
     cam2.fov = 5.4f;
     orqa_set_window_user_pointer(window, &cam2); // sent camera object to callback functions
 
-    // UDP thread & mutex init
-    // pthread_t readFromSerial, readFromUDP;
-    // pthread_create(&readFromUDP, NULL, orqa_udp_thread, &cam2);
+    pthread_t readFromSerial, readFromUDP;
+    pthread_create(&readFromUDP, NULL, orqa_udp_thread, &cam2);
     // pthread_create(&readFromSerial, NULL, orqa_read_from_serial, &cam2);
 
     // MVP matrices init

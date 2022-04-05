@@ -30,6 +30,6 @@ int mode2;
 void orqa_process_input(GLFWwindow *window);
 float orqa_radians(const float deg);
 void *orqa_udp_thread(void *c_ptr);
-void *orqa_read_from_serial();
+void *orqa_read_from_serial(void *c_ptr);
 
 #endif

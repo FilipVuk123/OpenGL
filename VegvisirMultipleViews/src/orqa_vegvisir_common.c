@@ -77,20 +77,20 @@ void *orqa_udp_thread(void *c_ptr)
 
         if (EXIT)
             goto exitUDP;
-        orqa_clock_t clock = orqa_time_now();
+        // orqa_clock_t clock = orqa_time_now();
         if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0)
         {
             printf("Recieving error!\n");
             break;
         }
-        fprintf(stdout, "%f\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
+        // fprintf(stdout, "%f\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
         // parse JSON
         JSONObject *json = parseJSON(buf);
         yaw = atof(json->pairs[0].value->stringValue);
         pitch = -atof(json->pairs[1].value->stringValue);
         roll = -atof(json->pairs[2].value->stringValue);
         free(json);
-        printf("Values: %f, %f, %f\n", yaw, pitch, roll);
+        // printf("Values: %f, %f, %f\n", yaw, pitch, roll);
 
         // Using quaternions to calculate camera rotations
         glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f});
@@ -170,8 +170,8 @@ void *orqa_read_from_serial(void *c_ptr)
         orqa_clock_t clock1 = orqa_time_now();
         orqa_sleep(ORQA_SLEEP_MSEC, 5);
         read(serial_port, &headTrackingBuffer, sizeof(headTrackingBuffer));
-        printf("Buffer: %s\n", headTrackingBuffer);
-        printf("Time: %f\n", orqa_get_time_diff_msec(clock1, orqa_time_now()));
+        // printf("Buffer: %s\n", headTrackingBuffer);
+        // printf("Time: %f\n", orqa_get_time_diff_msec(clock1, orqa_time_now()));
 
         int b = 0, count = 0;
 
