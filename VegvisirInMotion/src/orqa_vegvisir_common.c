@@ -11,18 +11,6 @@ void orqa_process_input(GLFWwindow *window)
         orqa_sleep(ORQA_SLEEP_SEC, 1);
         glfwSetWindowShouldClose(window, TRUE);
     }
-    if (orqa_get_key(window, GLFW_KEY_3) == GLFW_PRESS)
-    {
-        mode = 0;
-    }
-    if (orqa_get_key(window, GLFW_KEY_D) == GLFW_PRESS)
-    {
-        mode = 1;
-    }
-    if (orqa_get_key(window, GLFW_KEY_M) == GLFW_PRESS)
-    {
-        mode = 2;
-    }
 }
 
 /// This function converts radians from degrees.
@@ -91,6 +79,7 @@ void *orqa_udp_thread(void *c_ptr)
             printf("Recieving error!\n");
             break;
         }
+        printf("%s\n", buf);
         if (EXIT) goto exit;
         for(int i = 0; i < BUFSIZE; i++){
             const char ch = buf[i];
@@ -113,10 +102,9 @@ void *orqa_udp_thread(void *c_ptr)
             if (EXIT)
                 return NULL;
         }
-        c->mYaw = atof(yawBuf) + 180;
-        c->mPitch= -atof(pitchBuf);
-        c->mRoll = atof(rollBuf);
-
+        c->yaw = atof(yawBuf) + 180;
+        c->pitch= -atof(pitchBuf);
+        c->roll = atof(rollBuf);
     }
 exit:
     // fclose(fptr);
@@ -185,7 +173,6 @@ void *orqa_read_from_serial(void *c_ptr)
         if (EXIT)
             goto exitSerial;
         char headTrackingBuffer[32] = "\0";
-        orqa_clock_t clock1 = orqa_time_now();
         orqa_sleep(ORQA_SLEEP_MSEC, 5);
         read(serial_port, &headTrackingBuffer, sizeof(headTrackingBuffer));
         // printf("Buffer: %s\n", headTrackingBuffer);
@@ -215,9 +202,9 @@ void *orqa_read_from_serial(void *c_ptr)
             if (EXIT)
                 return NULL;
         }
-        c->htYaw = atof(yawBuf);
-        c->htPitch = -atof(pitchBuf);
-        c->htRoll = -atof(rollBuf);
+        c->yaw = atof(yawBuf);
+        c->pitch = -atof(pitchBuf);
+        c->roll = -atof(rollBuf);
     }
 exitSerial:
     close(serial_port);

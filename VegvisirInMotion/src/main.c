@@ -152,14 +152,22 @@ int main()
     cam.resultQuat[1] = 0.0f;
     cam.resultQuat[2] = 0.0f;
     cam.resultQuat[3] = 1.0f;
+    cam.pitch = 0.0f;
+    cam.roll = 0.0f;
+    cam.yaw = 0.0f;
     cam.fov = 5.4f;
+
+    orqa_camera_t cam1;
+    cam1.pitch = 0.0f;
+    cam1.roll = 0.0f;
+    cam1.yaw = 0.0f;
 
     orqa_set_window_user_pointer(window, &cam); // sent camera object to callback functions
 
     // UDP thread & mutex init
     pthread_t readFromSerial, readFromUDP;
     pthread_create(&readFromUDP, NULL, orqa_udp_thread, &cam);
-    pthread_create(&readFromSerial, NULL, orqa_read_from_serial, &cam);
+    pthread_create(&readFromSerial, NULL, orqa_read_from_serial, &cam1);
 
 
     // MVP matrices init
@@ -191,9 +199,9 @@ int main()
         glm_perspective(cam.fov, (GLfloat)SCR_WIDTH / (GLfloat)SCR_HEIGHT, 0.01f, 100.0f, proj); // zoom
 
         // generate view matrix
-        glm_quatv(pitchQuat, orqa_radians(cam.htPitch - cam.mPitch), (vec3){1.0f, 0.0f, 0.0f});
-        glm_quatv(yawQuat, orqa_radians(cam.htYaw - cam.mYaw), (vec3){0.0f, 1.0f, 0.0f});
-        glm_quatv(rollQuat, orqa_radians(cam.htRoll - cam.mRoll), (vec3){0.0f, 0.0f, 1.0f});
+        glm_quatv(pitchQuat, orqa_radians(cam1.pitch - cam.pitch), (vec3){1.0f, 0.0f, 0.0f});
+        glm_quatv(yawQuat, orqa_radians(cam1.yaw - cam.yaw), (vec3){0.0f, 1.0f, 0.0f});
+        glm_quatv(rollQuat, orqa_radians(cam1.roll - cam.roll), (vec3){0.0f, 0.0f, 1.0f});
 
         glm_quat_mul(yawQuat, pitchQuat, cam.resultQuat);
         glm_quat_mul(cam.resultQuat, rollQuat, cam.resultQuat);
@@ -206,39 +214,23 @@ int main()
         orqa_send_shander_4x4_matrix(viewLoc, 1, &view[0][0]);
         orqa_send_shander_4x4_matrix(projLoc, 1, &proj[0][0]);
 
-        // build texture && draw
-        if (mode == 0)
-        {
-            // 360 dome
-            orqa_bind_texture(textures[3]);
-            orqa_bind_vertex_object_and_draw_it(VAOs[8], GL_TRIANGLES, sph.numTriangles);
-        }
-        else if (mode == 1)
-        {
             // DSS
 
-            orqa_bind_texture(textures[0]);
-            orqa_bind_vertex_object_and_draw_it(VAOs[0], GL_TRIANGLES, rr.numTriangles);
-            orqa_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, lr.numTriangles);
+        orqa_bind_texture(textures[0]);
+        orqa_bind_vertex_object_and_draw_it(VAOs[0], GL_TRIANGLES, rr.numTriangles);
+        orqa_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, lr.numTriangles);
 
-            orqa_bind_texture(textures[2]);
-            orqa_bind_vertex_object_and_draw_it(VAOs[5], GL_TRIANGLES, BW.numTriangles);
-            orqa_bind_vertex_object_and_draw_it(VAOs[6], GL_TRIANGLES, mr.numTriangles);
+        orqa_bind_texture(textures[2]);
+        orqa_bind_vertex_object_and_draw_it(VAOs[5], GL_TRIANGLES, BW.numTriangles);
+        orqa_bind_vertex_object_and_draw_it(VAOs[6], GL_TRIANGLES, mr.numTriangles);
 
-            orqa_bind_texture(textures[1]);
-            orqa_bind_vertex_object_and_draw_it(VAOs[2], GL_TRIANGLES, DSS1.numTriangles);
-            orqa_bind_vertex_object_and_draw_it(VAOs[3], GL_TRIANGLES, DSS2.numTriangles);
-            orqa_bind_vertex_object_and_draw_it(VAOs[4], GL_TRIANGLES, DSS3.numTriangles);
-        }
-        else if (mode == 2)
-        {
-            // MRSS
+        orqa_bind_texture(textures[1]);
+        orqa_bind_vertex_object_and_draw_it(VAOs[2], GL_TRIANGLES, DSS1.numTriangles);
+        orqa_bind_vertex_object_and_draw_it(VAOs[3], GL_TRIANGLES, DSS2.numTriangles);
+        orqa_bind_vertex_object_and_draw_it(VAOs[4], GL_TRIANGLES, DSS3.numTriangles);
 
-            orqa_bind_texture(textures[0]);
-            orqa_bind_vertex_object_and_draw_it(VAOs[7], GL_TRIANGLES, MRSS.numTriangles);
-        }
 
-        // printf("\r Render FPS: %f", 1000/orqa_get_time_diff_msec(clock, orqa_time_now()));
+        printf("\r Render FPS: %f", 1000/orqa_get_time_diff_msec(clock, orqa_time_now()));
 
         // glfw: swap buffers and poll IO events
         orqa_swap_buffers(window);
@@ -260,7 +252,7 @@ int main()
     orqa_delete_buffers(10, EBOs);
     orqa_delete_textures(5, textures);
     orqa_delete_program(shaderProgram);
-threadError:
+
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
     fprintf(stdout, "\nExit OK!\n");
     return OPENGL_OK;

@@ -24,7 +24,6 @@
 #define PORT 8000
 
 int EXIT;
-int mode;
 
 float orqa_radians(const float deg);
 void *orqa_udp_thread(void *c_ptr);

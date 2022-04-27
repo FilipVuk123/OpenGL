@@ -10,10 +10,11 @@
 typedef struct orqa_camera_t{
     vec3 cameraPos;
     GLfloat fov;
-    float mYaw, mPitch, mRoll;
-    float htYaw, htPitch, htRoll;
+    float yaw, pitch, roll;
     versor resultQuat;
 }orqa_camera_t;
+
+
 
 /// This function moves camera (orqa_camera_t) while moving mouse
 void orqa_mouse_callback( 
