@@ -31,7 +31,6 @@ float orqa_radians(const float deg)
 {
     return (deg * M_PI / 180.0f); // calculate radians
 }
-
 /// This function connects to ORQA FPV.One goggles via UDP socket and performs motorless gimbal while goggles are in use.
 void *orqa_udp_thread(void *c_ptr)
 {
@@ -39,7 +38,8 @@ void *orqa_udp_thread(void *c_ptr)
     fprintf(stderr, "In thread\n");
     orqa_camera_t *c = c_ptr;
     char buf[BUFSIZE];
-    float yaw, pitch, roll;
+    mat4 rollMat;
+    glm_mat4_identity(rollMat);
     versor rollQuat, pitchQuat, yawQuat;
     glm_quat_identity(rollQuat);
     glm_quat_identity(yawQuat);
@@ -47,13 +47,23 @@ void *orqa_udp_thread(void *c_ptr)
     struct sockaddr_in serveraddr;
     int s, recv_len, optval = 1;
 
+    
+    // FILE *fptr;
+    // fptr = fopen("UDP_headtracking_latency.txt", "w");
+    // if (fptr == NULL) {
+    //     printf("Error!");
+    //     return NULL;
+    // }
+
     // create a UDP socket
-    if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < -1)
+    if ((s = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
     {
-        printf("socket failed init\n");
+        printf("socket init failed\n");
         return NULL;
     }
-    printf("Socket created!\n");
+    else
+        printf("Socket created!\n");
+
     setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
     memset((char *)&serveraddr, 0, sizeof(serveraddr));
 
@@ -65,30 +75,48 @@ void *orqa_udp_thread(void *c_ptr)
     if (bind(s, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) == -1)
     {
         printf("Binding error!\n");
-        goto exitUDP;
+        goto exit;
     }
-    printf("W8ing for packets!!!\n");
+    printf("Bind done!\n");
     while (1)
     {
         bzero(buf, BUFSIZE);
-
-        if (EXIT)
-            goto exitUDP;
-        orqa_clock_t clock = orqa_time_now();
+        char yawBuf[12] = "\0";
+        char pitchBuf[12] = "\0";
+        char rollBuf[12] = "\0";
+        int b = 0, count = 0;
         if ((recv_len = recv(s, buf, BUFSIZE, 0)) < 0)
         {
             printf("Recieving error!\n");
             break;
         }
-        fprintf(stdout, "%f\n", orqa_get_time_diff_msec(clock, orqa_time_now()));
-        // parse JSON
-        JSONObject *json = parseJSON(buf);
-        yaw = atof(json->pairs[0].value->stringValue);
-        pitch = -atof(json->pairs[1].value->stringValue);
-        roll = -atof(json->pairs[2].value->stringValue);
-        free(json);
-        printf("Values: %f, %f, %f\n", yaw, pitch, roll);
+        printf("%s\n", buf);
+        if (EXIT) goto exit;
+        for(int i = 0; i < BUFSIZE; i++){
+            const char ch = buf[i];
 
+            if (ch == ';')
+                break;
+
+            if (ch == ',')
+            {
+                b = 0;
+                count++;
+                continue;
+            }
+            if (count == 0)
+                yawBuf[b++] = ch;
+            else if (count == 1)
+                pitchBuf[b++] = ch;
+            else
+                rollBuf[b++] = ch;
+            if (EXIT)
+                return NULL;
+        }
+        float pitch, yaw, roll;
+        pitch = -atof(pitchBuf);
+        yaw = atof(yawBuf);
+        roll = -atof(rollBuf);
         // Using quaternions to calculate camera rotations
         glm_quatv(pitchQuat, orqa_radians(pitch), (vec3){1.0f, 0.0f, 0.0f});
         glm_quatv(yawQuat, orqa_radians(yaw), (vec3){0.0f, 1.0f, 0.0f});
@@ -97,11 +125,12 @@ void *orqa_udp_thread(void *c_ptr)
         glm_quat_mul(yawQuat, pitchQuat, c->resultQuat);
         glm_quat_mul(c->resultQuat, rollQuat, c->resultQuat);
     }
-exitUDP:
+exit:
+    // fclose(fptr);
     close(s);
-    printf("UDO socket closed!\n\n");
     return NULL;
 }
+
 void *orqa_read_from_serial(void *c_ptr)
 {
     orqa_camera_t *c = c_ptr;

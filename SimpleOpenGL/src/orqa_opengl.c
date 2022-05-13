@@ -60,15 +60,14 @@ void orqa_get_shader_status(const GLuint shader){
 	}
 }
 
-GLuint orqa_create_program(GLuint *shaders, unsigned int shader_num1, unsigned int shader_num2)
+GLuint orqa_create_program(GLuint *shaders, unsigned int shader_num)
 {
 	GLuint program = glCreateProgram();
-
-	glAttachShader(program, shaders[shader_num1]);
-	glDeleteShader(shaders[shader_num1]);
-	
-	glAttachShader(program, shaders[shader_num2]);
-	glDeleteShader(shaders[shader_num2]);
+	for (unsigned int i = 0; i < shader_num; i++)
+	{
+		glAttachShader(program, shaders[i]);
+		glDeleteShader(shaders[i]);
+	}
 
 	glLinkProgram(program);
     orqa_get_program_status(program);

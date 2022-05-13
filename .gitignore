@@ -1,3 +1,6 @@
 *.out
 *.blend
 *.mtl
+*.yuv
+*.rgb
+
