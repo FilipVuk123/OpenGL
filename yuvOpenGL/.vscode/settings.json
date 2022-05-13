@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "orqa_clock.h": "c",
+        "stdlib.h": "c"
+    }
+}
