@@ -1,10 +1,4 @@
 
-typedef enum
-{
-    OPENGL_OK = 0,
-    OPENGL_INIT_ERROR = -1
-} OpenGLFlags;
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,10 +18,10 @@ const GLuint height = 720;
 
 const GLfloat vertices[] = {
         // pisitions         // texture coords
-         0.5f,  0.5f, 0.0f,  1.0f, 1.0f, // top right vertex
-         0.5f, -0.5f, 0.0f,  1.0f, 0.0f, // bottom right vertex
-        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, // bottom left vertex
-        -0.5f,  0.5f, 0.0f,  0.0f, 1.0f  // top left vertex
+         0.0f,  -0.5f, 0.0f,  0.0f, 1.0f, // top right vertex
+         0.0f, 0.5f, 0.0f,  1.0f, 1.0f, // bottom right vertex
+         1.0f, 0.5f, 0.0f,  1.0f, 0.0f, // bottom left vertex
+         1.0f,  -0.5f, 0.0f,  0.0f, 0.0f  // top left vertex
 };
 const GLuint indices[] = {  
         0, 1, 3, // first triangle
@@ -92,11 +86,11 @@ int main()
     my_set_error_cb(my_error_cb);
     
     if (my_init_glfw(3, 3))
-        return OPENGL_INIT_ERROR;
-    // my_GLFW_make_window_full_screen();                                                                 // Full screen
+        return -1;
+    // my_GLFW_make_window_full_screen();                                                                  // Full screen
     GLFWwindow *window = my_create_GLFW_window(SCR_WIDTH, SCR_HEIGHT, "Press ESC to exit!!!", NULL, NULL); // glfw window object creation
     if (window == NULL)
-        return OPENGL_INIT_ERROR;
+        return -1;
      
     my_make_window_current(window);
 
@@ -104,7 +98,7 @@ int main()
     { // glad: load all OpenGL function pointers. GLFW gives us glfwGetProcAddress that defines the correct function based on which OS we're compiling for
         fprintf(stderr, "In file: %s, line: %d Failed to create initialize GLAD\n", __FILE__, __LINE__);
         glfwTerminate();
-        return OPENGL_INIT_ERROR;
+        return -1;
     }
 
     // shader init, compilation and linking
@@ -144,12 +138,13 @@ int main()
     my_enable_vertex_attrib_array(YUVtexLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 
      
-    GLuint yLoc = my_get_uniform_location(yuvShader, "textureY");
-    GLuint uLoc = my_get_uniform_location(yuvShader, "textureU");
-    GLuint vLoc = my_get_uniform_location(yuvShader, "textureV");
+    GLuint yLoc = glGetUniformLocation(yuvShader, "textureY");
+    GLuint uLoc = glGetUniformLocation(yuvShader, "textureU");
+    GLuint vLoc = glGetUniformLocation(yuvShader, "textureV");
+    
 
     const unsigned int numOfFrames =  150;
-    FILE *input_file = fopen("frames.yuv", "rb");
+    FILE *input_file = fopen("frames2.yuv", "rb");
     const int yuv_size = width*height*3/2;
     uint8_t *inputBuffer = malloc(yuv_size *  numOfFrames);
     fread(inputBuffer, yuv_size *  numOfFrames, 1, input_file);
@@ -165,7 +160,6 @@ int main()
     // texture init
     GLuint *textures = my_create_textures(5);
 
-    
     my_bind_texture(textures[0]);
     my_generate_texture_from_buffer(GL_TEXTURE_2D, GL_LUMINANCE, width, height, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
     my_bind_texture(textures[1]);
@@ -219,6 +213,9 @@ int main()
         // glfw: swap buffers and poll IO events
         my_swap_buffers(window);
         my_pool_events();
+        if (i == 50){
+            sleep(5);
+        }
         if (i ==  numOfFrames) break;
     }
     free(rgb);
@@ -238,6 +235,6 @@ int main()
     my_delete_program(yuvShader);
      
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
-    return OPENGL_OK;
+    return 0;
 }
 
