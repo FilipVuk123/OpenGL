@@ -141,7 +141,7 @@ int main()
     GLuint rgbLoc = glGetUniformLocation(rgbShader, "texture1");
     
 
-    const unsigned int numOfFrames =  500;
+    const unsigned int numOfFrames =  1000;
     FILE *input_file = fopen("frames2.yuv", "rb");
     const int yuv_size = width*height*3/2;
     uint8_t *inputBuffer = malloc(yuv_size *  numOfFrames);
@@ -209,15 +209,15 @@ int main()
 
         my_use_program(yuvShader);
         
-        glActiveTexture(GL_TEXTURE1);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureY);
         my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width, height, GL_RED, GL_UNSIGNED_BYTE, yuv_buffer);
         
-        glActiveTexture(GL_TEXTURE2);
+        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, textureU);
         my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width/2, height/2, GL_RED, GL_UNSIGNED_BYTE, yuv_buffer + width*height);
         
-        glActiveTexture(GL_TEXTURE3);
+        glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, textureV);
         my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width/2, height/2, GL_RED, GL_UNSIGNED_BYTE, yuv_buffer + width*height + width*height/4);
         
