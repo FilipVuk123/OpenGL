@@ -31,8 +31,8 @@ const GLfloat verticesRGB[] = {
 
 const GLfloat verticesYUV[] = {
         // pisitions         // texture coords
-         1.00f,  1.00f, -0.1f,  1.0f, 1.0f, // top right vertex
-         1.00f, -1.00f, -0.1f,  1.0f, 0.0f, // bottom right vertex
+         0.00f,  1.00f, -0.1f,  1.0f, 1.0f, // top right vertex
+         0.00f, -1.00f, -0.1f,  1.0f, 0.0f, // bottom right vertex
         -1.00f, -1.00f, -0.1f,  0.0f, 0.0f, // bottom left vertex
         -1.00f,  1.00f, -0.1f,  0.0f, 1.0f  // top left vertex
 };
@@ -149,28 +149,29 @@ int main()
     
     
     // texture init
-    GLuint textureY, textureU, textureV, rgbTex;
+    // GLuint textureY, textureU, textureV, rgbTex;
+    GLuint *textures = my_create_textures(5); 
 
-    glGenTextures(1, &rgbTex);
-    glBindTexture(GL_TEXTURE_2D, rgbTex); 
+    glGenTextures(1, &textures[0]);
+    glBindTexture(GL_TEXTURE_2D, textures[0]); 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glGenerateMipmap(GL_TEXTURE_2D);
 
 
-    glGenTextures(1, &textureY);
-    glBindTexture(GL_TEXTURE_2D, textureY); 
+    glGenTextures(1, &textures[1]);
+    glBindTexture(GL_TEXTURE_2D, textures[1]); 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
     glGenerateMipmap(GL_TEXTURE_2D);
 
 
-    glGenTextures(1, &textureU);
-    glBindTexture(GL_TEXTURE_2D, textureU); 
+    glGenTextures(1, &textures[2]);
+    glBindTexture(GL_TEXTURE_2D, textures[2]); 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
     glGenerateMipmap(GL_TEXTURE_2D);
 
 
-    glGenTextures(1, &textureV);
-    glBindTexture(GL_TEXTURE_2D, textureV); 
+    glGenTextures(1, &textures[3]);
+    glBindTexture(GL_TEXTURE_2D, textures[3]); 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
     glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -202,7 +203,7 @@ int main()
         
         my_use_program(rgbShader);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, rgbTex);
+        glBindTexture(GL_TEXTURE_2D, textures[0]);
         my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
         my_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, 6);
         free(rgb);
@@ -210,15 +211,15 @@ int main()
         my_use_program(yuvShader);
         
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, textureY);
+        glBindTexture(GL_TEXTURE_2D, textures[1]);
         my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width, height, GL_RED, GL_UNSIGNED_BYTE, yuv_buffer);
         
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, textureU);
+        glBindTexture(GL_TEXTURE_2D, textures[2]);
         my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width/2, height/2, GL_RED, GL_UNSIGNED_BYTE, yuv_buffer + width*height);
         
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, textureV);
+        glBindTexture(GL_TEXTURE_2D, textures[3]);
         my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width/2, height/2, GL_RED, GL_UNSIGNED_BYTE, yuv_buffer + width*height + width*height/4);
         
         my_bind_vertex_object_and_draw_it(VAOs[0], GL_TRIANGLES, 6);
