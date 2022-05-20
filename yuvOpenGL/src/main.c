@@ -16,13 +16,6 @@ const GLuint SCR_HEIGHT =  1080;
 const GLuint width = 1280;
 const GLuint height = 720;
 
-const GLfloat vertices[] = {
-        // pisitions         // texture coords
-         0.0f,  -0.5f, 0.0f,  0.0f, 1.0f, // top right vertex
-         0.0f, 0.5f, 0.0f,  1.0f, 1.0f, // bottom right vertex
-         1.0f, 0.5f, 0.0f,  1.0f, 0.0f, // bottom left vertex
-         1.0f,  -0.5f, 0.0f,  0.0f, 0.0f  // top left vertex
-};
 const GLuint indices[] = {  
         0, 1, 3, // first triangle
         1, 2, 3  // second triangle
@@ -48,37 +41,6 @@ static void my_process_input(GLFWwindow *window)
 }
 
 
-float myCLAMP(float a)
-{
-    return (float)MIN(MAX(a, 0), 255);
-}
-
-static uint8_t* yuv420p_to_rgb3(uint8_t *yuv_buffer, const int width, const int height)
-{
-    uint8_t *y = yuv_buffer;
-    uint8_t *u = yuv_buffer + (width * height);
-    uint8_t *v = yuv_buffer + (width * height) + (width * height / 4);
-    uint8_t *rgb = calloc((width * height * 3), sizeof(uint8_t));
-    float b, g, r;
-    uint8_t *ptr = rgb;
-    for (int j = 0; j < height; j++)
-    {
-        for (int i = 0; i < width; i++)
-        {
-            int yy = y[(j * width) + i];
-            int uu = u[((j / 2) * (width / 2)) + (i / 2)];
-            int vv = v[((j / 2) * (width / 2)) + (i / 2)];
-            r = 1.164 * (yy - 16) + 1.596 * (vv - 128);
-            g = 1.164 * (yy - 16) - 0.813 * (vv - 128) - 0.391 * (uu - 128);
-            b = 1.164 * (yy - 16) + 2.018 * (uu - 128);
-            *ptr++ = myCLAMP(r);
-            *ptr++ = myCLAMP(g);
-            *ptr++ = myCLAMP(b);
-        }
-    }
-    return rgb;
-}
-
 
 
 int main()
@@ -103,18 +65,10 @@ int main()
 
     // shader init, compilation and linking
     GLuint shaders[3];
-
     shaders[0] = my_load_shader_from_file("./shaders/vertexShader.vert", GL_VERTEX_SHADER);
-    shaders[1] = my_load_shader_from_file("./shaders/fragmentShader.frag", GL_FRAGMENT_SHADER);
-    shaders[2] = my_load_shader_from_file("./shaders/yuv.frag", GL_FRAGMENT_SHADER);
-    GLuint rgbShader = my_create_program(shaders, 0, 1);
-     
+    shaders[1] = my_load_shader_from_file("./shaders/yuv.frag", GL_FRAGMENT_SHADER);
 
-    GLuint yuvShader = my_create_program(shaders, 0, 2);
-     
-    // get indexes for shader variables
-    GLuint RGBposLoc = my_get_attrib_location(rgbShader, "aPos");
-    GLuint RGBtexLoc = my_get_attrib_location(rgbShader, "aTexCoord");
+    GLuint yuvShader = my_create_program(shaders, 0, 1);
 
     // get indexes for shader variables
     GLuint YUVposLoc = my_get_attrib_location(yuvShader, "aPos");
@@ -125,15 +79,10 @@ int main()
     GLuint *VBOs = my_generate_VBOs(2);
     GLuint *EBOs = my_generate_EBOs(2);
 
-    my_bind_VAOs(VAOs[0]);
-    my_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[0], sizeof(vertices), vertices, GL_STATIC_DRAW);
-    my_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[0], sizeof(indices), indices, GL_STATIC_DRAW);
-    my_enable_vertex_attrib_array(RGBposLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
-    my_enable_vertex_attrib_array(RGBtexLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 
-    my_bind_VAOs(VAOs[1]);
-    my_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[1], sizeof(verticesRGB), verticesRGB, GL_STATIC_DRAW);
-    my_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[1], sizeof(indices), indices, GL_STATIC_DRAW);
+    my_bind_VAOs(VAOs[0]);
+    my_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[0], sizeof(verticesRGB), verticesRGB, GL_STATIC_DRAW);
+    my_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[0], sizeof(indices), indices, GL_STATIC_DRAW);
     my_enable_vertex_attrib_array(YUVposLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
     my_enable_vertex_attrib_array(YUVtexLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 
@@ -143,95 +92,87 @@ int main()
     GLuint vLoc = glGetUniformLocation(yuvShader, "textureV");
     
 
-    const unsigned int numOfFrames =  150;
-    FILE *input_file = fopen("frames2.yuv", "rb");
+    const unsigned int numOfFrames =  1;
+    FILE *input_file = fopen("out720.yuv", "rb");
     const int yuv_size = width*height*3/2;
     uint8_t *inputBuffer = malloc(yuv_size *  numOfFrames);
     fread(inputBuffer, yuv_size *  numOfFrames, 1, input_file);
-    
-    uint8_t *rgb; 
-    
-
-    uint8_t *yBuffer = malloc(width*height);
-    uint8_t *uBuffer = malloc(width*height/4);
-    uint8_t *vBuffer = malloc(width*height/4);
-
+    fclose(input_file);
     
     // texture init
-    GLuint *textures = my_create_textures(5);
+    GLuint textureY, textureU, textureV;
 
-    my_bind_texture(textures[0]);
-    my_generate_texture_from_buffer(GL_TEXTURE_2D, GL_LUMINANCE, width, height, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
-    my_bind_texture(textures[1]);
-    my_generate_texture_from_buffer(GL_TEXTURE_2D, GL_LUMINANCE, width/2, height/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
-    my_bind_texture(textures[2]);
-    my_generate_texture_from_buffer(GL_TEXTURE_2D, GL_LUMINANCE, width/2, height/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
-    
-    my_bind_texture(textures[3]);
-    my_generate_texture_from_buffer(GL_TEXTURE_2D, GL_RGB, width, height, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-     
+    glGenTextures(1, &textureY);
+    glBindTexture(GL_TEXTURE_2D, textureY); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glUniform1i(yLoc, textures[0]);
-    glUniform1i(uLoc, textures[1]);
-    glUniform1i(vLoc, textures[2]);
-     
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, inputBuffer);
+    glGenerateMipmap(GL_TEXTURE_2D);
 
-    int i = 0;
+    glGenTextures(1, &textureU);
+    glBindTexture(GL_TEXTURE_2D, textureU); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, inputBuffer + width*height);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glGenTextures(1, &textureV);
+    glBindTexture(GL_TEXTURE_2D, textureV); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, inputBuffer + width*height + width*height/4);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    my_use_program(yuvShader);
+    glUniform1i(yLoc, 0);
+    glUniform1i(uLoc, 1);
+    glUniform1i(vLoc, 2);
+
+
     while (!glfwWindowShouldClose(window))
     { // render loop
         // input
         my_process_input(window);
 
-        uint8_t *yuv_buffer = malloc(yuv_size);
-        memcpy(yuv_buffer, inputBuffer + (i++ * yuv_size), yuv_size);
-        memcpy(yBuffer, yuv_buffer, width*height);
-        memcpy(uBuffer, yuv_buffer + width*height, width*height/4);
-        memcpy(vBuffer, yuv_buffer + width*height + width*height/4, width*height/4);
-        rgb = yuv420p_to_rgb3(yuv_buffer, width, height);
-        free(yuv_buffer);
 
         // render
         my_clear_color_buffer(0.2f, 0.2f, 0.2f, 1.0f);
         my_clear_buffer(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        my_use_program(rgbShader);
-        my_bind_texture(textures[3]);
-        my_generate_texture_from_buffer(GL_TEXTURE_2D, GL_RGB, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
-        my_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, 6);
-        
         
         my_use_program(yuvShader);
-        my_bind_texture(textures[0]);
-        my_generate_texture_from_buffer(GL_TEXTURE_2D, GL_LUMINANCE, width, height, GL_LUMINANCE, GL_UNSIGNED_BYTE, yBuffer);
-        my_bind_texture(textures[1]);
-        my_generate_texture_from_buffer(GL_TEXTURE_2D, GL_LUMINANCE, width/2, height/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, vBuffer);
-        my_bind_texture(textures[2]);
-        my_generate_texture_from_buffer(GL_TEXTURE_2D, GL_LUMINANCE, width/2, height/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, uBuffer);
+        // bind textures on corresponding texture units
+        
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureY);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, textureU);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, textureV);
         my_bind_vertex_object_and_draw_it(VAOs[0], GL_TRIANGLES, 6);
         
 
         // glfw: swap buffers and poll IO events
         my_swap_buffers(window);
         my_pool_events();
-        if (i == 50){
-            sleep(5);
-        }
-        if (i ==  numOfFrames) break;
     }
-    free(rgb);
-    free(yBuffer);
-    free(uBuffer);
-    free(vBuffer);
     free(inputBuffer);
     // free(yuv_buffer);
-    fclose(input_file);
+    
 
     // deallocating stuff
     my_delete_VAOs(2, VAOs);
     my_delete_buffers(2, VBOs);
     my_delete_buffers(2, EBOs);
-    my_delete_textures(5, textures);
-    my_delete_program(rgbShader);
     my_delete_program(yuvShader);
      
     glfwTerminate(); // glfw: terminate, clearing all previously allocated GLFW resources.
