@@ -17,7 +17,7 @@ typedef enum
 
 #include <stdio.h>
 #include <pthread.h>
-#include <orqa_vegvisir_common.h>
+#include "orqa_vegvisir_common.h"
 
 // screen resolution
 const GLuint SCR_WIDTH = 1920;
@@ -38,7 +38,7 @@ int main()
     orqa_make_window_current(window);
 
     orqa_set_frame_buffer_cb(window, orqa_framebuffer_size_callback); // manipulate view port
-    // orqa_set_cursor_position_cb(window, orqa_mouse_callback);         // move camera_t with cursor
+    orqa_set_cursor_position_cb(window, orqa_mouse_callback);         // move camera_t with cursor
     orqa_set_scroll_cb(window, orqa_scroll_callback);                 // zoom in/out using mouse wheel
 
     if (!orqa_load_glad((GLADloadproc)orqa_get_proc_address))
@@ -172,8 +172,6 @@ int main()
     GLuint viewLoc = orqa_get_uniform_location(shaderProgram, "view");
     GLuint projLoc = orqa_get_uniform_location(shaderProgram, "proj");
 
-    EXIT = 0;
-
     while (!glfwWindowShouldClose(window))
     { // render loop
         // input
@@ -196,37 +194,22 @@ int main()
         orqa_send_shander_4x4_matrix(viewLoc, 1, &view[0][0]);
         orqa_send_shander_4x4_matrix(projLoc, 1, &proj[0][0]);
 
-        // build texture && draw
-        if (mode == 0)
-        {
-            // 360 dome
-            orqa_bind_texture(textures[3]);
-            orqa_bind_vertex_object_and_draw_it(VAOs[8], GL_TRIANGLES, sph.numTriangles);
-        }
-        else if (mode == 1)
-        {
-            // DSS
 
-            orqa_bind_texture(textures[0]);
-            orqa_bind_vertex_object_and_draw_it(VAOs[0], GL_TRIANGLES, rr.numTriangles);
-            orqa_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, lr.numTriangles);
+        // DSS
 
-            orqa_bind_texture(textures[2]);
-            orqa_bind_vertex_object_and_draw_it(VAOs[5], GL_TRIANGLES, BW.numTriangles);
-            orqa_bind_vertex_object_and_draw_it(VAOs[6], GL_TRIANGLES, mr.numTriangles);
+        orqa_bind_texture(textures[0]);
+        orqa_bind_vertex_object_and_draw_it(VAOs[0], GL_TRIANGLES, rr.numTriangles);
+        orqa_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, lr.numTriangles);
 
-            orqa_bind_texture(textures[1]);
-            orqa_bind_vertex_object_and_draw_it(VAOs[2], GL_TRIANGLES, DSS1.numTriangles);
-            orqa_bind_vertex_object_and_draw_it(VAOs[3], GL_TRIANGLES, DSS2.numTriangles);
-            orqa_bind_vertex_object_and_draw_it(VAOs[4], GL_TRIANGLES, DSS3.numTriangles);
-        }
-        else if (mode == 2)
-        {
-            // MRSS
+        orqa_bind_texture(textures[2]);
+        orqa_bind_vertex_object_and_draw_it(VAOs[5], GL_TRIANGLES, BW.numTriangles);
+        orqa_bind_vertex_object_and_draw_it(VAOs[6], GL_TRIANGLES, mr.numTriangles);
 
-            orqa_bind_texture(textures[0]);
-            orqa_bind_vertex_object_and_draw_it(VAOs[7], GL_TRIANGLES, MRSS.numTriangles);
-        }
+        orqa_bind_texture(textures[1]);
+        orqa_bind_vertex_object_and_draw_it(VAOs[2], GL_TRIANGLES, DSS1.numTriangles);
+        orqa_bind_vertex_object_and_draw_it(VAOs[3], GL_TRIANGLES, DSS2.numTriangles);
+        orqa_bind_vertex_object_and_draw_it(VAOs[4], GL_TRIANGLES, DSS3.numTriangles);
+
 
         // printf("\r Render FPS: %f", 1000/orqa_get_time_diff_msec(clock, orqa_time_now()));
 

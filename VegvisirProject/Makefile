@@ -1,7 +1,7 @@
 CC=gcc
 
 CFLAGS   := -Iinclude  -pipe -Wall -pedantic -g -Wextra
-LDFLAGS  := -ldl -lpthread -lavformat -lavcodec -lavutil 
+LDFLAGS  := 
 LDLIBS   := -lm -ldl -lglfw -lpthread -lavformat -lavcodec -lavutil 
 
 SRC_DIR:=src

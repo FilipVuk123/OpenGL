@@ -1,5 +1,5 @@
-#ifndef ORQA_VEGVISIR_COMMON_H
-#define ORQA_VEGVISIR_COMMON_H
+#ifndef _ORQA_VEGVISIR_COMMON_H_
+#define _ORQA_VEGVISIR_COMMON_H_
 
 #include <vendor/cglm/cglm.h>
 #include "vendor/json.h"
@@ -18,17 +18,9 @@
 #include <termios.h> // Contains POSIX terminal control definitions
 #include <unistd.h>  // write(), read(), close()
 
-
-#define BUFSIZE 1024
-#define HEADTRACKING_BUFFER_SIZE 64
-#define PORT 8000
-
-int EXIT;
-int mode;
-
 float orqa_radians(const float deg);
 void *orqa_udp_thread(void *c_ptr);
 void orqa_process_input(GLFWwindow *window);
 void *orqa_read_from_serial();
 
-#endif
+#endif // ORQA_VEGVISIR_COMMON_H

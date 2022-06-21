@@ -1,5 +1,11 @@
 #include "orqa_vegvisir_common.h"
 
+#define BUFSIZE 1024
+#define HEADTRACKING_BUFFER_SIZE 64
+#define PORT 8000
+
+volatile int toEXIT = 0;
+
 /// This function keeps track all the input code.
 /// Moves between DSS, MRSS and 360 modules using 'D', 'M' or '3' keys
 void orqa_process_input(GLFWwindow *window)
@@ -7,21 +13,9 @@ void orqa_process_input(GLFWwindow *window)
     // keeps all the input code
     if (orqa_get_key(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
-        EXIT = 1;
+        toEXIT = 1;
         orqa_sleep(ORQA_SLEEP_SEC, 1);
         glfwSetWindowShouldClose(window, TRUE);
-    }
-    if (orqa_get_key(window, GLFW_KEY_3) == GLFW_PRESS)
-    {
-        mode = 0;
-    }
-    if (orqa_get_key(window, GLFW_KEY_D) == GLFW_PRESS)
-    {
-        mode = 1;
-    }
-    if (orqa_get_key(window, GLFW_KEY_M) == GLFW_PRESS)
-    {
-        mode = 2;
     }
 }
 
@@ -91,7 +85,7 @@ void *orqa_udp_thread(void *c_ptr)
             break;
         }
         printf("%s\n", buf);
-        if (EXIT) goto exit;
+        if (toEXIT) goto exit;
         for(int i = 0; i < BUFSIZE; i++){
             const char ch = buf[i];
 
@@ -110,7 +104,7 @@ void *orqa_udp_thread(void *c_ptr)
                 pitchBuf[b++] = ch;
             else
                 rollBuf[b++] = ch;
-            if (EXIT)
+            if (toEXIT)
                 return NULL;
         }
         float pitch, yaw, roll;
@@ -190,7 +184,7 @@ void *orqa_read_from_serial(void *c_ptr)
     char rollBuf[12] = "\0";
     while (1)
     {
-        if (EXIT)
+        if (toEXIT)
             goto exitSerial;
         char headTrackingBuffer[32] = "\0";
         orqa_clock_t clock1 = orqa_time_now();
@@ -220,7 +214,7 @@ void *orqa_read_from_serial(void *c_ptr)
                 pitchBuf[b++] = ch;
             else
                 rollBuf[b++] = ch;
-            if (EXIT)
+            if (toEXIT)
                 return NULL;
         }
         float yaw, pitch, roll;
