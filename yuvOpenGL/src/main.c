@@ -21,14 +21,6 @@ const GLuint indices[] = {
         1, 2, 3  // second triangle
 };
 
-const GLfloat verticesRGB[] = {
-        // pisitions         // texture coords
-         0.0f,  -0.5f, 0.0f,  1.0f, 1.0f, // top right vertex
-         0.0f, 0.5f, 0.0f,    1.0f, 0.0f, // bottom right vertex
-         1.0f, 0.5f, 0.0f,    0.0f, 0.0f, // bottom left vertex
-         1.0f,  -0.5f, 0.0f,  0.0f, 1.0f  // top left vertex
-};
-
 const GLfloat verticesYUV[] = {
         // pisitions         // texture coords
          0.00f,  1.00f, -0.1f,  1.0f, 1.0f, // top right vertex
@@ -113,20 +105,13 @@ int main()
     GLuint YUVposLoc = my_get_attrib_location(yuvShader, "aPos");
     GLuint YUVtexLoc = my_get_attrib_location(yuvShader, "aTexCoord");
 
-    GLuint RGBposLoc = my_get_attrib_location(yuvShader, "aPos");
-    GLuint RGBtexLoc = my_get_attrib_location(yuvShader, "aTexCoord");
+    GLuint RGBposLoc = my_get_attrib_location(rgbShader, "aPos");
+    GLuint RGBtexLoc = my_get_attrib_location(rgbShader, "aTexCoord");
 
     // init & binding array & buffer objects
     GLuint *VAOs = my_generate_VAOs(2);
     GLuint *VBOs = my_generate_VBOs(2);
     GLuint *EBOs = my_generate_EBOs(2);
-
-
-    my_bind_VAOs(VAOs[0]);
-    my_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[0], sizeof(verticesRGB), verticesRGB, GL_STATIC_DRAW);
-    my_bind_buffer_set_data(GL_ELEMENT_ARRAY_BUFFER, EBOs[0], sizeof(indices), indices, GL_STATIC_DRAW);
-    my_enable_vertex_attrib_array(RGBposLoc, 3, GL_FLOAT, 5 * sizeof(float), (float *)0);
-    my_enable_vertex_attrib_array(RGBtexLoc, 2, GL_FLOAT, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 
     my_bind_VAOs(VAOs[1]);
     my_bind_buffer_set_data(GL_ARRAY_BUFFER, VBOs[1], sizeof(verticesYUV), verticesYUV, GL_STATIC_DRAW);
@@ -138,39 +123,28 @@ int main()
     GLuint yLoc = glGetUniformLocation(yuvShader, "textureY");
     GLuint uLoc = glGetUniformLocation(yuvShader, "textureU");
     GLuint vLoc = glGetUniformLocation(yuvShader, "textureV");
-    GLuint rgbLoc = glGetUniformLocation(rgbShader, "texture1");
     
-
-    const unsigned int numOfFrames =  1000;
-    FILE *input_file = fopen("frames2.yuv", "rb");
+    FILE *input_file = fopen("data/out720.yuv", "rb");
+    if(input_file == NULL){
+        return 1;
+    }
     const int yuv_size = width*height*3/2;
-    uint8_t *inputBuffer = malloc(yuv_size *  numOfFrames);
-    fread(inputBuffer, yuv_size *  numOfFrames, 1, input_file);
+    uint8_t *inputBuffer = malloc(yuv_size);
+    fread(inputBuffer, yuv_size, 1, input_file);
     
     
     // texture init
     // GLuint textureY, textureU, textureV, rgbTex;
     GLuint *textures = my_create_textures(5); 
-
-    glGenTextures(1, &textures[0]);
-    glBindTexture(GL_TEXTURE_2D, textures[0]); 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-
-    glGenTextures(1, &textures[1]);
+    
     glBindTexture(GL_TEXTURE_2D, textures[1]); 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
     glGenerateMipmap(GL_TEXTURE_2D);
 
-
-    glGenTextures(1, &textures[2]);
     glBindTexture(GL_TEXTURE_2D, textures[2]); 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
     glGenerateMipmap(GL_TEXTURE_2D);
 
-
-    glGenTextures(1, &textures[3]);
     glBindTexture(GL_TEXTURE_2D, textures[3]); 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -182,56 +156,36 @@ int main()
     glUniform1i(uLoc, 1);
     glUniform1i(vLoc, 2);
 
-    my_use_program(rgbShader);
-    glUniform1i(rgbLoc, 0);
-
-    int i = 0;
-    uint8_t *yuv_buffer = malloc(yuv_size);
-    
-
     while (!glfwWindowShouldClose(window))
     { // render loop
         // input
         my_process_input(window);
 
-        memcpy(yuv_buffer, inputBuffer + (i++ * yuv_size), yuv_size);
-        uint8_t *rgb = yuv420p_to_rgb3(yuv_buffer, width, height);
 
         // render
         my_clear_color_buffer(0.2f, 0.2f, 0.2f, 1.0f);
         my_clear_buffer(GL_COLOR_BUFFER_BIT);
-        
-        my_use_program(rgbShader);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, textures[0]);
-        my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
-        my_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, 6);
-        free(rgb);
 
         my_use_program(yuvShader);
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textures[1]);
-        my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width, height, GL_RED, GL_UNSIGNED_BYTE, yuv_buffer);
+        my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width, height, GL_RED, GL_UNSIGNED_BYTE, inputBuffer);
         
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, textures[2]);
-        my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width/2, height/2, GL_RED, GL_UNSIGNED_BYTE, yuv_buffer + width*height);
+        my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width/2, height/2, GL_RED, GL_UNSIGNED_BYTE, inputBuffer + width*height);
         
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, textures[3]);
-        my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width/2, height/2, GL_RED, GL_UNSIGNED_BYTE, yuv_buffer + width*height + width*height/4);
+        my_update_texture_from_buffer(GL_TEXTURE_2D,0,0, width/2, height/2, GL_RED, GL_UNSIGNED_BYTE, inputBuffer + width*height + width*height/4);
         
-        my_bind_vertex_object_and_draw_it(VAOs[0], GL_TRIANGLES, 6);
-        
-        
-        if(i++ == numOfFrames) break;
+        my_bind_vertex_object_and_draw_it(VAOs[1], GL_TRIANGLES, 6);
 
         // glfw: swap buffers and poll IO events
         my_swap_buffers(window);
         my_pool_events();
     }
-    free(yuv_buffer);
     free(inputBuffer);
     fclose(input_file);
 
