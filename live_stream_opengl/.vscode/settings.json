@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "my_clock.h": "c",
+        "stdlib.h": "c",
+        "my_opengl.h": "c"
+    }
+}
