@@ -19,7 +19,7 @@ const char *vertexShaderSource =
     "uniform mat4 projection;\n"
     "void main()\n"
     "{\n"
-    "    gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);\n"
+    "    gl_Position = projection * vec4(vertex.xy, -3.0, 1.0);\n"
     "    TexCoords = vertex.zw;\n"
     "};\n";
 const char *fragmentShaderSource =
