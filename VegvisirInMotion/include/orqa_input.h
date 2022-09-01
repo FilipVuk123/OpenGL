@@ -12,6 +12,7 @@ typedef struct orqa_camera_t{
     GLfloat fov;
     float yaw, pitch, roll;
     versor resultQuat;
+    char* serialportname;
 }orqa_camera_t;
 
 

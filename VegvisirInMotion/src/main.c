@@ -156,17 +156,19 @@ int main()
     cam.roll = 0.0f;
     cam.yaw = 0.0f;
     cam.fov = 5.4f;
+    cam.serialportname = "/dev/ttyUSB0";
 
     orqa_camera_t cam1;
     cam1.pitch = 0.0f;
     cam1.roll = 0.0f;
     cam1.yaw = 0.0f;
+    cam1.serialportname = "/dev/ttyUSB1";
 
     orqa_set_window_user_pointer(window, &cam); // sent camera object to callback functions
 
     // UDP thread & mutex init
     pthread_t readFromSerial, readFromUDP;
-    pthread_create(&readFromUDP, NULL, orqa_udp_thread, &cam);
+    pthread_create(&readFromUDP, NULL, orqa_read_from_serial, &cam);
     pthread_create(&readFromSerial, NULL, orqa_read_from_serial, &cam1);
 
 
